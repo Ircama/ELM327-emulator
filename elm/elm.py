@@ -1,4 +1,5 @@
 
+import re
 import os
 import pty
 import threading
@@ -32,9 +33,8 @@ class ELM:
     def __enter__(self):
 
         # make a new pty
-        self.master_fd, slave_fd = pty.openpty()
-        self.slave_name = os.ttyname(slave_fd)
-        os.close(slave_fd)
+        self.master_fd, self.slave_fd = pty.openpty()
+        self.slave_name = os.ttyname(self.slave_fd)
 
         # start the read thread
         self.running = True
@@ -45,10 +45,12 @@ class ELM:
         return self.slave_name
 
 
-    def __exit__(self):
+    def __exit__(self, exc_type, exc_value, traceback):
         self.running = False
         self.thread.join()
+        os.close(self.slave_fd)
         os.close(self.master_fd)
+        return False # don't suppress any exceptions
 
 
     def run(self):
@@ -57,11 +59,12 @@ class ELM:
 
             # get the latest command
             cmd = self.read()
+            print("recv: ", cmd)
 
             # if it didn't contain any egregious errors, handle it
-            if cmd:
-                resp = self.handle(cmd)
-                self.write(resp)
+            # if cmd:
+                # resp = self.handle(cmd)
+                # self.write(resp)
 
 
     def read(self):
@@ -79,7 +82,7 @@ class ELM:
             if c == '\n':
                 break
 
-            if not re.match(ELM_VALID_CHARS, c):
+            if not re.match(self.ELM_VALID_CHARS, c):
                 pass
 
             buffer += c
@@ -93,17 +96,20 @@ class ELM:
 
     def handle(self, cmd):
         """ handles all commands """
-        if re.match(ELM_AT, cmd):
-            if re.match(ELM_ECHO, cmd):
+        if re.match(self.ELM_AT, cmd):
+            if re.match(self.ELM_ECHO, cmd):
                 self.echo = (cmd[3] == '1')
-            elif re.match(ELM_HEADERS, cmd):
+            elif re.match(self.ELM_HEADERS, cmd):
                 self.headers = (cmd[3] == '1')
-            elif re.match(ELM_LINEFEEDS, cmd):
+            elif re.match(self.ELM_LINEFEEDS, cmd):
                 self.linefeeds = (cmd[3] == '1')
             else:
                 pass
         else:
             pass
+
+        return "OK"
+
 
     def set_defaults(self):
         """ returns all settings to their defaults """
