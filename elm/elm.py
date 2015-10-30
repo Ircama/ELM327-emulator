@@ -9,18 +9,24 @@ class ELM:
     ELM_VALID_CHARS = r"[a-zA-Z0-9 \n\r]"
 
     # constant AT commands
-    ELM_AT        = r"^AT"
-    ELM_ECHO      = r"^ATE[01]$"
-    ELM_HEADERS   = r"^ATH[01]$"
-    ELM_LINEFEEDS = r"^ATL[01]$"
+    ELM_AT = r"^AT"
+
+    ELM_RESET            = r"Z$"
+    ELM_WARM_START       = r"WS$"
+    ELM_DEFAULTS         = r"D$"
+    ELM_VERSION          = r"I$"
+    ELM_ECHO             = r"E[01]$"
+    ELM_HEADERS          = r"H[01]$"
+    ELM_LINEFEEDS        = r"L[01]$"
+    ELM_DESCRIBE_PROTO   = r"DP$"
+    ELM_DESCRIBE_PROTO_N = r"DPN$"
+    ELM_SET_PROTO        = r"SPA?[0-9A-C]$"
+    ELM_ERASE_PROTO      = r"SP00$"
+    ELM_TRY_PROTO        = r"TPA?[0-9A-C]$"
 
 
     def __init__(self, protocols, ecus):
-
-        # ELM state
-        self.echo = True
-        self.headers = True
-        self.linefeeds = True
+        self.set_defaults()
 
 
     def __enter__(self):
@@ -98,3 +104,9 @@ class ELM:
                 pass
         else:
             pass
+
+    def set_defaults(self):
+        """ returns all settings to their defaults """
+        self.echo = True
+        self.headers = True
+        self.linefeeds = True
