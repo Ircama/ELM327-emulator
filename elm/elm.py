@@ -47,7 +47,7 @@ class ELM:
 
     def __exit__(self, exc_type, exc_value, traceback):
         self.running = False
-        self.thread.join()
+        # self.thread.join()
         os.close(self.slave_fd)
         os.close(self.master_fd)
         return False # don't suppress any exceptions
@@ -60,6 +60,7 @@ class ELM:
             # get the latest command
             cmd = self.read()
             print("recv: ", cmd)
+            self.write("OK")
 
             # if it didn't contain any egregious errors, handle it
             # if cmd:
@@ -91,6 +92,7 @@ class ELM:
 
 
     def write(self, resp):
+        resp += "\n>"
         return os.write(self.master_fd, resp.encode())
 
 
