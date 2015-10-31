@@ -7,23 +7,26 @@ import threading
 
 class ELM:
 
-    ELM_VALID_CHARS = r"[a-zA-Z0-9 \n\r]"
+    ELM_VALID_CHARS = r"[a-zA-Z0-9 \n\r]*"
 
-    # constant AT commands
+    # AT commands
     ELM_AT = r"^AT"
 
-    ELM_RESET            = r"Z$"
-    ELM_WARM_START       = r"WS$"
-    ELM_DEFAULTS         = r"D$"
-    ELM_VERSION          = r"I$"
-    ELM_ECHO             = r"E[01]$"
-    ELM_HEADERS          = r"H[01]$"
-    ELM_LINEFEEDS        = r"L[01]$"
-    ELM_DESCRIBE_PROTO   = r"DP$"
-    ELM_DESCRIBE_PROTO_N = r"DPN$"
-    ELM_SET_PROTO        = r"SPA?[0-9A-C]$"
-    ELM_ERASE_PROTO      = r"SP00$"
-    ELM_TRY_PROTO        = r"TPA?[0-9A-C]$"
+    ELM_RESET            = r"ATZ$"
+    ELM_WARM_START       = r"ATWS$"
+    ELM_DEFAULTS         = r"ATD$"
+    ELM_VERSION          = r"ATI$"
+    ELM_ECHO             = r"ATE[01]$"
+    ELM_HEADERS          = r"ATH[01]$"
+    ELM_LINEFEEDS        = r"ATL[01]$"
+    ELM_DESCRIBE_PROTO   = r"ATDP$"
+    ELM_DESCRIBE_PROTO_N = r"ATDPN$"
+    ELM_SET_PROTO        = r"ATSPA?[0-9A-C]$"
+    ELM_ERASE_PROTO      = r"ATSP00$"
+    ELM_TRY_PROTO        = r"ATTPA?[0-9A-C]$"
+
+    # responses
+    ELM_OK = "OK"
 
 
     def __init__(self, protocols, ecus):
@@ -58,14 +61,13 @@ class ELM:
         while self.running:
 
             # get the latest command
-            cmd = self.read()
-            print("recv: ", cmd)
-            self.write("OK")
+            self.cmd = self.read()
+            print("recv:", repr(self.cmd))
 
             # if it didn't contain any egregious errors, handle it
-            # if cmd:
-                # resp = self.handle(cmd)
-                # self.write(resp)
+            if self.validate(self.cmd):
+                resp = self.handle(self.cmd)
+                self.write(resp)
 
 
     def read(self):
@@ -83,8 +85,8 @@ class ELM:
             if c == '\n':
                 break
 
-            if not re.match(self.ELM_VALID_CHARS, c):
-                pass
+            if c == '\r':
+                continue # ignore carraige returns
 
             buffer += c
 
@@ -92,25 +94,62 @@ class ELM:
 
 
     def write(self, resp):
-        resp += "\n>"
+        """ write a response to the port """
+
+        n = "\r\n" if self.linefeeds else "\r"
+
+        resp += n + ">"
+
+        if self.echo:
+            resp = self.cmd + n + resp
+
+        print("write:", repr(resp))
+
         return os.write(self.master_fd, resp.encode())
+
+
+    def validate(self, cmd):
+
+        if not re.match(self.ELM_VALID_CHARS, cmd):
+            return False
+
+        # TODO: more tests
+
+        return True
 
 
     def handle(self, cmd):
         """ handles all commands """
+
+        cmd = self.sanitize(cmd)
+
+        print("handling:", repr(cmd))
+
         if re.match(self.ELM_AT, cmd):
             if re.match(self.ELM_ECHO, cmd):
                 self.echo = (cmd[3] == '1')
+                print("set ECHO %s" % self.echo)
+                return self.ELM_OK
             elif re.match(self.ELM_HEADERS, cmd):
                 self.headers = (cmd[3] == '1')
+                print("set HEADERS %s" % self.headers)
+                return self.ELM_OK
             elif re.match(self.ELM_LINEFEEDS, cmd):
                 self.linefeeds = (cmd[3] == '1')
+                print("set LINEFEEDS %s" % self.linefeeds)
+                return self.ELM_OK
             else:
                 pass
         else:
             pass
 
-        return "OK"
+        return ""
+
+
+    def sanitize(self, cmd):
+        cmd = cmd.replace(" ", "")
+        cmd = cmd.upper()
+        return cmd
 
 
     def set_defaults(self):
