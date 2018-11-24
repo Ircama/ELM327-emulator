@@ -19,3 +19,31 @@ The serial port to be used by the application interfacing the simulator is displ
     Running on /dev/pts/1
 
 Logging is controlled through `elm.yaml` (in the current directory by default). Its path can be set through the *ELM_LOG_CFG* environment variable.
+
+A dictionary is used to define commands and pids. The dictionary includes more sections:
+
+- 'AT': AT commands
+- 'default': all default pids
+- any additional custom section can be used to define specific scenarios
+
+Custom scenarios replace the default settings ('AT' and 'default').
+
+Allowed keys to be used in the dictionary:
+
+- 'Pid': short pid description
+- 'Descr': shall be set to a string describing the pid
+- 'Exec': command to be executed
+- 'Log': logging.debug argument
+- 'ResponseFooter': run a funtion and returns a footer to the response
+- 'ResponseHeader': run a funtion and returns a header to the response
+- 'Response': returned bytes 
+- 'Action': can be set to 'skip' in order to skip the processing of the pid
+- 'Header': not used
+
+At the *Enter command:* prompt, the emulator accepts the following commands:
+
+- q = quit
+- p = pause
+- r = resume
+- emulator.scenario='name of the new scenario'
+- any other Python command can be used to query the backend thread
