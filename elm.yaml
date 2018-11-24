@@ -22,17 +22,8 @@ handlers:
     console:
         class: logging.StreamHandler
         level: INFO
-        #level: DEBUG
         formatter: compact
         stream: ext://sys.stdout
-
-loggers:
-    fiona:
-        level: ERROR
-        propagate: no
-    rasterio:
-        level: ERROR
-        propagate: no
 
 root:
     level: DEBUG
