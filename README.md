@@ -22,28 +22,28 @@ Logging is controlled through `elm.yaml` (in the current directory by default). 
 
 A dictionary is used to define commands and pids. The dictionary includes more sections:
 
-- 'AT': AT commands
-- 'default': all default pids
+- `'AT'`: AT commands
+- `'default'`: all default pids
 - any additional custom section can be used to define specific scenarios
 
-Custom scenarios replace the default settings ('AT' and 'default').
+If `emulator.scenario` is set to a string different from *default*, the custom scenario set by the string is applied; any key defined in the custom scenario replaces the default settings ('AT' and 'default' scenarios).
 
 Allowed keys to be used in the dictionary:
 
-- 'Pid': short pid description
-- 'Descr': shall be set to a string describing the pid
-- 'Exec': command to be executed
-- 'Log': logging.debug argument
-- 'ResponseFooter': run a funtion and returns a footer to the response
-- 'ResponseHeader': run a funtion and returns a header to the response
-- 'Response': returned bytes 
-- 'Action': can be set to 'skip' in order to skip the processing of the pid
-- 'Header': not used
+- `'Pid'`: short pid description
+- `'Descr'`: shall be set to a string describing the pid
+- `'Exec'`: command to be executed
+- `'Log'`: logging.debug argument
+- `'ResponseFooter'`: run a funtion and returns a footer to the response
+- `'ResponseHeader'`: run a funtion and returns a header to the response
+- `'Response'`: returned bytes 
+- `'Action'`: can be set to 'skip' in order to skip the processing of the pid
+- `'Header'`: not used
 
 At the *Enter command:* prompt, the emulator accepts the following commands:
 
-- q = quit
-- p = pause
-- r = resume
-- emulator.scenario='name of the new scenario'
-- any other Python command can be used to query the backend thread
+- `q` = quit
+- `p` = pause
+- `r` = resume
+- `emulator.scenario='name of the new scenario'`
+- any other Python command can be used to query/configure the backend thread

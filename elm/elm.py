@@ -411,7 +411,6 @@ class ELM:
         dump = hexdump.dump(cmd.encode('utf-8'), sep=":")
         logging.debug("handling: %s - %s", repr(cmd), dump)
 
-        # All other requests (different from AT...) are managed through the dictionary
         s = { **self.ObdMessage['default'], **self.ObdMessage['AT'], **self.ObdMessage[self.scenario] }
         for i in s:
             if re.match(i, cmd):
