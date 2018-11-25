@@ -8,6 +8,7 @@ import pty
 import threading
 import hexdump
 import time
+import sys
 
 
 def setup_logging(
@@ -34,13 +35,13 @@ class THREAD:
 class ELM:
 
     # List of known ECUs:
-    ECU_R_ADDR_H = b"7EA"  # Responses sent by HVECU (Hybrid contol module) 7E2/7EA
-    ECU_R_ADDR_E = b"7E8"  # Responses sent by Engine ECU - ECM (engine control module) 7E0/7E8
-    ECU_R_ADDR_T = b"7E9"  # Responses sent by Transmission ECU - TCM (transmission control module) 7E1/7E9
-    ECU_ADDR_I = b"7C0"  # ICE ECU address
-    ECU_R_ADDR_I = b"7C8"  # Responses sent by ICE ECU address
-    ECU_R_ADDR_B = b"7EB"  # Responses sent by Traction Battery ECU - 7E3/7EB
-    ECU_R_ADDR_P = b"7CC"  # Responses sent by Air Conditioning ECU - 7C4/7CC
+    ECU_R_ADDR_H = "7EA"  # Responses sent by HVECU (Hybrid contol module) 7E2/7EA
+    ECU_R_ADDR_E = "7E8"  # Responses sent by Engine ECU - ECM (engine control module) 7E0/7E8
+    ECU_R_ADDR_T = "7E9"  # Responses sent by Transmission ECU - TCM (transmission control module) 7E1/7E9
+    ECU_ADDR_I = "7C0"  # ICE ECU address
+    ECU_R_ADDR_I = "7C8"  # Responses sent by ICE ECU address
+    ECU_R_ADDR_B = "7E"  # Responses sent by Traction Battery ECU - 7E3/7EB
+    ECU_R_ADDR_P = "7CC"  # Responses sent by Air Conditioning ECU - 7C4/7CC
 
     # PID Response functions
     def ResponseRpm(self, cmd, parameters):
@@ -52,8 +53,8 @@ class ELM:
             self.rpmIncrement = -1
         if self.rpm < self.minRpm:
             self.rpmIncrement = 1
-        return (self.ECU_R_ADDR_E + b' 04 41 0C ' + ret.encode() +
-                self.ECU_R_ADDR_H + b' 04 41 0C ' + ret.encode())
+        return (self.ECU_R_ADDR_E + ' 04 41 0C ' + ret +
+                self.ECU_R_ADDR_H + ' 04 41 0C ' + ret)
 
     def ResponseSpeed(self, cmd, parameters):
         logging.debug("Current SPEED value: %s", self.speed)
@@ -63,22 +64,36 @@ class ELM:
             self.speedIncrement = -1
         if self.speed < self.minSpeed:
             self.speedIncrement = 1
-        return (self.ECU_R_ADDR_E + b' 03 41 0D ' + ret.encode() +
-                self.ECU_R_ADDR_H + b' 03 41 0D ' + ret.encode())
+        return (self.ECU_R_ADDR_E + ' 03 41 0D ' + ret +
+                self.ECU_R_ADDR_H + ' 03 41 0D ' + ret)
 
     def ResponsePidsA(self, cmd, parameters):
         if not self.pids_a:
             self.pids_a = True
             logging.debug("first PIDS_A %s", self.pids_a)
             time.sleep(1)
-            return (b'SEARCHING...\r')
-        return (b'')
+            return ('SEARCHING...\r')
+        return ('')
 
-    ELM_R_OK = b"OK\r"
+    def ResponsePidsOff(self, cmd, parameters):
+        if not self.pids_a:
+            self.pids_a = True
+            logging.debug("first PIDS_A %s", self.pids_a)
+            time.sleep(1)
+            return ('SEARCHING...\rUNABLE TO CONNECT\r')
+        return ('NO DATA\r')
+
+    ELM_R_OK = "OK\r"
 
     # PID Dictionary
     ObdMessage = {
+        # AT Commands
         'AT' : {
+            r"ATTP[0-9A-C]+$": {
+                'Descr': 'ELM_TRY_PROTO',
+                'Log': '"Try protocol %s", cmd[4:]',
+                'Response': ELM_R_OK
+            },
             r"^ATE[01]$": {
                 'Descr': 'AT ECHO',
                 'Exec': 'self.echo = (cmd[3] == "1")',
@@ -118,115 +133,303 @@ class ELM:
             r"^ATRV$": {
                 'Descr': 'AT read volt',
                 'Log': '"Volt = 13.8"',
-                'Response': b"13.8V\r"
+                'Response': "13.8V\r"
             },
             r"^ATZ$": {
                 'Descr': 'AT RESET',
                 'Log': '"Sleep 0.5 seconds"',
                 'Exec': 'time.sleep(0.5)',
-                'Response': b"\r\rELM327 v1.5",
+                'Response': "\r\rELM327 v1.5",
             },
             r"^ATDP$": {
                 'Descr': 'set DESCRIBE_PROTO',
                 'Exec': 'time.sleep(0.5)',
-                'Response': b"ISO 15765-4 (CAN 11/500)\r"
+                'Response': "ISO 15765-4 (CAN 11/500)\r"
             },
             r"^ATDPN$": {
                 'Descr': 'set DESCRIBE_PROTO_N',
                 'Exec': 'time.sleep(0.5)',
-                'Response': b"A6\r"
+                'Response': "A6\r"
+            },
+        },
+        # OBD Commands
+        'engineoff' : {
+            r'^0100$': {
+                'Pid': 'ELM_PIDS_A',
+                'Descr': 'PIDS_A',
+                'Response': '',
+                'ResponseHeader': ResponsePidsOff
+            },
+            r'^0600$': {
+                'Pid': 'ELM_MIDS_A',
+                'Descr': 'MIDS_A',
+                'Response': '',
+                'ResponseHeader': ResponsePidsOff
+            },
+            r"^ATDPN$": {
+                'Descr': 'set DESCRIBE_PROTO_N',
+                'Exec': 'time.sleep(0.5)',
+                'Response': "A0\r"
+            },
+        },
+        'test' : {
+            r'^0104[12]?$': {
+                'Pid': 'ENGINE_LOAD',
+                'Descr': 'Calculated Engine Load',
+                'Response': ECU_R_ADDR_E + ' 03 41 04 3F \r'
+            },
+            r'^0105[12]?$': {
+                'Pid': 'COOLANT_TEMP',
+                'Descr': 'Engine Coolant Temperature',
+                'Response': ECU_R_ADDR_E + ' 03 41 05 4B \r'
+            },
+            r'^0110[12]?$': {
+                'Pid': 'MAF',
+                'Descr': 'Air Flow Rate (MAF)',
+                'Response': ECU_R_ADDR_E + ' 04 41 10 0B F7 \r'
+            },
+            r'^011F[12]?$': {
+                'Pid': 'RUN_TIME',
+                'Descr': 'Engine Run Time',
+                'Response': ECU_R_ADDR_E + ' 04 41 1F 00 8D \r'
+            },
+             r'^0123[12]?$': {
+                'Pid': 'FUEL_RAIL_PRESSURE_DIRECT',
+                'Descr': 'Fuel Rail Pressure (direct inject)',
+                'Response': ECU_R_ADDR_E + ' 04 41 23 10 66 \r'
+            },
+            r'^012C[12]?$': {
+                'Pid': 'COMMANDED_EGR',
+                'Descr': 'Commanded EGR',
+                'Response': ECU_R_ADDR_E + ' 03 41 2C 00 \r'
+            },
+            r'^012D[12]?$': {
+                'Pid': 'EGR_ERROR',
+                'Descr': 'EGR Error',
+                'Response': ECU_R_ADDR_E + ' 03 41 2D A9 \r'
+            },
+            r'^0133[12]?$': {
+                'Pid': 'BAROMETRIC_PRESSURE',
+                'Descr': 'Barometric Pressure',
+                'Response': ECU_R_ADDR_E + ' 03 41 33 63 \r'
+            },
+            r'^013C[12]?$': {
+                'Pid': 'CATALYST_TEMP_B1S1',
+                'Descr': 'Catalyst Temperature: Bank 1 - Sensor 1',
+                'Response': ECU_R_ADDR_E + ' 04 41 3C 04 4C \r'
+            },
+            r'^0140$': {
+                'Pid':
+                'PIDS_C',
+                'Descr':
+                'PIDS_C',
+                'Response':
+                ECU_R_ADDR_T + ' 06 41 40 40 0C 00 00 \r' + ECU_R_ADDR_E +
+                ' 06 41 40 44 DC 00 09 \r'
+            },
+             r'^0142[12]?$': {
+                'Pid': 'CONTROL_MODULE_VOLTAGE',
+                'Descr': 'Control module voltage',
+                'Response': ECU_R_ADDR_T + ' 04 41 42 3A 56 \r00 \r'
+            },
+            r'^014A[12]?$': {
+                'Pid': 'ACCELERATOR_POS_E',
+                'Descr': 'Accelerator pedal position E',
+                'Response': ECU_R_ADDR_E + ' 03 41 4A 00 \r'
+            },
+             r'^015D[12]?$': {
+                'Pid': 'FUEL_INJECT_TIMING',
+                'Descr': 'Fuel injection timing',
+                'Response': ECU_R_ADDR_E + ' 04 41 5D 69 00 \r'
             },
         },
         'default' : {
-            r'^0131$': {
-                'Pid': 'DISTANCE_SINCE_DTC_CLEAR',
-                'Descr': 'Distance traveled since codes cleared',
-                'Response': ECU_R_ADDR_E + b' 04 41 31 C8 1F \r'
+            r'^0104[12]?$': {
+                'Pid': 'ENGINE_LOAD',
+                'Descr': 'Calculated Engine Load',
+                'Response': ECU_R_ADDR_E + ' 03 41 04 00 \r'
             },
-            r'^0133$': {
+            r'^0105[12]?$': {
+                'Pid': 'COOLANT_TEMP',
+                'Descr': 'Engine Coolant Temperature',
+                'Response': ECU_R_ADDR_E + ' 05 41 05 7B \r'
+            },
+            r'^010B[12]?$': {
+                'Pid': 'INTAKE_PRESSURE',
+                'Descr': 'Intake Manifold Pressure',
+                'Response': ECU_R_ADDR_E + ' 03 41 0B 73 \r'
+            },
+            r'^010C[12]?$': {
+                'Pid': 'RPM',
+                'Descr': 'Engine RPM',
+                'Response': '',
+                'ResponseFooter': ResponseRpm
+            },
+            r'^010D[12]?$': {
+                'Pid': 'SPEED',
+                'Descr': 'Vehicle Speed',
+                'Response': '',
+                'ResponseFooter': ResponseSpeed
+            },
+            r'^010F[12]?$': {
+                'Pid': 'INTAKE_TEMP',
+                'Descr': 'Intake Air Temp',
+                'Response': ECU_R_ADDR_E + ' 03 41 0F 44 \r'
+            },
+            r'^0110[12]?$': {
+                'Pid': 'MAF',
+                'Descr': 'Air Flow Rate (MAF)',
+                'Response': ECU_R_ADDR_E + ' 04 41 10 05 1F \r'
+            },
+            r'^0111[12]?$': {
+                'Pid': 'THROTTLE_POS',
+                'Descr': 'Throttle Position',
+                'Response': ECU_R_ADDR_E + ' 03 41 11 FF \r'
+            },
+            r'^011F[12]?$': {
+                'Pid': 'RUN_TIME',
+                'Descr': 'Engine Run Time',
+                'Response': ECU_R_ADDR_E + ' 04 41 1F 00 8C \r'
+            },
+             r'^0121[12]?$': {
+                'Pid': 'DISTANCE_W_MIL',
+                'Descr': 'Distance Traveled with MIL on',
+                'Response': ECU_R_ADDR_E + ' 04 41 21 00 00 \r00 \r'
+            },
+             r'^0123[12]?$': {
+                'Pid': 'FUEL_RAIL_PRESSURE_DIRECT',
+                'Descr': 'Fuel Rail Pressure (direct inject)',
+                'Response': ECU_R_ADDR_E + ' 04 41 23 1A 0E \r'
+            },
+            r'^012C[12]?$': {
+                'Pid': 'COMMANDED_EGR',
+                'Descr': 'Commanded EGR',
+                'Response': ECU_R_ADDR_E + ' 03 41 2C 0D \r'
+            },
+            r'^012D[12]?$': {
+                'Pid': 'EGR_ERROR',
+                'Descr': 'EGR Error',
+                'Response': ECU_R_ADDR_E + ' 03 41 2D 80 \r'
+            },
+            r'^0133[12]?$': {
                 'Pid': 'BAROMETRIC_PRESSURE',
                 'Descr': 'Barometric Pressure',
-                'Response': ECU_R_ADDR_E + b' 03 41 33 63 \r'
+                'Response': ECU_R_ADDR_E + ' 03 41 33 65 \r'
             },
-            r'^0146$': {
-                'Pid': 'AMBIENT_AIR_TEMP',
+            r'^0131[12]?$': {
+                'Pid': 'DISTANCE_SINCE_DTC_CLEAR',
+                'Descr': 'Distance traveled since codes cleared',
+                'Response': ECU_R_ADDR_E + ' 04 41 31 C8 1F \r'
+            },
+            r'^013C[12]?$': {
+                'Pid': 'CATALYST_TEMP_B1S1',
+                'Descr': 'Catalyst Temperature: Bank 1 - Sensor 1',
+                'Response': ECU_R_ADDR_E + ' 04 41 3C 04 44 \r'
+            },
+             r'^0142[12]?$': {
+                'Pid': 'CONTROL_MODULE_VOLTAGE',
+                'Descr': 'Control module voltage',
+                'Response': ECU_R_ADDR_T + ' 04 41 42 39 D6 \r00 \r'
+            },
+            r'^0146[12]?$': {
+                'Pid': 'AMBIANT_AIR_TEMP',
                 'Descr': 'Ambient air temperature',
-                'Response': b''
+                'Response': ECU_R_ADDR_E + ' 03 41 46 43 \r'
             },
-            r'^2100$': {
+            r'^0149[12]?$': {
+                'Pid': 'ACCELERATOR_POS_D',
+                'Descr': 'Accelerator pedal position D',
+                'Response': ECU_R_ADDR_E + ' 03 41 49 00 \r'
+            },
+            r'^014A[12]?$': {
+                'Pid': 'ACCELERATOR_POS_E',
+                'Descr': 'Accelerator pedal position E',
+                'Response': ECU_R_ADDR_E + ' 03 41 4A 45 \r'
+            },
+            r'^014C[12]?$': {
+                'Pid': 'THROTTLE_ACTUATOR',
+                'Descr': 'Commanded throttle actuator',
+                'Response': ECU_R_ADDR_T + ' 03 41 4C 00 \r'
+            },
+            r'^014D[12]?$': {
+                'Pid': 'RUN_TIME_MIL',
+                'Descr': 'Time run with MIL on',
+                'Response': ECU_R_ADDR_T + ' 04 41 4D 00 00 \r00 \r'
+            },
+            r'^014E[12]?$': {
+                'Pid': 'TIME_SINCE_DTC_CLEARED',
+                'Descr': 'Time since trouble codes cleared',
+                'Response': ECU_R_ADDR_T + ' 04 41 4E 4C 69 \r00 \r'
+            },
+             r'^015D[12]?$': {
+                'Pid': 'FUEL_INJECT_TIMING',
+                'Descr': 'Fuel injection timing',
+                'Response': ECU_R_ADDR_E + ' 04 41 5D 66 00 \r'
+            },
+           # Custom
+            r'^2100[12]?$': {
                 'Pid': 'xxxxxxx',
                 'Descr': 'xxxxxxxxxxxx',
-                'Response': ECU_R_ADDR_H + b' 06 61 00 84 00 00 01 \r'
+                'Response': ECU_R_ADDR_H + ' 06 61 00 84 00 00 01 \r'
             },
             r'^2101[1234]?$': {
                 'Pid': 'TempPress',
                 'Descr': 'Amb temperature & pressure',
                 'Response':
-                b'7EA 10 18 61 01 00 63 42 32 \r7EA 21 63 38 00 00 00 00 00 \r7EA 22 2D 28 51 FF C8 1D FF \r7EA 23 FF 1C 13 99 00 00 00 \r'
+                '7EA 10 18 61 01 00 63 42 32 \r7EA 21 63 38 00 00 00 00 00 \r7EA 22 2D 28 51 FF C8 1D FF \r7EA 23 FF 1C 13 99 00 00 00 \r'
             },
-            r'^2129$': {
+            r'^2129[12]?$': {
                 'Pid': 'Fuel Input',
                 'Descr': 'Fuel level - main tank',
-                'Response': ECU_R_ADDR_I + b' 03 61 29 15 \r',
+                'Response': ECU_R_ADDR_I + ' 03 61 29 15 \r',
                 'Header': ECU_ADDR_I
             },
-            r'^212A$': {
+            r'^212A[12]?$': {
                 'Pid': 'Fuel',
                 'Descr': 'Fuel level - sub tank',
-                'Response': ECU_R_ADDR_I + b' 03 7F 21 12 \r',
+                'Response': ECU_R_ADDR_I + ' 03 7F 21 12 \r',
                 'Header': ECU_ADDR_I
             },
-            r'^21A7$': {
+            r'^21A7[12]?$': {
                 'Pid': 'Seat',
                 'Descr': 'Seat belt',
-                'Response': ECU_R_ADDR_I + b' 03 61 A7 20 \r',
+                'Response': ECU_R_ADDR_I + ' 03 61 A7 20 \r',
                 'Header': ECU_ADDR_I
             },
-            r'^2121$': {
+            r'^2121[12]?$': {
                 'Pid': 'Room',
                 'Descr': 'Room Temp Sensor',
-                'Response': ECU_R_ADDR_P + b' 03 61 21 53 \r'
+                'Response': ECU_R_ADDR_P + ' 03 61 21 53 \r'
             },
-            r'^2122$': {
+            r'^2122[12]?$': {
                 'Pid': 'Ambient',
                 'Descr': 'Ambient Temp Sensor',
-                'Response': ECU_R_ADDR_P + b' 03 61 22 5F \r'
+                'Response': ECU_R_ADDR_P + ' 03 61 22 5F \r'
             },
-            r'^213D$': {
+            r'^213D[12]?$': {
                 'Pid': 'Adjusted',
                 'Descr': 'Adjusted Ambient Temp',
-                'Response': ECU_R_ADDR_P + b' 03 61 3D 81 \r'
+                'Response': ECU_R_ADDR_P + ' 03 61 3D 81 \r'
             },
-            r'^010C[12]?$': {
-                'Pid': 'RPM',
-                'Descr': 'Engine RPM',
-                'Response': b'',
-                'ResponseFooter': ResponseRpm
-            },
-            r'^010D[12]?$': {
-                'Pid': 'SPEED',
-                'Descr': 'Speed',
-                'Response': b'',
-                'ResponseFooter': ResponseSpeed
-            },
+            # Supported PIDs for protocols
             r'^0100$': {
                 'Pid':
                 'ELM_PIDS_A',
                 'Descr':
                 'PIDS_A',
                 'Response':
-                ECU_R_ADDR_H + b' 06 41 00 98 3A 80 13 \r' + ECU_R_ADDR_E +
-                b' 06 41 00 BE 3F A8 13 \r',
+                ECU_R_ADDR_H + ' 06 41 00 98 3A 80 13 \r' + ECU_R_ADDR_E +
+                ' 06 41 00 BE 3F A8 13 \r',
                 'ResponseHeader': ResponsePidsA
             },
             r'^0120$': {
                 'Pid':
-                'ELM_PIDS_B',
+                'ELM_PIDS_',
                 'Descr':
-                'PIDS_B',
+                'PIDS_',
                 'Response':
-                ECU_R_ADDR_H + b' 06 41 20 80 01 A0 01 \r' + ECU_R_ADDR_E +
-                b' 06 41 20 90 15 B0 15 \r'
+                ECU_R_ADDR_H + ' 06 41 20 80 01 A0 01 \r' + ECU_R_ADDR_E +
+                ' 06 41 20 90 15 B0 15 \r'
             },
             r'^0140$': {
                 'Pid':
@@ -234,44 +437,39 @@ class ELM:
                 'Descr':
                 'PIDS_C',
                 'Response':
-                ECU_R_ADDR_H + b' 06 41 40 44 CC 00 21 \r' + ECU_R_ADDR_E +
-                b' 06 41 40 7A 1C 80 00 \r'
+                ECU_R_ADDR_H + ' 06 41 40 44 CC 00 21 \r' + ECU_R_ADDR_E +
+                ' 06 41 40 7A 1C 80 00 \r'
             },
             r'^0600$': {
                 'Pid': 'ELM_MIDS_A',
                 'Descr': 'MIDS_A',
-                'Response': ECU_R_ADDR_E + b' 06 46 00 C0 00 00 01 \r'
+                'Response': ECU_R_ADDR_E + ' 06 46 00 C0 00 00 01 \r'
             },
             r'^0620$': {
-                'Pid': 'ELM_MIDS_B',
-                'Descr': 'MIDS_B',
-                'Response': ECU_R_ADDR_E + b' 06 46 20 80 00 80 01 \r'
+                'Pid': 'ELM_MIDS_',
+                'Descr': 'MIDS_',
+                'Response': ECU_R_ADDR_E + ' 06 46 20 80 00 80 01 \r'
             },
             r'^0640$': {
                 'Pid': 'ELM_MIDS_C',
                 'Descr': 'MIDS_C',
-                'Response': ECU_R_ADDR_E + b' 06 46 40 00 00 00 01 \r'
+                'Response': ECU_R_ADDR_E + ' 06 46 40 00 00 00 01 \r'
             },
             r'^0660$': {
                 'Pid': 'ELM_MIDS_D',
                 'Descr': 'MIDS_D',
-                'Response': ECU_R_ADDR_E + b' 06 46 60 00 00 00 01 \r'
+                'Response': ECU_R_ADDR_E + ' 06 46 60 00 00 00 01 \r'
             },
             r'^0680$': {
                 'Pid': 'ELM_MIDS_E',
                 'Descr': 'MIDS_E',
-                'Response': ECU_R_ADDR_E + b' 06 46 80 00 00 00 01 \r'
+                'Response': ECU_R_ADDR_E + ' 06 46 80 00 00 00 01 \r'
             },
             r'^06A0$': {
                 'Pid': 'ELM_MIDS_F',
                 'Descr': 'MIDS_F',
-                'Response': ECU_R_ADDR_E + b' 06 46 A0 F8 00 00 00 \r'
-            },
-            r'^0104$': {
-                'Pid': 'ENGINE_LOAD',
-                'Descr': 'Engine load',
-                'Response': ECU_R_ADDR_E + b' 04 41 04 46 \r'
-            }  # not valid!
+                'Response': ECU_R_ADDR_E + ' 06 46 A0 F8 00 00 00 \r'
+            }
         }
     }
 
@@ -283,7 +481,6 @@ class ELM:
     ELM_VERSION            = r"ATI$"
     ELM_SET_PROTO          = r"ATSPA?[0-9A-C]$"
     ELM_ERASE_PROTO        = r"ATSP00$"
-    ELM_TRY_PROTO          = r"ATTPA?[0-9A-C]$"
 
     def set_defaults(self):
         """ returns all settings to their defaults """
@@ -305,6 +502,7 @@ class ELM:
         self.minRpm = 800
         self.rpmIncrement = 1
 
+        self.commandCounter = 0
         self.caf = 0
         self.header = '7E0'
         self.proto = ''
@@ -384,15 +582,15 @@ class ELM:
     def write(self, resp):
         """ write a response to the port """
 
-        n = b"\r\n" if self.linefeeds else b"\r"
-        resp += n + b">"
+        n = "\r\n" if self.linefeeds else "\r"
+        resp += n + ">"
 
         if self.echo:
-            resp = self.cmd.encode() + n + resp
+            resp = self.cmd + n + resp
 
         logging.debug("write: %s", repr(resp))
 
-        return os.write(self.master_fd, resp)
+        return os.write(self.master_fd, resp.encode())
 
     def validate(self, cmd):
 
@@ -407,6 +605,11 @@ class ELM:
         """ handles all commands """
 
         cmd = self.sanitize(cmd)
+
+        self.commandCounter += 1
+        if self.commandCounter == sys.maxsize:
+            logging.error("Rolling commandCounter")
+            self.commandCounter = 0
 
         dump = hexdump.dump(cmd.encode('utf-8'), sep=":")
         logging.debug("handling: %s - %s", repr(cmd), dump)
@@ -423,15 +626,23 @@ class ELM:
                     logging.error(
                         "Internal error - Missing description for %s", cmd)
                 if 'Log' in s[i]:
-                    exec("logging.debug(" + s[i]['Log'] + ")")
+                    try:
+                        exec("logging.debug(" + s[i]['Log'] + ")")
+                    except Exception as e:
+                        logging.error(
+                        "Error while logging '%s' (%s)", s[i]['Log'], e)
                 if 'Exec' in s[i]:
-                    exec(s[i]['Exec'])
+                    try:
+                        exec(s[i]['Exec'])
+                    except Exception as e:
+                        logging.error(
+                        "Cannot execute '%s' (%s)", s[i]['Exec'], e)
                 if 'Response' in s[i]:
-                    header = b''
+                    header = ''
                     if 'ResponseHeader' in s[i]:
                         header = s[i]['ResponseHeader'](
                             self, cmd, s[i])
-                    footer = b''
+                    footer = ''
                     if 'ResponseFooter' in s[i]:
                         footer = s[i]['ResponseFooter'](
                             self, cmd, s[i])
@@ -442,7 +653,7 @@ class ELM:
                         "Internal error - Missing response for %s", cmd)
                     return self.ELM_R_OK
         logging.info("Unknown ELM command: %s, dump=%s", cmd, dump)
-        return b""
+        return ""
 
     def sanitize(self, cmd):
         cmd = cmd.replace(" ", "")
