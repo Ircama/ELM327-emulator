@@ -29,26 +29,24 @@ A [dictionary](https://docs.python.org/3.7/tutorial/datastructures.html#dictiona
 
 Default settings include both the 'AT' and the 'default' scenarios.
 
-The dictionary used to parse each ELM command is dynamically built as a union of three defined scenarios in the following order: 'default', 'AT', custom scenario (when applied).
-
-Each subsequent scenario rededefine commands of the previousy ones. In principle, 'AT scenario is added to 'default' and, if a custom scenario is used, this is also added on top.
+The dictionary used to parse each ELM command is dynamically built as a union of three defined scenarios in the following order: 'default', 'AT', custom scenario (when applied). Each subsequent scenario redefines commands of the previous scenarios. In principle, 'AT scenario is added to 'default' and, if a custom scenario is used, this is also added on top, and all equal keys are replaced. Then the Priority key defines the precedence to match elements.
 
 If `emulator.scenario` is set to a string different from *default*, the custom scenario set by the string is applied; any key defined in the custom scenario replaces the default settings ('AT' and 'default' scenarios).
 
 Allowed keys to be used in the dictionary:
 
-- `'Pid'`: short pid description
-- `'Descr'`: shall be set to a string describing the pid
+- `'Pid'`: short pid description (used by the `emulator.answer` dictionary)
+- `'Descr'`: string describing the pid
 - `'Exec'`: command to be executed
 - `'Log'`: logging.debug argument
-- `'ResponseFooter'`: run a funtion and returns a footer to the response
-- `'ResponseHeader'`: run a funtion and returns a header to the response
-- `'Response'`: returned bytes 
+- `'ResponseFooter'`: run a function and returns a footer to the response
+- `'ResponseHeader'`: run a function and returns a header to the response
+- `'Response'`: returned data
 - `'Action'`: can be set to 'skip' in order to skip the processing of the pid
 - `'Header'`: not used
 - `'Priority'=number`: when set, the key has higher priority than the default (highest number = 1, lowest = 10 = default)
 
-The simulator provides a trivial monitoring front-end, supporting command line strings and a backend thread executing the actual process.
+The simulator provides a monitoring front-end, supporting commands. The monitoring front-end controls the backend thread executing the actual process.
 
 At the prompt '*Enter command:*', the simulator accepts the following commands:
 
@@ -76,8 +74,7 @@ Enter command: print(emulator.echo)
 False
 ```
 
-One of the possible configurations of the backend thread set through the command prompt is
-the `emulator.answer` dictionary, which has the goal to force answers for specific Pids (`'Pid': '...'`). Its syntax is:
+The command prompt also allows configuring the `emulator.answer` dictionary, which has the goal to force answers for specific Pids (`'Pid': '...'`). Its syntax is:
 
 ```
 emulator.answer = { 'pid' : 'answer', 'pid' : 'answer', ... }
@@ -89,7 +86,7 @@ Example:
 emulator.answer = { 'SPEED': 'NO DATA\r', 'RPM': 'NO DATA\r' }
 ```
 
-The example forces SPEED and RPM pids to always return "NO DATA".
+The above example forces SPEED and RPM pids to always return "NO DATA".
 
 To reset the *emulator.answer* string to its default value:
 
@@ -97,4 +94,6 @@ To reset the *emulator.answer* string to its default value:
 emulator.answer = {}
 ```
 
-The dictionary can be used to build a workflow. The front-end can be controlled by an external piped automator.
+The dictionary can be used to build a workflow.
+
+The front-end can also be controlled by an external piped automator.
