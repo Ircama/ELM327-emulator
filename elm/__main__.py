@@ -1,5 +1,8 @@
+try:
+    import readline
+except:
+    pass #readline not available
 import threading
-
 from .elm import ELM, THREAD
 import time
 import sys
@@ -25,10 +28,11 @@ def main():
                    command = input()
             except EOFError:
                 sys.exit(0)
-            if re.match('^s', command):
+            if re.match('^s [0-9]+$', command):
                 numbers = [int(s) for s in command.split() if s.isdigit()]
-                print("Sleeping for %d seconds" % numbers[0])
-                time.sleep(numbers[0])
+                delay = 10 if numbers == [] else numbers[0]
+                print("Sleeping for %d seconds" % delay)
+                time.sleep(delay)
                 continue
             if command == 'i':
                 prompt = not prompt

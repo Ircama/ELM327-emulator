@@ -41,6 +41,7 @@ class ELM:
     ECU_ADDR_I = "7C0"  # ICE ECU address
     ECU_R_ADDR_I = "7C8"  # Responses sent by ICE ECU address
     ECU_R_ADDR_B = "7E"  # Responses sent by Traction Battery ECU - 7E3/7EB
+    ECU_ADDR_P = "7C4"  # Air Conditioning
     ECU_R_ADDR_P = "7CC"  # Responses sent by Air Conditioning ECU - 7C4/7CC
 
     # PID Response functions
@@ -90,63 +91,74 @@ class ELM:
         # AT Commands
         'AT' : {
             r"ATTP[0-9A-C]+$": {
-                'Descr': 'ELM_TRY_PROTO',
+                'Pid': 'AT_TRY_PROTO',
+                'Descr': 'AT_TRY_PROTO',
                 'Log': '"Try protocol %s", cmd[4:]',
                 'Response': ELM_R_OK
             },
             r"^ATE[01]$": {
+                'Pid': 'AT_ECHO',
                 'Descr': 'AT ECHO',
                 'Exec': 'self.echo = (cmd[3] == "1")',
                 'Log': '"set ECHO ON/OFF : %s", self.echo',
                 'Response': ELM_R_OK
             },
             r"^ATCAF[01]$": {
+                'Pid': 'AT_CAF',
                 'Descr': 'AT CAF',
                 'Exec': 'self.caf = (cmd[4] == "1")',
                 'Log': '"set CAF ON/OFF : %s", self.caf',
                 'Response': ELM_R_OK
             },
             r"^ATH[01]$": {
+                'Pid': 'AT_HEADERS',
                 'Descr': 'AT HEADERS',
                 'Exec': 'self.headers = (cmd[3] == "1")',
                 'Log': '"set HEADERS ON/OFF : %s", self.headers',
                 'Response': ELM_R_OK
             },
             r"^ATL[01]$": {
+                'Pid': 'AT_LINEFEEDS',
                 'Descr': 'AT LINEFEEDS',
                 'Exec': 'self.linefeeds = (cmd[3] == "1")',
                 'Log': '"set LINEFEEDS ON/OFF : %s", self.linefeeds',
                 'Response': ELM_R_OK
             },
             r"^ATSH": {
+                'Pid': 'AT_SET_HEADER',
                 'Descr': 'AT SET HEADER',
                 'Exec': 'self.header = cmd[4:]',
                 'Log': '"set HEADER %s", self.header',
                 'Response': ELM_R_OK
             },
             r"^ATSP[0-9]$": {
+                'Pid': 'AT_PROTO',
                 'Descr': 'AT PROTO',
                 'Exec': 'self.proto = cmd[4]',
                 'Log': '"set PROTO %s", self.proto',
                 'Response': ELM_R_OK
             },
             r"^ATRV$": {
+                'Pid': 'AT_R_VOLT',
                 'Descr': 'AT read volt',
                 'Log': '"Volt = 13.8"',
                 'Response': "13.8V\r"
             },
             r"^ATZ$": {
+                'Pid': 'AT_RESET',
                 'Descr': 'AT RESET',
                 'Log': '"Sleep 0.5 seconds"',
-                'Exec': 'time.sleep(0.5)',
-                'Response': "\r\rELM327 v1.5",
+                'Exec': 'self.reset(0.5)',
+                'Response': "\r\rELM327 v1.5\r"
             },
             r"^ATDP$": {
+                'Pid': 'AT_DESCRIBE_PROTO',
                 'Descr': 'set DESCRIBE_PROTO',
                 'Exec': 'time.sleep(0.5)',
                 'Response': "ISO 15765-4 (CAN 11/500)\r"
             },
             r"^ATDPN$": {
+                'Pid': 'AT_DESCRIBE_PROTO_N',
                 'Descr': 'set DESCRIBE_PROTO_N',
                 'Exec': 'time.sleep(0.5)',
                 'Response': "A6\r"
@@ -158,18 +170,27 @@ class ELM:
                 'Pid': 'ELM_PIDS_A',
                 'Descr': 'PIDS_A',
                 'Response': '',
-                'ResponseHeader': ResponsePidsOff
+                'ResponseHeader': ResponsePidsOff,
+                'Priority': 5
             },
             r'^0600$': {
                 'Pid': 'ELM_MIDS_A',
                 'Descr': 'MIDS_A',
                 'Response': '',
-                'ResponseHeader': ResponsePidsOff
+                'ResponseHeader': ResponsePidsOff,
+                'Priority': 5
             },
             r"^ATDPN$": {
+                'Pid': 'AT_DESCRIBE_PROTO_N',
                 'Descr': 'set DESCRIBE_PROTO_N',
                 'Exec': 'time.sleep(0.5)',
                 'Response': "A0\r"
+            },
+            r"^[0-9][0-9][0-9A-F]+$": {
+                'Pid': 'NO_DATA',
+                'Descr': 'NO_DATA',
+                'Response': 'NO DATA\r',
+                'Priority': 6
             },
         },
         'test' : {
@@ -219,10 +240,8 @@ class ELM:
                 'Response': ECU_R_ADDR_E + ' 04 41 3C 04 4C \r'
             },
             r'^0140$': {
-                'Pid':
-                'PIDS_C',
-                'Descr':
-                'PIDS_C',
+                'Pid': 'PIDS_C',
+                'Descr': 'PIDS_C',
                 'Response':
                 ECU_R_ADDR_T + ' 06 41 40 40 0C 00 00 \r' + ECU_R_ADDR_E +
                 ' 06 41 40 44 DC 00 09 \r'
@@ -367,75 +386,85 @@ class ELM:
                 'Response': ECU_R_ADDR_E + ' 04 41 5D 66 00 \r'
             },
            # Custom
-            r'^2100[12]?$': {
-                'Pid': 'xxxxxxx',
-                'Descr': 'xxxxxxxxxxxx',
-                'Response': ECU_R_ADDR_H + ' 06 61 00 84 00 00 01 \r'
-            },
             r'^2101[1234]?$': {
-                'Pid': 'TempPress',
-                'Descr': 'Amb temperature & pressure',
+                'Pid': 'CUSTOM_T_P',
+                'Descr': 'Ambient temperature & pressure',
                 'Response':
                 '7EA 10 18 61 01 00 63 42 32 \r7EA 21 63 38 00 00 00 00 00 \r7EA 22 2D 28 51 FF C8 1D FF \r7EA 23 FF 1C 13 99 00 00 00 \r'
             },
+            r'^2113[12]?$': {
+                'Pid': 'CUSTOM_AUX_B_VOLT',
+                'Descr': '+B Voltage Value',
+                'Response': ECU_R_ADDR_I + ' 03 61 13 95 \r',
+                'Header': ECU_ADDR_I
+            },
             r'^2129[12]?$': {
-                'Pid': 'Fuel Input',
+                'Pid': 'CUSTOM_FUEL_MAIN',
                 'Descr': 'Fuel level - main tank',
                 'Response': ECU_R_ADDR_I + ' 03 61 29 15 \r',
                 'Header': ECU_ADDR_I
             },
             r'^212A[12]?$': {
-                'Pid': 'Fuel',
+                'Pid': 'CUSTOM_FUEL_SUB',
                 'Descr': 'Fuel level - sub tank',
                 'Response': ECU_R_ADDR_I + ' 03 7F 21 12 \r',
                 'Header': ECU_ADDR_I
             },
             r'^21A7[12]?$': {
-                'Pid': 'Seat',
+                'Pid': 'CUSTOM_SEAT',
                 'Descr': 'Seat belt',
                 'Response': ECU_R_ADDR_I + ' 03 61 A7 20 \r',
                 'Header': ECU_ADDR_I
             },
             r'^2121[12]?$': {
-                'Pid': 'Room',
+                'Pid': 'CUSTOM_ROOM',
                 'Descr': 'Room Temp Sensor',
-                'Response': ECU_R_ADDR_P + ' 03 61 21 53 \r'
+                'Response': ECU_R_ADDR_P + ' 03 61 21 53 \r',
+                'Header': ECU_ADDR_P
             },
             r'^2122[12]?$': {
-                'Pid': 'Ambient',
+                'Pid': 'CUSTOM_AMBIENT',
                 'Descr': 'Ambient Temp Sensor',
-                'Response': ECU_R_ADDR_P + ' 03 61 22 5F \r'
+                'Response': ECU_R_ADDR_P + ' 03 61 22 5F \r',
+                'Header': ECU_ADDR_P
+            },
+            r'^2124[12]?$': {
+                'Pid': 'CUSTOM_SOLAR',
+                'Descr': 'Solar sensor',
+                'Response': ECU_R_ADDR_P + ' 03 61 24 01 \r',
+                'Header': ECU_ADDR_P
             },
             r'^213D[12]?$': {
-                'Pid': 'Adjusted',
+                'Pid': 'CUSTOM_ADJUSTED',
                 'Descr': 'Adjusted Ambient Temp',
-                'Response': ECU_R_ADDR_P + ' 03 61 3D 81 \r'
+                'Response': ECU_R_ADDR_P + ' 03 61 3D 81 \r',
+                'Header': ECU_ADDR_P
+            },
+            r'^2168[12]?$': {
+                'Pid': 'CUSTOM_RHEOSTAT',
+                'Descr': 'Rheostat value (dark=0,bright=255)',
+                'Response': ECU_R_ADDR_I + ' 03 7F 21 12 \r',
+                'Header': ECU_ADDR_I
             },
             # Supported PIDs for protocols
             r'^0100$': {
-                'Pid':
-                'ELM_PIDS_A',
-                'Descr':
-                'PIDS_A',
+                'Pid': 'ELM_PIDS_A',
+                'Descr': 'PIDS_A',
                 'Response':
                 ECU_R_ADDR_H + ' 06 41 00 98 3A 80 13 \r' + ECU_R_ADDR_E +
                 ' 06 41 00 BE 3F A8 13 \r',
                 'ResponseHeader': ResponsePidsA
             },
             r'^0120$': {
-                'Pid':
-                'ELM_PIDS_',
-                'Descr':
-                'PIDS_',
+                'Pid': 'ELM_PIDS_',
+                'Descr': 'PIDS_',
                 'Response':
                 ECU_R_ADDR_H + ' 06 41 20 80 01 A0 01 \r' + ECU_R_ADDR_E +
                 ' 06 41 20 90 15 B0 15 \r'
             },
             r'^0140$': {
-                'Pid':
-                'ELM_PIDS_C',
-                'Descr':
-                'PIDS_C',
+                'Pid': 'ELM_PIDS_C',
+                'Descr': 'PIDS_C',
                 'Response':
                 ECU_R_ADDR_H + ' 06 41 40 44 CC 00 21 \r' + ECU_R_ADDR_E +
                 ' 06 41 40 7A 1C 80 00 \r'
@@ -482,15 +511,23 @@ class ELM:
     ELM_SET_PROTO          = r"ATSPA?[0-9A-C]$"
     ELM_ERASE_PROTO        = r"ATSP00$"
 
-    def set_defaults(self):
+    def reset(self, sleep):
         """ returns all settings to their defaults """
-        
-        self.scenario = 'default'
-        
         self.echo = True
         self.headers = True
         self.linefeeds = True
         self.pids_a = False
+
+        self.caf = 0
+        self.header = '7E0'
+        self.proto = ''
+
+        time.sleep(sleep)
+        
+    def set_defaults(self):
+        self.scenario = 'default'
+        self.answer = {}
+        self.commandCounter = 0
 
         self.speed = 40
         self.maxSpeed = 160
@@ -502,12 +539,8 @@ class ELM:
         self.minRpm = 800
         self.rpmIncrement = 1
 
-        self.commandCounter = 0
-        self.caf = 0
-        self.header = '7E0'
-        self.proto = ''
-
     def __init__(self, protocols, ecus):
+        self.reset(0)
         self.set_defaults()
 
     def __enter__(self):
@@ -582,7 +615,8 @@ class ELM:
     def write(self, resp):
         """ write a response to the port """
 
-        n = "\r\n" if self.linefeeds else "\r"
+        #n = "\r\n" if self.linefeeds else "\r"
+        n = "\r"
         resp += n + ">"
 
         if self.echo:
@@ -614,40 +648,45 @@ class ELM:
         dump = hexdump.dump(cmd.encode('utf-8'), sep=":")
         logging.debug("handling: %s - %s", repr(cmd), dump)
 
+        # Perform a union of the three subdictionaries
         s = { **self.ObdMessage['default'], **self.ObdMessage['AT'], **self.ObdMessage[self.scenario] }
-        for i in s:
-            if re.match(i, cmd):
-                if 'Action' in s[i] and s[i]['Action'] == 'skip':
+        # Add 'Priority' to all pids and sort basing on priority (highest = 1, lowest=10)
+        for i in sorted(s.items(), key=lambda x: x[1]['Priority'] if 'Priority' in x[1] else 10 ):
+            if re.match(i[0], cmd):
+                val=i[1]
+                if 'Action' in val and val['Action'] == 'skip':
                     continue
-                if 'Descr' in s[i]:
+                if 'Descr' in val:
                     logging.debug("Received %s (%s)",
-                                  s[i]['Descr'], cmd)
+                                  val['Descr'], cmd)
                 else:
                     logging.error(
                         "Internal error - Missing description for %s", cmd)
-                if 'Log' in s[i]:
+                if 'Log' in val:
                     try:
-                        exec("logging.debug(" + s[i]['Log'] + ")")
+                        exec("logging.debug(" + val['Log'] + ")")
                     except Exception as e:
                         logging.error(
-                        "Error while logging '%s' (%s)", s[i]['Log'], e)
-                if 'Exec' in s[i]:
+                        "Error while logging '%s' (%s)", val['Log'], e)
+                if 'Pid' in val and val['Pid'] in self.answer:
+                    return(self.answer[val['Pid']])
+                if 'Exec' in val:
                     try:
-                        exec(s[i]['Exec'])
+                        exec(val['Exec'])
                     except Exception as e:
                         logging.error(
-                        "Cannot execute '%s' (%s)", s[i]['Exec'], e)
-                if 'Response' in s[i]:
+                        "Cannot execute '%s' (%s)", val['Exec'], e)
+                if 'Response' in val:
                     header = ''
-                    if 'ResponseHeader' in s[i]:
-                        header = s[i]['ResponseHeader'](
-                            self, cmd, s[i])
+                    if 'ResponseHeader' in val:
+                        header = val['ResponseHeader'](
+                            self, cmd, val)
                     footer = ''
-                    if 'ResponseFooter' in s[i]:
-                        footer = s[i]['ResponseFooter'](
-                            self, cmd, s[i])
+                    if 'ResponseFooter' in val:
+                        footer = val['ResponseFooter'](
+                            self, cmd, val)
                     return (
-                        header + s[i]['Response'] + footer)
+                        header + val['Response'] + footer)
                 else:
                     logging.error(
                         "Internal error - Missing response for %s", cmd)

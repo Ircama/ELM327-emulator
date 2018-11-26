@@ -46,6 +46,7 @@ Allowed keys to be used in the dictionary:
 - `'Response'`: returned bytes 
 - `'Action'`: can be set to 'skip' in order to skip the processing of the pid
 - `'Header'`: not used
+- `'Priority'=number`: when set, the key has higher priority than the default (highest number = 1, lowest = 10 = default)
 
 The simulator provides a trivial monitoring front-end, supporting command line strings and a backend thread executing the actual process.
 
@@ -56,12 +57,44 @@ At the prompt '*Enter command:*', the simulator accepts the following commands:
 - `p` = pause
 - `i` = toggle prompt off/on
 - `r` = resume
-- `s <n>` = delay the execution of the next command of <n> seconds
+- `s <n>` = delay the execution of the next command of `<n>` seconds
 - `o` = switch to 'engineoff' scenario (`emulator.scenario='engineoff'`)
 - `t` = switch to 'test' scenario (`emulator.scenario='test'`)
 - `d` = reset to 'default' scenario (`emulator.scenario='default'`)
 - `emulator.scenario='name of the new scenario'`
 - any other Python command can be used to query/configure the backend thread
 
-The dictionary can be used to build a workflow. The front-end can be controlled by an external piped automator.
+Examples:
 
+```
+Enter command: print(emulator.rpm)
+1200
+Enter command: emulator.rpm=0
+Enter command: print(emulator.rpm)
+0
+Enter command: print(emulator.echo)
+False
+```
+
+One of the possible configurations of the backend thread set through the command prompt is
+the `emulator.answer` dictionary, which has the goal to force answers for specific Pids (`'Pid': '...'`). Its syntax is:
+
+```
+emulator.answer = { 'pid' : 'answer', 'pid' : 'answer', ... }
+```
+
+Example:
+
+```
+emulator.answer = { 'SPEED': 'NO DATA\r', 'RPM': 'NO DATA\r' }
+```
+
+The example forces SPEED and RPM pids to always return "NO DATA".
+
+To reset the *emulator.answer* string to its default value:
+
+```
+emulator.answer = {}
+```
+
+The dictionary can be used to build a workflow. The front-end can be controlled by an external piped automator.
