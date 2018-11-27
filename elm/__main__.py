@@ -23,12 +23,12 @@ def main():
                 break
             try:
                if prompt:
-                   command = input("Enter command: ")
+                   command = input("CMD> ")
                else:
                    command = input()
             except EOFError:
                 sys.exit(0)
-            if re.match('^s [0-9]+$', command):
+            if re.match('^w [0-9]+$', command):
                 numbers = [int(s) for s in command.split() if s.isdigit()]
                 delay = 10 if numbers == [] else numbers[0]
                 print("Sleeping for %d seconds" % delay)
@@ -41,15 +41,25 @@ def main():
             if command == 'q':
                 sys.exit(0)
             elif command == 'c':
-                print("Number of executed commands: %s" % emulator.commandCounter)
+                if emulator.counters:
+                    print("PID Counters:")
+                    for i in sorted(emulator.counters):
+                        print("  {:20s} = {}".format(i, emulator.counters[i]))
+                else:
+                    print("No counters available.")
+                print("  {:20s} = {}".format("scenario", emulator.scenario))
             elif command == 'p':
                 emulator.threadState = THREAD.PAUSED
                 print("Backend emulator paused")
             elif command == 'r':
                 emulator.threadState = THREAD.ACTIVE
                 print("Backend emulator resumed. Running on %s" % pts_name)
-            elif command == 't':
-                emulator.scenario='test'
+            elif re.match('^(s [^ \t]+)|s$', command):
+                s = command.split()
+                if len(s) == 2 and s[1] in emulator.ObdMessage:
+                    emulator.scenario=s[1]
+                else:
+                    emulator.scenario='test'
                 print("Emulator scenario switched to '%s'" % emulator.scenario)
             elif command == 'o':
                 emulator.scenario='engineoff'

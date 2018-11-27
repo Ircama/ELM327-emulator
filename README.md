@@ -35,12 +35,12 @@ If `emulator.scenario` is set to a string different from *default*, the custom s
 
 Allowed keys to be used in the dictionary:
 
-- `'Pid'`: short pid description (used by the `emulator.answer` dictionary)
+- `'Pid'`: short pid description (also used by the `emulator.answer` dictionary)
 - `'Descr'`: string describing the pid
 - `'Exec'`: command to be executed
-- `'Log'`: logging.debug argument
-- `'ResponseFooter'`: run a function and returns a footer to the response
-- `'ResponseHeader'`: run a function and returns a header to the response
+- `'Log'`: *logging.debug* argument
+- `'ResponseFooter'`: run a function and returns a footer to the response (a lambda function can be used)
+- `'ResponseHeader'`: run a function and returns a header to the response (a lambda function can be used)
 - `'Response'`: returned data
 - `'Action'`: can be set to 'skip' in order to skip the processing of the pid
 - `'Header'`: not used
@@ -48,31 +48,18 @@ Allowed keys to be used in the dictionary:
 
 The simulator provides a monitoring front-end, supporting commands. The monitoring front-end controls the backend thread executing the actual process.
 
-At the prompt '*Enter command:*', the simulator accepts the following commands:
+At the prompt '*CMD> *', the simulator accepts the following commands:
 
 - `q` = quit
-- `c` = print the number of executed commands
+- `c` = print the number of each executed PIDs (upper case names), the values associated to some 'AT' PIDs (*cmd_...*), the total number of executed commands (*commands*) and the current scenario (*scenario*)
 - `p` = pause
 - `i` = toggle prompt off/on
 - `r` = resume
-- `s <n>` = delay the execution of the next command of `<n>` seconds
-- `o` = switch to 'engineoff' scenario (`emulator.scenario='engineoff'`)
-- `t` = switch to 'test' scenario (`emulator.scenario='test'`)
-- `d` = reset to 'default' scenario (`emulator.scenario='default'`)
-- `emulator.scenario='name of the new scenario'`
+- `w <n>` = delay the execution of the next command of `<n>` seconds
+- `o` = switch to 'engineoff' scenario
+- `s <scenario>` = switch to `<scenario>` scenario; if the scenario is missing or invalid, defaults to `'test'`
+- `d` = reset to 'default' scenario
 - any other Python command can be used to query/configure the backend thread
-
-Examples:
-
-```
-Enter command: print(emulator.rpm)
-1200
-Enter command: emulator.rpm=0
-Enter command: print(emulator.rpm)
-0
-Enter command: print(emulator.echo)
-False
-```
 
 The command prompt also allows configuring the `emulator.answer` dictionary, which has the goal to force answers for specific Pids (`'Pid': '...'`). Its syntax is:
 

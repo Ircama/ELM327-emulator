@@ -44,45 +44,14 @@ class ELM:
     ECU_ADDR_P = "7C4"  # Air Conditioning
     ECU_R_ADDR_P = "7CC"  # Responses sent by Air Conditioning ECU - 7C4/7CC
 
-    # PID Response functions
-    def ResponseRpm(self, cmd, parameters):
-        logging.debug("Current RPM value: %s", self.rpm)
-        s = ("%.X" % (self.rpm * 4)).zfill(4)
-        ret = " ".join(s[i:i + 2] for i in range(0, len(s), 2)) + " \r"
-        self.rpm += self.rpmIncrement
-        if self.rpm > self.maxRpm:
-            self.rpmIncrement = -1
-        if self.rpm < self.minRpm:
-            self.rpmIncrement = 1
-        return (self.ECU_R_ADDR_E + ' 04 41 0C ' + ret +
-                self.ECU_R_ADDR_H + ' 04 41 0C ' + ret)
-
-    def ResponseSpeed(self, cmd, parameters):
-        logging.debug("Current SPEED value: %s", self.speed)
-        ret = '{:02X} \r'.format(self.speed)
-        self.speed += self.speedIncrement
-        if self.speed > self.maxSpeed:
-            self.speedIncrement = -1
-        if self.speed < self.minSpeed:
-            self.speedIncrement = 1
-        return (self.ECU_R_ADDR_E + ' 03 41 0D ' + ret +
-                self.ECU_R_ADDR_H + ' 03 41 0D ' + ret)
-
-    def ResponsePidsA(self, cmd, parameters):
-        if not self.pids_a:
-            self.pids_a = True
-            logging.debug("first PIDS_A %s", self.pids_a)
-            time.sleep(1)
-            return ('SEARCHING...\r')
-        return ('')
-
-    def ResponsePidsOff(self, cmd, parameters):
-        if not self.pids_a:
-            self.pids_a = True
-            logging.debug("first PIDS_A %s", self.pids_a)
-            time.sleep(1)
-            return ('SEARCHING...\rUNABLE TO CONNECT\r')
-        return ('NO DATA\r')
+    def Sequence(self, val, base, max, factor, n_bytes):
+        c = self.counters[val['Pid']]
+        # compute the new value [= factor * ( counter % (max * 2) )]
+        p = int (factor * abs( max - ( c + max ) % (max * 2) ) ) + base
+        # get its hex string
+        s = ("%.X" % p).zfill(n_bytes * 2)
+        # space the string into chunks of two bytes
+        return (" ".join(s[i:i + 2] for i in range(0, len(s), 2)))
 
     ELM_R_OK = "OK\r"
 
@@ -99,43 +68,43 @@ class ELM:
             r"^ATE[01]$": {
                 'Pid': 'AT_ECHO',
                 'Descr': 'AT ECHO',
-                'Exec': 'self.echo = (cmd[3] == "1")',
-                'Log': '"set ECHO ON/OFF : %s", self.echo',
+                'Exec': 'self.counters["cmd_echo"] = (cmd[3] == "1")',
+                'Log': '"set ECHO ON/OFF : %s", self.counters["cmd_echo"]',
                 'Response': ELM_R_OK
             },
             r"^ATCAF[01]$": {
                 'Pid': 'AT_CAF',
                 'Descr': 'AT CAF',
-                'Exec': 'self.caf = (cmd[4] == "1")',
-                'Log': '"set CAF ON/OFF : %s", self.caf',
+                'Exec': 'self.counters["cmd_caf"] = (cmd[4] == "1")',
+                'Log': '"set CAF ON/OFF : %s", self.counters["cmd_caf"]',
                 'Response': ELM_R_OK
             },
             r"^ATH[01]$": {
                 'Pid': 'AT_HEADERS',
                 'Descr': 'AT HEADERS',
-                'Exec': 'self.headers = (cmd[3] == "1")',
-                'Log': '"set HEADERS ON/OFF : %s", self.headers',
+                'Exec': 'self.counters["cmd_headers"] = (cmd[3] == "1")',
+                'Log': '"set HEADERS ON/OFF : %s", self.counters["cmd_headers"]',
                 'Response': ELM_R_OK
             },
             r"^ATL[01]$": {
                 'Pid': 'AT_LINEFEEDS',
                 'Descr': 'AT LINEFEEDS',
-                'Exec': 'self.linefeeds = (cmd[3] == "1")',
-                'Log': '"set LINEFEEDS ON/OFF : %s", self.linefeeds',
+                'Exec': 'self.counters["cmd_linefeeds"] = (cmd[3] == "1")',
+                'Log': '"set LINEFEEDS ON/OFF : %s", self.counters["cmd_linefeeds"]',
                 'Response': ELM_R_OK
             },
             r"^ATSH": {
                 'Pid': 'AT_SET_HEADER',
                 'Descr': 'AT SET HEADER',
-                'Exec': 'self.header = cmd[4:]',
-                'Log': '"set HEADER %s", self.header',
+                'Exec': 'self.counters["cmd_header"] = cmd[4:]',
+                'Log': '"set HEADER %s", self.counters["cmd_header"]',
                 'Response': ELM_R_OK
             },
             r"^ATSP[0-9]$": {
                 'Pid': 'AT_PROTO',
                 'Descr': 'AT PROTO',
-                'Exec': 'self.proto = cmd[4]',
-                'Log': '"set PROTO %s", self.proto',
+                'Exec': 'self.counters["cmd_proto"] = cmd[4]',
+                'Log': '"set PROTO %s", self.counters["cmd_proto"]',
                 'Response': ELM_R_OK
             },
             r"^ATRV$": {
@@ -169,15 +138,23 @@ class ELM:
             r'^0100$': {
                 'Pid': 'ELM_PIDS_A',
                 'Descr': 'PIDS_A',
+                'Exec': 'time.sleep(1 if self.counters["ELM_PIDS_A"] == 1 else 0)',
+                'ResponseHeader': \
+                lambda self, cmd, val: \
+                    'SEARCHING...\rUNABLE TO CONNECT\r' \
+                    if self.counters['ELM_PIDS_A'] == 1 else 'NO DATA\r',
                 'Response': '',
-                'ResponseHeader': ResponsePidsOff,
                 'Priority': 5
             },
             r'^0600$': {
                 'Pid': 'ELM_MIDS_A',
                 'Descr': 'MIDS_A',
+                'Exec': 'time.sleep(1 if self.counters["ELM_MIDS_A"] == 1 else 0)',
+                'ResponseHeader': \
+                lambda self, cmd, val: \
+                    'SEARCHING...\rUNABLE TO CONNECT\r' \
+                    if self.counters['ELM_MIDS_A'] == 1 else 'NO DATA\r',
                 'Response': '',
-                'ResponseHeader': ResponsePidsOff,
                 'Priority': 5
             },
             r"^ATDPN$": {
@@ -282,13 +259,25 @@ class ELM:
                 'Pid': 'RPM',
                 'Descr': 'Engine RPM',
                 'Response': '',
-                'ResponseFooter': ResponseRpm
+                'ResponseFooter': \
+                lambda self, cmd, val: \
+                    self.ECU_R_ADDR_E + ' 04 41 0C ' \
+                    + self.Sequence(val, base=2400, max=200, factor=80, n_bytes=2) \
+                    + ' \r' + self.ECU_R_ADDR_H + ' 04 41 0C ' \
+                    + self.Sequence(val, base=2400, max=200, factor=80, n_bytes=2) \
+                    + ' \r'
             },
             r'^010D[12]?$': {
                 'Pid': 'SPEED',
                 'Descr': 'Vehicle Speed',
                 'Response': '',
-                'ResponseFooter': ResponseSpeed
+                'ResponseFooter': \
+                lambda self, cmd, val: \
+                    self.ECU_R_ADDR_E + ' 03 41 0D ' \
+                    + self.Sequence(val, base=0, max=30, factor=4, n_bytes=1) \
+                    + ' \r' + self.ECU_R_ADDR_H + ' 03 41 0D ' \
+                    + self.Sequence(val, base=0, max=30, factor=4, n_bytes=1) \
+                    + ' \r'
             },
             r'^010F[12]?$': {
                 'Pid': 'INTAKE_TEMP',
@@ -450,10 +439,13 @@ class ELM:
             r'^0100$': {
                 'Pid': 'ELM_PIDS_A',
                 'Descr': 'PIDS_A',
+                'Exec': 'time.sleep(1 if self.counters["ELM_PIDS_A"] == 1 else 0)',
+                'ResponseHeader': \
+                lambda self, cmd, val: \
+                    'SEARCHING...\r' if self.counters['ELM_PIDS_A'] == 1 else "",
                 'Response':
                 ECU_R_ADDR_H + ' 06 41 00 98 3A 80 13 \r' + ECU_R_ADDR_E +
-                ' 06 41 00 BE 3F A8 13 \r',
-                'ResponseHeader': ResponsePidsA
+                ' 06 41 00 BE 3F A8 13 \r'
             },
             r'^0120$': {
                 'Pid': 'ELM_PIDS_',
@@ -512,35 +504,18 @@ class ELM:
     ELM_ERASE_PROTO        = r"ATSP00$"
 
     def reset(self, sleep):
-        """ returns all settings to their defaults """
-        self.echo = True
-        self.headers = True
-        self.linefeeds = True
-        self.pids_a = False
-
-        self.caf = 0
-        self.header = '7E0'
-        self.proto = ''
-
         time.sleep(sleep)
+        self.counters = {}
+        self.counters["cmd_header"] = '7E0'
         
     def set_defaults(self):
+        """ returns all settings to their defaults """
         self.scenario = 'default'
         self.answer = {}
-        self.commandCounter = 0
-
-        self.speed = 40
-        self.maxSpeed = 160
-        self.minSpeed = 10
-        self.speedIncrement = 1
-
-        self.rpm = 1000
-        self.maxRpm = 4000
-        self.minRpm = 800
-        self.rpmIncrement = 1
+        self.counters = {}
+        self.counters["cmd_header"] = '7E0'
 
     def __init__(self, protocols, ecus):
-        self.reset(0)
         self.set_defaults()
 
     def __enter__(self):
@@ -615,11 +590,11 @@ class ELM:
     def write(self, resp):
         """ write a response to the port """
 
-        #n = "\r\n" if self.linefeeds else "\r"
+        #n = "\r\n" if 'linefeeds' in self.counters and self.counters['at_linefeeds'] else "\r"
         n = "\r"
         resp += n + ">"
 
-        if self.echo:
+        if 'echo' in self.counters and self.counters['at_echo']:
             resp = self.cmd + n + resp
 
         logging.debug("write: %s", repr(resp))
@@ -640,10 +615,9 @@ class ELM:
 
         cmd = self.sanitize(cmd)
 
-        self.commandCounter += 1
-        if self.commandCounter == sys.maxsize:
-            logging.error("Rolling commandCounter")
-            self.commandCounter = 0
+        if 'commands' not in self.counters:
+            self.counters['commands'] = 0
+        self.counters['commands'] += 1
 
         dump = hexdump.dump(cmd.encode('utf-8'), sep=":")
         logging.debug("handling: %s - %s", repr(cmd), dump)
@@ -654,6 +628,13 @@ class ELM:
         for i in sorted(s.items(), key=lambda x: x[1]['Priority'] if 'Priority' in x[1] else 10 ):
             if re.match(i[0], cmd):
                 val=i[1]
+                if 'Pid' in val:
+                    pid=val['Pid']
+                else:
+                    pid='UNKNOWN'
+                if pid not in self.counters:
+                    self.counters[pid] = 0
+                self.counters[pid] += 1
                 if 'Action' in val and val['Action'] == 'skip':
                     continue
                 if 'Descr' in val:
@@ -662,20 +643,20 @@ class ELM:
                 else:
                     logging.error(
                         "Internal error - Missing description for %s", cmd)
-                if 'Log' in val:
-                    try:
-                        exec("logging.debug(" + val['Log'] + ")")
-                    except Exception as e:
-                        logging.error(
-                        "Error while logging '%s' (%s)", val['Log'], e)
-                if 'Pid' in val and val['Pid'] in self.answer:
-                    return(self.answer[val['Pid']])
+                if pid in self.answer:
+                    return(self.answer[pid])
                 if 'Exec' in val:
                     try:
                         exec(val['Exec'])
                     except Exception as e:
                         logging.error(
                         "Cannot execute '%s' (%s)", val['Exec'], e)
+                if 'Log' in val:
+                    try:
+                        exec("logging.debug(" + val['Log'] + ")")
+                    except Exception as e:
+                        logging.error(
+                        "Error while logging '%s' (%s)", val['Log'], e)
                 if 'Response' in val:
                     header = ''
                     if 'ResponseHeader' in val:
