@@ -18,11 +18,11 @@ The serial port to be used by the application interfacing the emulator is displa
 
     Running on /dev/pts/1
 
-A [dictionary](https://docs.python.org/3.7/tutorial/datastructures.html#dictionaries) is used to define commands and pids. The dictionary includes more sections (named scenarios):
+A [dictionary](https://docs.python.org/3.7/tutorial/datastructures.html#dictionaries) is used to define commands and PIDs. The dictionary includes more sections (named scenarios):
 
 - `'AT'`: supported AT commands
-- `'default'`: supported default pids
-- `'test'`: different values for some of the default pids
+- `'default'`: supported default PIDs
+- `'test'`: different values for some of the default PIDs
 - any additional custom section can be used to define specific scenarios
 
 Default settings include both the 'AT' and the 'default' scenarios.
@@ -33,20 +33,20 @@ If `emulator.scenario` is set to a string different from *default*, the custom s
 
 Allowed keys to be used in the dictionary:
 
-- `'Pid'`: short pid description (also used by the `emulator.answer` dictionary)
-- `'Descr'`: string describing the pid
+- `'Pid'`: short PID description (also used by the `emulator.answer` dictionary)
+- `'Descr'`: string describing the PID
 - `'Exec'`: command to be executed
 - `'Log'`: *logging.debug* argument
 - `'ResponseFooter'`: run a function and returns a footer to the response (a lambda function can be used)
 - `'ResponseHeader'`: run a function and returns a header to the response (a lambda function can be used)
 - `'Response'`: returned data
-- `'Action'`: can be set to 'skip' in order to skip the processing of the pid
+- `'Action'`: can be set to 'skip' in order to skip the processing of the PID
 - `'Header'`: not used
 - `'Priority'=number`: when set, the key has higher priority than the default (highest number = 1, lowest = 10 = default)
 
 The emulator provides a monitoring front-end, supporting commands. The monitoring front-end controls the backend thread executing the actual process.
 
-At the prompt '*CMD> *', the emulator accepts the following commands:
+At the prompt `CMD> `, the emulator accepts the following commands:
 
 - `q` = quit
 - `c` = print the number of each executed PID (upper case names), the values associated to some 'AT' PIDs (*cmd_...*), the unknown requests, the emulator response delay, the total number of executed commands (*commands*) and the current scenario (*scenario*)
@@ -61,7 +61,7 @@ At the prompt '*CMD> *', the emulator accepts the following commands:
 - `reset` = reset the emulator (counters and variables)
 - any other Python command can be used to query/configure the backend thread
 
-The command prompt also allows configuring the `emulator.answer` dictionary, which has the goal to force answers for specific Pids (`'Pid': '...'`). Its syntax is:
+The command prompt also allows configuring the `emulator.answer` dictionary, which has the goal to force answers for specific PIDs (`'Pid': '...'`). Its syntax is:
 
 ```
 emulator.answer = { 'pid' : 'answer', 'pid' : 'answer', ... }
@@ -73,7 +73,7 @@ Example:
 emulator.answer = { 'SPEED': 'NO DATA\r', 'RPM': 'NO DATA\r' }
 ```
 
-The above example forces SPEED and RPM pids to always return "NO DATA".
+The above example forces SPEED and RPM PIDs to always return "NO DATA".
 
 To reset the *emulator.answer* string to its default value:
 
@@ -85,9 +85,9 @@ The dictionary can be used to build a workflow.
 
 The front-end can also be controlled by an external piped automator.
 
-Logging is controlled through `elm.yaml` (in the current directory by default). Its path can be set through the *ELM_LOG_CFG* environment variable.
+Logging is controlled through `elm.yaml` file (in the current directory by default). Its path can be set through the *ELM_LOG_CFG* environment variable.
 
-The logging level can be dynamically changed by referencing `emulator.logger`. For instance, if the logging configuration has *stdout* as the first handler, the following commands will change the logging level:
+The logging level can be dynamically changed by referencing `emulator.logger`. For instance, if the logging configuration has *stdout* as the first handler (default settings of the provided `elm.yaml` file), the following commands will change the logging level:
 
 ```
 emulator.logger.handlers[0].setLevel(logging.DEBUG)
