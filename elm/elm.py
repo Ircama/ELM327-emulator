@@ -110,8 +110,12 @@ class ELM:
             r"^ATRV$": {
                 'Pid': 'AT_R_VOLT',
                 'Descr': 'AT read volt',
-                'Log': '"Volt = 13.8"',
-                'Response': "13.8V\r"
+                'Log':
+                '"Volt = {:.1f}".format(0.1 * abs(9 - (self.counters["AT_R_VOLT"] + 9) % 18) + 13)',
+                'ResponseHeader': \
+                lambda self, cmd, val: \
+                    "{:.1f}".format(0.1 * abs(9 - (self.counters['AT_R_VOLT'] + 9) % 18) + 13),
+                'Response': "V\r"
             },
             r"^ATZ$": {
                 'Pid': 'AT_RESET',
@@ -379,7 +383,8 @@ class ELM:
                 'Pid': 'CUSTOM_T_P',
                 'Descr': 'Ambient temperature & pressure',
                 'Response':
-                '7EA 10 18 61 01 00 63 42 32 \r7EA 21 63 38 00 00 00 00 00 \r7EA 22 2D 28 51 FF C8 1D FF \r7EA 23 FF 1C 13 99 00 00 00 \r'
+                '7EA 10 18 61 01 00 63 42 32 \r7EA 21 63 38 00 00 00 00 00 \r'
+                + '7EA 22 2D 28 51 FF C8 1D FF \r7EA 23 FF 1C 13 99 00 00 00 \r'
             },
             r'^2113[12]?$': {
                 'Pid': 'CUSTOM_AUX_B_VOLT',
@@ -505,12 +510,13 @@ class ELM:
 
     def reset(self, sleep):
         time.sleep(sleep)
-        self.counters = {}
-        self.counters["cmd_header"] = '7E0'
+        self.counters['ELM_PIDS_A'] = 0
+        self.counters['ELM_MIDS_A'] = 0
         
     def set_defaults(self):
         """ returns all settings to their defaults """
         self.scenario = 'default'
+        self.delay = 0
         self.answer = {}
         self.counters = {}
         self.counters["cmd_header"] = '7E0'
@@ -539,9 +545,10 @@ class ELM:
 
     def run(self):
         setup_logging()
+        self.logger = logging.getLogger()
         logging.info('\n\nELM327 OBD-II adapter simulator started\n')
         """ the ELM's main IO loop """
-        prev_cmd = ''
+        
         self.threadState = THREAD.ACTIVE
         while self.threadState != THREAD.STOPPED:
 
@@ -553,12 +560,12 @@ class ELM:
             self.cmd = self.read()
 
             # process 'fast' option
-            if re.match('^ *$', self.cmd) and prev_cmd:
-                self.cmd = prev_cmd
+            if re.match('^ *$', self.cmd) and "last_cmd" in self.counters:
+                self.cmd = self.counters["last_cmd"]
                 logging.debug("repeating previous command: %s", repr(self.cmd))
             else:
-                prev_cmd = self.cmd
-                logging.debug("recv: %s", repr(self.cmd))
+                self.counters["last_cmd"] = self.cmd
+                logging.debug("received '%s'", repr(self.cmd))
 
             # if it didn't contain any egregious errors, handle it
             if self.validate(self.cmd):
@@ -621,11 +628,18 @@ class ELM:
 
         dump = hexdump.dump(cmd.encode('utf-8'), sep=":")
         logging.debug("handling: %s - %s", repr(cmd), dump)
+        if self.delay > 0:
+            time.sleep(self.delay)
 
         # Perform a union of the three subdictionaries
-        s = { **self.ObdMessage['default'], **self.ObdMessage['AT'], **self.ObdMessage[self.scenario] }
+        s = {
+            **self.ObdMessage['default'],
+            **self.ObdMessage['AT'],
+            **self.ObdMessage[self.scenario]
+            }
         # Add 'Priority' to all pids and sort basing on priority (highest = 1, lowest=10)
-        for i in sorted(s.items(), key=lambda x: x[1]['Priority'] if 'Priority' in x[1] else 10 ):
+        for i in sorted(
+                s.items(), key=lambda x: x[1]['Priority'] if 'Priority' in x[1] else 10 ):
             if re.match(i[0], cmd):
                 val=i[1]
                 if 'Pid' in val:
@@ -672,6 +686,9 @@ class ELM:
                     logging.error(
                         "Internal error - Missing response for %s", cmd)
                     return self.ELM_R_OK
+        if "unknown_" + cmd not in self.counters:
+            self.counters["unknown_" + cmd] = 0
+        self.counters["unknown_" + cmd] += 1
         logging.info("Unknown ELM command: %s, dump=%s", cmd, dump)
         return ""
 

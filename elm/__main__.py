@@ -3,6 +3,7 @@ try:
 except:
     pass #readline not available
 import threading
+import logging
 from .elm import ELM, THREAD
 import time
 import sys
@@ -28,9 +29,13 @@ def main():
                    command = input()
             except EOFError:
                 sys.exit(0)
-            if re.match('^w [0-9]+$', command):
-                numbers = [int(s) for s in command.split() if s.isdigit()]
-                delay = 10 if numbers == [] else numbers[0]
+            if re.match('^t$|^t \d+?(\.\d+)?$', command):
+                delay = 0.5 if len(command.split()) < 2 else float(command.split()[1])
+                print("Delaying each command of %d seconds" % delay)
+                emulator.delay = delay
+                continue
+            if re.match('^w$|^w \d+?(\.\d+)?$', command):
+                delay = 10 if len(command.split()) < 2 else float(command.split()[1])
                 print("Sleeping for %d seconds" % delay)
                 time.sleep(delay)
                 continue
@@ -40,6 +45,10 @@ def main():
                 continue
             if command == 'q':
                 sys.exit(0)
+            if command == 'reset':
+                emulator.set_defaults()
+                print("Reset done.")
+                continue
             elif command == 'c':
                 if emulator.counters:
                     print("PID Counters:")
@@ -47,6 +56,7 @@ def main():
                         print("  {:20s} = {}".format(i, emulator.counters[i]))
                 else:
                     print("No counters available.")
+                print("  {:20s} = {}".format("delay", emulator.delay))
                 print("  {:20s} = {}".format("scenario", emulator.scenario))
             elif command == 'p':
                 emulator.threadState = THREAD.PAUSED
