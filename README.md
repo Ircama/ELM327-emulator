@@ -31,17 +31,19 @@ The dictionary used to parse each ELM command is dynamically built as a union of
 
 If `emulator.scenario` is set to a string different from *default*, the custom scenario set by the string is applied; any key defined in the custom scenario replaces the default settings ('AT' and 'default' scenarios).
 
-Allowed keys to be used in the dictionary:
+`'Pid'` consists of a unique identifier for each PID in the dictionary (also used by the `emulator.answer` dictionary).
 
-- `'Pid'`: short PID description (also used by the `emulator.answer` dictionary)
+Allowed values for each key (PID):
+
+- `'Request'`: received data; a [regular expression](https://docs.python.org/3/library/re.html) can be used
 - `'Descr'`: string describing the PID
 - `'Exec'`: command to be executed
 - `'Log'`: *logging.debug* argument
-- `'ResponseFooter'`: run a function and returns a footer to the response (a lambda function can be used)
-- `'ResponseHeader'`: run a function and returns a header to the response (a lambda function can be used)
+- `'ResponseFooter'`: run a function and returns a footer to the response (a [lambda function](https://docs.python.org/3/reference/expressions.html#lambda) can be used)
+- `'ResponseHeader'`: run a function and returns a header to the response (a [lambda function](https://docs.python.org/3/reference/expressions.html#lambda) can be used)
 - `'Response'`: returned data
 - `'Action'`: can be set to 'skip' in order to skip the processing of the PID
-- `'Header'`: not used
+- `'Header'`: if set, process the command only if the corresponding header matches
 - `'Priority'=number`: when set, the key has higher priority than the default (highest number = 1, lowest = 10 = default)
 
 The emulator provides a monitoring front-end, supporting commands. The monitoring front-end controls the backend thread executing the actual process.
