@@ -63,6 +63,16 @@ class ELM:
     ObdMessage = {
         # AT Commands
         'AT' : {
+           'AT_DESCR': {
+                'Request': '^AT@1[12]?$',
+                'Descr': 'Device description',
+                'Response': "OBDII to RS232 Interpreter\r"
+            },
+           'AT_ID': {
+                'Request': '^AT@2[12]?$',
+                'Descr': 'Device identifier',
+                'Response': "?\r"
+            },
             'AT_CAF': {
                 'Request': '^ATCAF[01]$',
                 'Descr': 'AT CAF',
@@ -70,7 +80,7 @@ class ELM:
                 'Log': '"set CAF ON/OFF : %s", self.counters["cmd_caf"]',
                 'Response': ELM_R_OK
             },
-            'AT_DESCRIBE_PROTO': {
+             'AT_DESCRIBE_PROTO': {
                 'Request': '^ATDP$',
                 'Descr': 'set DESCRIBE_PROTO',
                 'Exec': 'time.sleep(0.5)',
@@ -100,6 +110,11 @@ class ELM:
                 'Request': '^ATI$',
                 'Descr': 'ELM327 version string',
                 'Response': "ELM327 v1.5\r"
+            },
+            'AT_IGN': {
+                'Request': '^ATIGN[12]?$',
+                'Descr': 'IgnMon input level',
+                'Response': "ON\r"
             },
             'AT_LINEFEEDS': {
                 'Request': '^ATL[01]$',

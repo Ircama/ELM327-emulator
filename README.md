@@ -31,9 +31,7 @@ The dictionary used to parse each ELM command is dynamically built as a union of
 
 If `emulator.scenario` is set to a string different from *default*, the custom scenario set by the string is applied; any key defined in the custom scenario replaces the default settings ('AT' and 'default' scenarios).
 
-`'Pid'` consists of a unique identifier for each PID in the dictionary (also used by the `emulator.answer` dictionary).
-
-Allowed values for each key (PID):
+The key used in the dictionary consists of a unique identifier for each PID. Allowed values for each key (PID):
 
 - `'Request'`: received data; a [regular expression](https://docs.python.org/3/library/re.html) can be used
 - `'Descr'`: string describing the PID
@@ -94,5 +92,7 @@ The logging level can be dynamically changed by referencing `emulator.logger`. F
 ```
 emulator.logger.handlers[0].setLevel(logging.DEBUG)
 emulator.logger.handlers[0].setLevel(logging.INFO)
+emulator.logger.handlers[0].setLevel(logging.WARNING)
 emulator.logger.handlers[0].setLevel(logging.ERROR)
+emulator.logger.handlers[0].setLevel(logging.CRITICAL)
 ```
