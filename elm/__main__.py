@@ -31,12 +31,16 @@ def main():
                 sys.exit(0)
             if re.match('^t$|^t \d+?(\.\d+)?$', command):
                 delay = 0.5 if len(command.split()) < 2 else float(command.split()[1])
-                print("Delaying each command of %d seconds" % delay)
-                emulator.delay = delay
+                if delay > 0:
+                    print("Delaying each command of %s seconds" % delay)
+                    emulator.delay = delay
+                else:
+                    print("Delay removed")
+                    emulator.delay = 0
                 continue
             if re.match('^w$|^w \d+?(\.\d+)?$', command):
                 delay = 10 if len(command.split()) < 2 else float(command.split()[1])
-                print("Sleeping for %d seconds" % delay)
+                print("Sleeping for %s seconds" % delay)
                 time.sleep(delay)
                 continue
             if command == 'i':
