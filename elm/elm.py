@@ -650,21 +650,24 @@ class ELM:
     ELM_ERASE_PROTO        = r"ATSP00$"
 
     def reset(self, sleep):
+        logging.debug("Resetting counters and sleeping for %s seconds", sleep)
         time.sleep(sleep)
+        for i in [k for k in self.counters if k.startswith('cmd_')]:
+            del(self.counters[i])
         self.counters['ELM_PIDS_A'] = 0
         self.counters['ELM_MIDS_A'] = 0
-        
+        self.counters["cmd_header"] = self.ECU_ADDR_E
+
     def set_defaults(self):
         """ returns all settings to their defaults """
         self.scenario = 'default'
         self.delay = 0
         self.answer = {}
         self.counters = {}
-        self.counters["cmd_header"] = self.ECU_ADDR_E
-        self.counters["cmd_linefeeds"] = True
 
     def __init__(self, protocols, ecus):
         self.set_defaults()
+        self.reset(0)
 
     def __enter__(self):
         # make a new pty
@@ -743,7 +746,7 @@ class ELM:
         n = "\r"
         resp += n + ">"
 
-        if 'echo' in self.counters and self.counters['at_echo']:
+        if 'echo' in self.counters and self.counters['cmd_echo']:
             resp = self.cmd + n + resp
 
         logging.debug("write: %s", repr(resp))
