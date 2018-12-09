@@ -1,0 +1,32 @@
+version: 1
+disable_existing_loggers: False
+
+formatters:
+  compact:
+    format: "%(asctime)s - %(name)s - %(levelname)s - %(message)s"
+    #datefmt: '%H:%M:%S'
+  spaced:
+    format: '%(asctime)s  %(name)-10s %(funcName)-10s %(levelname)-8s %(message)s'
+
+handlers:
+    file:
+        class: logging.handlers.RotatingFileHandler
+        formatter: spaced
+        filename: elm.log
+        level: DEBUG
+        encoding: utf8
+        maxBytes: 1000000
+        backupCount: 2
+        mode: 'w' # default is a which means append
+        
+    console:
+        class: logging.StreamHandler
+        level: INFO
+        formatter: compact
+        stream: ext://sys.stdout
+
+root:
+    level: DEBUG
+    handlers:
+        - console
+        - file
