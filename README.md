@@ -135,7 +135,7 @@ It queries the vehicle via python-OBD for all available command and is also able
 
 Its output is a python *ObdMessage* dictionary that can be added to the *elm.py* program of *python-ELM*, so that the emulator will be able to provide the same commands returned by the car.
 
-Notice that querying the vehicle might be invasive and some commands can change the car configuration (enabling or disabling belts alarm, enabling or disabling reverse beeps, clearing diagnostic codes, controlling fans, etc.). In order to prevent dangerous PIDs to be used for building the dictionary, a PID blacklist can be edited in elm.py.
+Notice that querying the vehicle might be invasive and some commands can change the car configuration (enabling or disabling belts alarm, enabling or disabling reverse beeps, clearing diagnostic codes, controlling fans, etc.). In order to prevent dangerous PIDs to be used for building the dictionary, a PID blacklist can be edited in elm.py. To check all PIDs without performing actual OBDII queries, use the `-p 0` option (the standard error output with default logging level shows the list of produced PIDs).
 
 ```
 usage: obd_dictionary.py [-h] -i DEVICE [-c [CSV_FILE]] [-o [FILE]] [-v] [-V]
