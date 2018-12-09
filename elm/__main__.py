@@ -3,7 +3,6 @@ import logging
 from .elm import ELM, THREAD
 import time
 import sys
-import re
 from cmd import Cmd
 import rlcompleter
 
@@ -18,6 +17,18 @@ class python_ELM(Cmd):
         self.prompt_active = True
         Cmd.prompt = self.ps
         Cmd.__init__(self)
+
+    def print_topics(self, header, cmds, cmdlen, maxcol):
+        if not cmds:
+            return
+        self.stdout.write(
+        "Available commands include the following list (type help <topic>"
+        "\nfor more information on each command). Besides, any Python"
+        "\ncommand isaccepted. Autocompletion is fully allowed."
+        "\n=============================================================="
+        "==\n")
+        self.columnize(cmds, maxcol-1)
+        self.stdout.write("\n")
 
     def emptyline(self):
         return
@@ -91,19 +102,9 @@ class python_ELM(Cmd):
         'car',
     ]
 
-    def complete_prompt(self, text, line, start_index, end_index):
-        v = ['0', '1']
-        if text:
-            return [i for i in v if i.startswith(text)]
-        else:
-            return v
-
     def complete_scenario(self, text, line, start_index, end_index):
         if text:
-            return [
-                sc for sc in self.scenarios
-                if sc.startswith(text)
-            ]
+            return [sc for sc in self.scenarios if sc.startswith(text)]
         else:
             return self.scenarios
 
@@ -123,6 +124,8 @@ class python_ELM(Cmd):
         self.emulator.scenario='default'
         print("Emulator scenario reset to '%s'" % self.emulator.scenario)
 
+    # completedefault and completenames manage autocompletion of Python
+    # identifiers and namespaces
     def completedefault(self, text, line, begidx, endidx):
         return [self.rlc(text,x) for x in range(200)]
 
@@ -133,11 +136,15 @@ class python_ELM(Cmd):
         return [a[3:] for a in self.get_names() if a.startswith(dotext)
                 ] + [self.rlc(text, x) for x in range(200)]
 
+    # Execution of unrecognized commands
     def default(self, arg):
         try:
-            exec(arg)
-        except Exception as e:
-            print("Error executing command: %s" % e)
+            print ( eval(arg) )
+        except Exception:
+            try:
+                exec(arg)
+            except Exception as e:
+                print("Error executing command: %s" % e)
 
 
 if __name__ == '__main__':

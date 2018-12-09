@@ -235,8 +235,24 @@ def main():
         sys.stdout = args.dictionary_out
 
     # Print header information
-    print("{")
-    print("    ObdMessage = {")
+    print('\
+ECU_ADDR_H = "7E2"\n\
+ECU_R_ADDR_H = "7EA"\n\
+ECU_ADDR_E = "7E0"\n\
+ECU_R_ADDR_E = "7E8"\n\
+ECU_ADDR_T = "7E1"\n\
+ECU_R_ADDR_T = "7E9"\n\
+ECU_ADDR_I = "7C0"\n\
+ECU_R_ADDR_I = "7C8"\n\
+ECU_ADDR_B = "7E3"\n\
+ECU_R_ADDR_B = "7EB"\n\
+ECU_ADDR_P = "7C4"\n\
+ECU_R_ADDR_P = "7CC"\n\
+ECU_ADDR_S = "7B0"\n\
+ECU_R_ADDR_S = "7B8"\n\
+ELM_R_OK = "OK\\r"\n\
+ELM_MAX_RESP = "[0123456]?$"\n')
+    print("ObdMessage = {")
     print("        '" + args.car_name + "': {")
 
     # Loop all sorted commands
@@ -320,14 +336,13 @@ def main():
             print("                'Min': '" + descr_list[2] + "',")
             print("                'Max': '" + descr_list[3] + "',")
             print("                'Unit': '" + descr_list[4] + "',")
-        print("                'Header': " + ecu[cmd.header.decode()] \
+        print("                'Header': " + ecu[cmd.header.decode()] + ","\
             if cmd.header.decode() in ecu else cmd.header.decode() + ",")
         print("                'Response': " + f_resp)
         if f_val:
             print("                # " + f_val)
         print("            },")
     print("        },")
-    print("    }")
     print("}")
     obd.logger.info("Dictionary production complete.")
 
