@@ -57,7 +57,7 @@ def main():
 
     # Option handling
     parser = argparse.ArgumentParser(
-        epilog='ObdMessage Dictionary Generator for "python-ELM".')
+        epilog='ObdMessage Dictionary Generator for "ELM327-emulator".')
     parser.add_argument(
         "-i",
         dest="elm327",

@@ -1,5 +1,5 @@
-python-ELM
-==========
+ELM327-emulator
+===============
 
 A python emulator for the ELM327 OBD-II adapter. Built for testing [python-OBD](https://github.com/brendanwhitfield/python-OBD).
 
@@ -16,9 +16,9 @@ python3.7 -V
 python3.7 -m pip install pyyaml
 python3.7 -m pip install hexdump
 
-# Downloading python-ELM
-git clone https://github.com/ircama/python-ELM.git
-cd python-ELM
+# Downloading ELM327-emulator
+git clone https://github.com/ircama/ELM327-emulator.git
+cd ELM327-emulator
 ```
 
 # Usage
@@ -40,7 +40,7 @@ This code needs pseudo-terminal handling (pty support, `import pty`) which is pl
 
 The serial port to be used by the application interfacing the emulator is displayed when starting the program. E.g.,:
 
-    Running on /dev/pts/1
+    ELM327-emulator running on /dev/pts/0
 
 A [dictionary](https://docs.python.org/3.7/tutorial/datastructures.html#dictionaries) is used to define commands and PIDs. The dictionary includes more sections (named scenarios):
 
@@ -127,13 +127,13 @@ emulator.logger.handlers[0].setLevel(logging.CRITICAL)
 
 If the colored prompt is not wanted, type `Cmd.prompt='CMD> '`.
 
-## ObdMessage Dictionary Generator for "python-ELM" (obd_dictionary) ##
+## ObdMessage Dictionary Generator for "ELM327-emulator" (obd_dictionary) ##
 
-*obd_dictionary* is a dictionary generator for "python-ELM".
+*obd_dictionary* is a dictionary generator for "ELM327-emulator".
 
 It queries the vehicle via python-OBD for all available command and is also able to process custom PIDs described in [Torque CSV files](https://torque-bhp.com/wiki/PIDs).
 
-Its output is a python *ObdMessage* dictionary that can be added to the *elm.py* program of *python-ELM*, so that the emulator will be able to provide the same commands returned by the car.
+Its output is a python *ObdMessage* dictionary that can be added to the *elm.py* program of *ELM327-emulator*, so that the emulator will be able to provide the same commands returned by the car.
 
 Notice that querying the vehicle might be invasive and some commands can change the car configuration (enabling or disabling belts alarm, enabling or disabling reverse beeps, clearing diagnostic codes, controlling fans, etc.). In order to prevent dangerous PIDs to be used for building the dictionary, a PID blacklist can be edited in elm.py. To check all PIDs without performing actual OBDII queries, use the `-p 0` option (the standard error output with default logging level shows the list of produced PIDs).
 
@@ -174,7 +174,7 @@ optional arguments:
 
 Sample usage: `obd_dictionary.py -i /dev/ttyUSB0 -c car.csv -o ObdMessage.py -v -p 10 -d 1 -n mycar`
 
-The file produced by *obd_dictionary.py* can be dynamically imported in *python-ELM* through the `import` command (related *obdMessage* goes to *self.module.ObdMessage*) and can then be merged in *ObdMessage* via `emulator.ObdMessage.update(self.module.ObdMessage)`. Example:
+The file produced by *obd_dictionary.py* can be dynamically imported in *ELM327-emulator* through the `import` command (related *obdMessage* goes to *self.module.ObdMessage*) and can then be merged in *ObdMessage* via `emulator.ObdMessage.update(self.module.ObdMessage)`. Example:
 
 ```python
 python3 obd_dictionary.py -i /dev/ttyUSB0 -c auris.csv -o AurisOutput.py -n Auris

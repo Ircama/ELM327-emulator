@@ -155,8 +155,8 @@ if __name__ == '__main__':
                 time.sleep(0.1)
             sys.stdout.flush()
             p_elm = python_ELM(emulator)
-            p_elm.cmdloop('Welcome to the ELM327 OBD-II adapter simulator.\n'
-                          'Running on %s\n'
+            p_elm.cmdloop('Welcome to the ELM327 OBD-II adapter emulator.\n'
+                          'ELM327-emulator running on %s\n'
                           'Type help or ? to list commands.\n' % pts_name)
     except (KeyboardInterrupt, SystemExit):
         print('\n\nExiting.\n')
