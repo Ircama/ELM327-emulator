@@ -2426,6 +2426,7 @@ class ELM:
     ELM_ERASE_PROTO        = r"ATSP00$"
 
     def reset(self, sleep):
+        """ returns all settings to their defaults """
         logging.debug("Resetting counters and sleeping for %s seconds", sleep)
         time.sleep(sleep)
         for i in [k for k in self.counters if k.startswith('cmd_')]:
@@ -2435,7 +2436,6 @@ class ELM:
         self.counters["cmd_header"] = self.ECU_ADDR_E
 
     def set_defaults(self):
-        """ returns all settings to their defaults """
         self.scenario = 'default'
         self.delay = 0
         self.answer = {}
