@@ -11,7 +11,7 @@ class python_ELM(Cmd):
 
     __hiden_methods = ('do_EOF',)
     rlc = rlcompleter.Completer().complete
-    ps_color = '\033[01;32mCMD>\033[00m '
+    ps_color = '\x01\033[01;32m\x02CMD>\x01\033[00m\x02 '
     ps_nocolor = 'CMD> '
     ps = ps_color
 
@@ -75,7 +75,7 @@ class python_ELM(Cmd):
         "Toggle color off/on."
         self.color_active = not self.color_active
         if not self.color_active:
-            sys.stdout.write("\033[00m")
+            sys.stdout.write("\x01\033[00m\x02")
             sys.stdout.flush()
         print("Color %s" % repr(self.color_active))
         self.ps = self.ps_color if self.color_active else self.ps_nocolor
