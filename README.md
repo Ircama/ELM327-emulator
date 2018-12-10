@@ -74,14 +74,14 @@ At the prompt `CMD> `, the emulator accepts the following commands:
 
 - `help` = List available commands (or detailed help with "help cmd").
 - `quit` (or end-of-file/Control-D, or break/Control-C) = quit the program
-- `counters` = print the number of each executed PID (upper case names), the values associated to some 'AT' PIDs (*cmd_...*), the unknown requests, the emulator response delay, the total number of executed commands (*commands*) and the current scenario (*scenario*)
-- `pause` = pause the execution.
+- `counters` = print the number of each executed PID (upper case names), the values associated to some 'AT' PIDs (*cmd_...*), the unknown requests, the emulator response delay, the total number of executed commands (*commands*) and the current scenario (*scenario*). The related dictionary is `emulator.counters`.
+- `pause` = pause the execution. (Related attribute is `emulator.threadState = THREAD.PAUSED`.)
 - `prompt` = toggle prompt off/on
-- `resume` = resume the execution after pausing; prints the used device.
+- `resume` = resume the execution after pausing; prints the used device. (Related attribute is `emulator.threadState = THREAD.ACTIVE`)
 - `delay <n>` = delay each emulator response of `<n>` seconds (floating point number; default is 0.5 seconds)
 - `wait <n>` = delay the execution of the next command of `<n>` seconds (floating point number; default is 10 seconds)
 - `engineoff` = switch to *engineoff* scenario
-- `scenario <scenario>` = switch to `<scenario>` scenario; if the scenario is missing or invalid, defaults to `'car'`. The autocompletion (by pressing TAB) allows prompting all compatible scenarios defined in `emulator.ObdMessage`.
+- `scenario <scenario>` = switch to `<scenario>` scenario; if the scenario is missing or invalid, defaults to `'car'`. The autocompletion (by pressing TAB) allows prompting all compatible scenarios defined in `emulator.ObdMessage`. (Related attribute is `emulator.scenario`.)
 - `default` = reset to *default* scenario
 - `reset` = reset the emulator (counters and variables)
 - `color` = toggle usage of colors off/on
@@ -92,13 +92,13 @@ At the command prompt, cursors and [keyboard shortcuts](https://ss64.com/bash/sy
 
 The command prompt also allows configuring the `emulator.answer` dictionary, which has the goal to redefine answers for specific PIDs (`'Pid': '...'`). Its syntax is:
 
-```
+```python
 emulator.answer = { 'pid' : 'answer', 'pid' : 'answer', ... }
 ```
 
 Example:
 
-```
+```python
 emulator.answer = { 'SPEED': 'NO DATA\r', 'RPM': 'NO DATA\r' }
 ```
 
@@ -106,17 +106,39 @@ The above example forces SPEED and RPM PIDs to always return "NO DATA".
 
 To reset the *emulator.answer* string to its default value:
 
-```
+```python
 emulator.answer = {}
 ```
 
 The dictionary can be used to build a workflow. The front-end can also be controlled by an external piped automator.
 
+Example of automation which suspends the emulator for 10 seconds:
+
+```python
+emulator.threadState = THREAD.PAUSED; time.sleep(10); emulator.threadState = THREAD.ACTIVE
+```
+
+Example of an automation that simulates the off/on ignition on states:
+
+```python
+CMD> for i in range(10): emulator.scenario="car" if i % 2 else "engineoff"; print(emulator.scenario); time.sleep(10)
+engineoff
+car
+engineoff
+car
+engineoff
+car
+engineoff
+car
+engineoff
+car
+```
+
 Logging is controlled through `elm.yaml` file (in the current directory by default). Its path can be set through the *ELM_LOG_CFG* environment variable.
 
 The logging level can be dynamically changed by referencing `emulator.logger`. For instance, if the logging configuration has *stdout* as the first handler (default settings of the provided `elm.yaml` file), the following commands will change the logging level:
 
-```
+```python
 emulator.logger.handlers[0].setLevel(logging.DEBUG)
 emulator.logger.handlers[0].setLevel(logging.INFO)
 emulator.logger.handlers[0].setLevel(logging.WARNING)
@@ -125,6 +147,12 @@ emulator.logger.handlers[0].setLevel(logging.CRITICAL)
 ```
 
 It is possible to add marks in the log file via commands like `emulator.logger.info("my mark")`
+
+Command to count the number of different PIDs (OBD Commands) used by the client (excluding AT Commands):
+```python
+import re
+len([(k, v) for k, v in emulator.counters.items() if re.match('^[A-Z]', k) and not k.startswith('AT_') and v ! = 0])
+```
 
 ## ObdMessage Dictionary Generator for "ELM327-emulator" (obd_dictionary) ##
 

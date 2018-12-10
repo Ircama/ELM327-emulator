@@ -637,6 +637,54 @@ class ELM:
             }
         },
         'car': {
+        # AT Commands
+            'ELM_DP': {
+                'Request': '^AT DP' + ELM_MAX_RESP,
+                'Descr': 'Current protocol',
+                'Header': ECU_ADDR_E,
+                'Response': [
+                            '? \r',
+                            'AUTO, ISO 15765-4 (CAN 11/500) \r'
+                            ]
+            },
+            'ELM_IGNITION': {
+                'Request': '^AT IGN' + ELM_MAX_RESP,
+                'Descr': 'IgnMon input level',
+                'Header': ECU_ADDR_E,
+                'Response': [
+                            'ON \r',
+                            '? \r'
+                            ]
+            },
+            'ELM_DESCR': {
+                'Request': '^AT@1' + ELM_MAX_RESP,
+                'Descr': 'Device description',
+                'Header': ECU_ADDR_E,
+                'Response': [
+                            '? \r',
+                            'OBDII to RS232 Interpreter \r'
+                            ]
+            },
+            'ELM_ID': {
+                'Request': '^AT@2' + ELM_MAX_RESP,
+                'Descr': 'Device identifier',
+                'Header': ECU_ADDR_E,
+                'Response': '? \r'
+            },
+            'ELM_VERSION': {
+                'Request': '^ATI' + ELM_MAX_RESP,
+                'Descr': 'ELM327 version string',
+                'Header': ECU_ADDR_E,
+                'Response': 'ELM327 v1.5 \r'
+            },
+            'ELM_VOLTAGE': {
+                'Request': '^ATRV' + ELM_MAX_RESP,
+                'Descr': 'Voltage detected by OBD-II adapter',
+                'Header': ECU_ADDR_E,
+                'Response': '14.7V \r'
+                # 14.7 volt
+            },
+        # OBD Commands
             'PIDS_A': {
                 'Request': '^0100' + ELM_MAX_RESP,
                 'Descr': 'Supported PIDs [01-20]',
@@ -647,7 +695,7 @@ class ELM:
                 'Request': '^0101' + ELM_MAX_RESP,
                 'Descr': 'Status since DTCs cleared',
                 'Header': ECU_ADDR_E,
-                'Response': ECU_R_ADDR_E + ' 06 41 01 00 07 A1 A1 \r'
+                'Response': ECU_R_ADDR_E + ' 06 41 01 00 07 A1 00 \r'
             },
             'FUEL_STATUS': {
                 'Request': '^0103' + ELM_MAX_RESP,
@@ -655,8 +703,8 @@ class ELM:
                 'Header': ECU_ADDR_E,
                 'Response': [
                             ECU_R_ADDR_E + ' 04 41 03 00 00 \r',
-                            ECU_R_ADDR_E + ' 04 41 03 02 00 \r',
-                            ECU_R_ADDR_E + ' 04 41 03 04 00 \r'
+                            ECU_R_ADDR_E + ' 04 41 03 04 00 \r',
+                            ECU_R_ADDR_E + ' 04 41 03 02 00 \r'
                             ]
             },
             'ENGINE_LOAD': {
@@ -664,200 +712,320 @@ class ELM:
                 'Descr': 'Calculated Engine Load',
                 'Header': ECU_ADDR_E,
                 'Response': [
-                            ECU_R_ADDR_E + ' 03 41 04 00 \r',
-                            ECU_R_ADDR_E + ' 03 41 04 55 \r',
-                            ECU_R_ADDR_E + ' 03 41 04 F0 \r',
                             ECU_R_ADDR_E + ' 03 41 04 FF \r',
-                            ECU_R_ADDR_E + ' 03 41 04 3B \r',
-                            ECU_R_ADDR_E + ' 03 41 04 E8 \r',
-                            ECU_R_ADDR_E + ' 03 41 04 37 \r'
+                            ECU_R_ADDR_E + ' 03 41 04 57 \r',
+                            ECU_R_ADDR_E + ' 03 41 04 96 \r',
+                            ECU_R_ADDR_E + ' 03 41 04 00 \r' +
+                            ECU_R_ADDR_H + ' 03 41 04 00 \r',
+                            ECU_R_ADDR_E + ' 03 41 04 56 \r',
+                            ECU_R_ADDR_E + ' 03 41 04 64 \r',
+                            ECU_R_ADDR_E + ' 03 41 04 67 \r',
+                            ECU_R_ADDR_E + ' 03 41 04 9F \r',
+                            ECU_R_ADDR_E + ' 03 41 04 00 \r',
+                            ECU_R_ADDR_E + ' 03 41 04 98 \r',
+                            ECU_R_ADDR_E + ' 03 41 04 73 \r',
+                            ECU_R_ADDR_E + ' 03 41 04 69 \r',
+                            ECU_R_ADDR_E + ' 03 41 04 D6 \r',
+                            ECU_R_ADDR_E + ' 03 41 04 41 \r'
                             ]
-                # 21.568627451 percent
-                # 33.3333333333 percent
                 # 100.0 percent
-                # 23.137254902 percent
-                # 90.9803921569 percent
-                # 94.1176470588 percent
+                # 34.11764705882353 percent
+                # 58.8235294117647 percent
+                # 33.72549019607843 percent
+                # 39.21568627450981 percent
+                # 40.3921568627451 percent
+                # 62.35294117647059 percent
+                # 59.6078431372549 percent
+                # 45.09803921568628 percent
+                # 41.1764705882353 percent
+                # 83.92156862745098 percent
+                # 25.49019607843137 percent
             },
             'COOLANT_TEMP': {
                 'Request': '^0105' + ELM_MAX_RESP,
                 'Descr': 'Engine Coolant Temperature',
                 'Header': ECU_ADDR_E,
                 'Response': [
-                            ECU_R_ADDR_E + ' 03 41 05 51 \r',
-                            ECU_R_ADDR_E + ' 03 41 05 54 \r',
+                            ECU_R_ADDR_E + ' 03 41 05 5F \r',
+                            ECU_R_ADDR_E + ' 03 41 05 44 \r',
+                            ECU_R_ADDR_E + ' 03 41 05 4C \r',
+                            ECU_R_ADDR_E + ' 03 41 05 64 \r',
                             ECU_R_ADDR_E + ' 03 41 05 55 \r',
-                            ECU_R_ADDR_E + ' 03 41 05 58 \r',
-                            ECU_R_ADDR_E + ' 03 41 05 57 \r'
+                            ECU_R_ADDR_E + ' 03 41 05 5B \r',
+                            ECU_R_ADDR_E + ' 03 41 05 48 \r',
+                            ECU_R_ADDR_E + ' 03 41 05 45 \r',
+                            ECU_R_ADDR_E + ' 03 41 05 56 \r',
+                            ECU_R_ADDR_E + ' 03 41 05 50 \r',
+                            ECU_R_ADDR_E + ' 03 41 05 54 \r',
+                            ECU_R_ADDR_E + ' 03 41 05 42 \r',
+                            ECU_R_ADDR_E + ' 03 41 05 66 \r'
                             ]
-                # 44 degC
-                # 47 degC
-                # 41 degC
-                # 48 degC
+                # 55 degC
+                # 28 degC
+                # 36 degC
+                # 60 degC
                 # 45 degC
+                # 51 degC
+                # 32 degC
+                # 29 degC
+                # 46 degC
+                # 40 degC
+                # 44 degC
+                # 26 degC
+                # 62 degC
             },
             'SHORT_FUEL_TRIM_1': {
                 'Request': '^0106' + ELM_MAX_RESP,
                 'Descr': 'Short Term Fuel Trim - Bank 1',
                 'Header': ECU_ADDR_E,
                 'Response': [
-                            ECU_R_ADDR_E + ' 03 41 06 7E \r',
-                            ECU_R_ADDR_E + ' 03 41 06 80 \r'
+                            ECU_R_ADDR_E + ' 03 41 06 80 \r',
+                            ECU_R_ADDR_E + ' 03 41 06 78 \r',
+                            ECU_R_ADDR_E + ' 03 41 06 84 \r',
+                            ECU_R_ADDR_E + ' 03 41 06 88 \r',
+                            ECU_R_ADDR_E + ' 03 41 06 79 \r',
+                            ECU_R_ADDR_E + ' 03 41 06 8B \r',
+                            ECU_R_ADDR_E + ' 03 41 06 7F \r',
+                            ECU_R_ADDR_E + ' 03 41 06 7D \r'
                             ]
-                # -1.5625 percent
+                # -6.25 percent
+                # 3.125 percent
+                # 6.25 percent
+                # -5.46875 percent
+                # 8.59375 percent
+                # -0.78125 percent
+                # -2.34375 percent
             },
             'LONG_FUEL_TRIM_1': {
                 'Request': '^0107' + ELM_MAX_RESP,
                 'Descr': 'Long Term Fuel Trim - Bank 1',
                 'Header': ECU_ADDR_E,
                 'Response': [
-                            ECU_R_ADDR_E + ' 03 41 07 7A \r',
                             ECU_R_ADDR_E + ' 03 41 07 79 \r',
-                            ECU_R_ADDR_E + ' 03 41 07 7C \r',
                             ECU_R_ADDR_E + ' 03 41 07 7E \r',
-                            ECU_R_ADDR_E + ' 03 41 07 7B \r'
+                            ECU_R_ADDR_E + ' 03 41 07 7C \r',
+                            ECU_R_ADDR_E + ' 03 41 07 7F \r',
+                            ECU_R_ADDR_E + ' 03 41 07 78 \r'
                             ]
                 # -5.46875 percent
-                # -3.90625 percent
-                # -4.6875 percent
                 # -1.5625 percent
                 # -3.125 percent
+                # -0.78125 percent
+                # -6.25 percent
             },
             'INTAKE_PRESSURE': {
                 'Request': '^010B' + ELM_MAX_RESP,
                 'Descr': 'Intake Manifold Pressure',
                 'Header': ECU_ADDR_E,
                 'Response': [
-                            ECU_R_ADDR_E + ' 03 41 0B 18 \r',
-                            ECU_R_ADDR_E + ' 03 41 0B 60 \r',
-                            ECU_R_ADDR_E + ' 03 41 0B 52 \r',
+                            ECU_R_ADDR_E + ' 03 41 0B 26 \r',
+                            ECU_R_ADDR_E + ' 03 41 0B 35 \r',
+                            ECU_R_ADDR_E + ' 03 41 0B 1E \r',
                             ECU_R_ADDR_E + ' 03 41 0B 63 \r',
-                            ECU_R_ADDR_E + ' 03 41 0B 16 \r',
-                            ECU_R_ADDR_E + ' 03 41 0B 5D \r',
-                            ECU_R_ADDR_E + ' 03 41 0B 1F \r'
+                            ECU_R_ADDR_E + ' 03 41 0B 28 \r',
+                            ECU_R_ADDR_E + ' 03 41 0B 52 \r',
+                            ECU_R_ADDR_E + ' 03 41 0B 61 \r',
+                            ECU_R_ADDR_E + ' 03 41 0B 60 \r',
+                            ECU_R_ADDR_E + ' 03 41 0B 63 \r' +
+                            ECU_R_ADDR_H + ' 03 41 0B 63 \r',
+                            ECU_R_ADDR_E + ' 03 41 0B 36 \r',
+                            ECU_R_ADDR_E + ' 03 41 0B 25 \r',
+                            ECU_R_ADDR_E + ' 03 41 0B 14 \r'
                             ]
+                # 38 kilopascal
+                # 53 kilopascal
+                # 30 kilopascal
                 # 99 kilopascal
-                # 31 kilopascal
-                # 22 kilopascal
-                # 24 kilopascal
-                # 96 kilopascal
+                # 40 kilopascal
                 # 82 kilopascal
-                # 93 kilopascal
+                # 97 kilopascal
+                # 96 kilopascal
+                # 99 kilopascal
+                # 54 kilopascal
+                # 37 kilopascal
+                # 20 kilopascal
             },
             'RPM': {
                 'Request': '^010C' + ELM_MAX_RESP,
                 'Descr': 'Engine RPM',
                 'Header': ECU_ADDR_E,
                 'Response': [
-                            ECU_R_ADDR_E + ' 04 41 0C 18 F9 \r',
-                            ECU_R_ADDR_E + ' 04 41 0C 27 D4 \r',
-                            ECU_R_ADDR_E + ' 04 41 0C 12 E8 \r',
-                            ECU_R_ADDR_E + ' 04 41 0C 0C 80 \r',
-                            ECU_R_ADDR_E + ' 04 41 0C 15 24 \r',
+                            ECU_R_ADDR_E + ' 04 41 0C 14 5F \r',
                             ECU_R_ADDR_E + ' 04 41 0C 00 00 \r',
-                            ECU_R_ADDR_E + ' 04 41 0C 19 51 \r'
+                            ECU_R_ADDR_E + ' 04 41 0C 41 C2 \r',
+                            ECU_R_ADDR_E + ' 04 41 0C 35 CB \r',
+                            ECU_R_ADDR_E + ' 04 41 0C 14 46 \r',
+                            ECU_R_ADDR_E + ' 04 41 0C 12 87 \r',
+                            ECU_R_ADDR_E + ' 04 41 0C 3B 2E \r',
+                            ECU_R_ADDR_E + ' 04 41 0C 15 2A \r',
+                            ECU_R_ADDR_E + ' 04 41 0C 09 F6 \r',
+                            ECU_R_ADDR_E + ' 04 41 0C 23 82 \r',
+                            ECU_R_ADDR_E + ' 04 41 0C 26 25 \r',
+                            ECU_R_ADDR_E + ' 04 41 0C 18 9F \r',
+                            ECU_R_ADDR_E + ' 04 41 0C 13 FB \r',
+                            ECU_R_ADDR_E + ' 04 41 0C 3F 7A \r'
                             ]
-                # 1620.25 revolutions_per_minute
-                # 2549.0 revolutions_per_minute
-                # 1353.0 revolutions_per_minute
-                # 1210.0 revolutions_per_minute
-                # 800.0 revolutions_per_minute
-                # 1598.25 revolutions_per_minute
+                # 1303.75 revolutions_per_minute
+                # 4208.5 revolutions_per_minute
+                # 3442.75 revolutions_per_minute
+                # 1297.5 revolutions_per_minute
+                # 1185.75 revolutions_per_minute
+                # 3787.5 revolutions_per_minute
+                # 1354.5 revolutions_per_minute
+                # 637.5 revolutions_per_minute
+                # 2272.5 revolutions_per_minute
+                # 2441.25 revolutions_per_minute
+                # 1575.75 revolutions_per_minute
+                # 1278.75 revolutions_per_minute
+                # 4062.5 revolutions_per_minute
             },
             'SPEED': {
                 'Request': '^010D' + ELM_MAX_RESP,
                 'Descr': 'Vehicle Speed',
                 'Header': ECU_ADDR_E,
                 'Response': [
-                            ECU_R_ADDR_E + ' 03 41 0D 2A \r',
-                            ECU_R_ADDR_E + ' 03 41 0D 19 \r',
-                            ECU_R_ADDR_E + ' 03 41 0D 1E \r',
+                            ECU_R_ADDR_E + ' 03 41 0D 0A \r',
+                            ECU_R_ADDR_E + ' 03 41 0D 37 \r',
+                            ECU_R_ADDR_E + ' 03 41 0D 27 \r',
+                            ECU_R_ADDR_E + ' 03 41 0D 33 \r',
+                            ECU_R_ADDR_E + ' 03 41 0D 00 \r',
+                            ECU_R_ADDR_E + ' 03 41 0D 44 \r',
+                            ECU_R_ADDR_E + ' 03 41 0D 5C \r',
+                            ECU_R_ADDR_E + ' 03 41 0D 1D \r',
+                            ECU_R_ADDR_E + ' 03 41 0D 72 \r',
+                            ECU_R_ADDR_E + ' 03 41 0D 48 \r',
+                            ECU_R_ADDR_E + ' 03 41 0D 20 \r',
                             ECU_R_ADDR_E + ' 03 41 0D 29 \r',
-                            ECU_R_ADDR_E + ' 03 41 0D 0D \r',
-                            ECU_R_ADDR_E + ' 03 41 0D 21 \r',
-                            ECU_R_ADDR_E + ' 03 41 0D 3C \r',
-                            ECU_R_ADDR_E + ' 03 41 0D 1F \r',
-                            ECU_R_ADDR_E + ' 03 41 0D 1B \r'
+                            ECU_R_ADDR_E + ' 03 41 0D 0E \r'
                             ]
-                # 42 kph
-                # 31 kph
-                # 33 kph
-                # 27 kph
-                # 25 kph
-                # 60 kph
+                # 10 kph
+                # 55 kph
+                # 39 kph
+                # 51 kph
+                # 68 kph
+                # 92 kph
+                # 29 kph
+                # 114 kph
+                # 72 kph
+                # 32 kph
                 # 41 kph
-                # 30 kph
-                # 13 kph
+                # 14 kph
             },
             'TIMING_ADVANCE': {
                 'Request': '^010E' + ELM_MAX_RESP,
                 'Descr': 'Timing Advance',
                 'Header': ECU_ADDR_E,
                 'Response': [
-                            ECU_R_ADDR_E + ' 03 41 0E 9E \r',
+                            ECU_R_ADDR_E + ' 03 41 0E 75 \r',
+                            ECU_R_ADDR_E + ' 03 41 0E 76 \r',
+                            ECU_R_ADDR_E + ' 03 41 0E 8E \r',
+                            ECU_R_ADDR_E + ' 03 41 0E A2 \r',
+                            ECU_R_ADDR_E + ' 03 41 0E 8F \r',
+                            ECU_R_ADDR_E + ' 03 41 0E 99 \r',
                             ECU_R_ADDR_E + ' 03 41 0E 8A \r',
-                            ECU_R_ADDR_E + ' 03 41 0E 9B \r',
-                            ECU_R_ADDR_E + ' 03 41 0E 9D \r',
-                            ECU_R_ADDR_E + ' 03 41 0E A6 \r'
+                            ECU_R_ADDR_E + ' 03 41 0E A6 \r',
+                            ECU_R_ADDR_E + ' 03 41 0E 95 \r',
+                            ECU_R_ADDR_E + ' 03 41 0E 9A \r',
+                            ECU_R_ADDR_E + ' 03 41 0E A8 \r',
+                            ECU_R_ADDR_E + ' 03 41 0E AB \r'
                             ]
-                # 15.0 degree
-                # 13.5 degree
-                # 19.0 degree
+                # -5.5 degree
+                # -5.0 degree
+                # 7.0 degree
+                # 17.0 degree
+                # 7.5 degree
+                # 12.5 degree
                 # 5.0 degree
-                # 14.5 degree
+                # 19.0 degree
+                # 10.5 degree
+                # 13.0 degree
+                # 20.0 degree
+                # 21.5 degree
             },
             'INTAKE_TEMP': {
                 'Request': '^010F' + ELM_MAX_RESP,
                 'Descr': 'Intake Air Temp',
                 'Header': ECU_ADDR_E,
                 'Response': [
-                            ECU_R_ADDR_E + ' 03 41 0F 3A \r',
                             ECU_R_ADDR_E + ' 03 41 0F 39 \r',
-                            ECU_R_ADDR_E + ' 03 41 0F 3B \r',
+                            ECU_R_ADDR_E + ' 03 41 0F 3C \r',
+                            ECU_R_ADDR_E + ' 03 41 0F 36 \r',
                             ECU_R_ADDR_E + ' 03 41 0F 37 \r',
-                            ECU_R_ADDR_E + ' 03 41 0F 38 \r'
+                            ECU_R_ADDR_E + ' 03 41 0F 34 \r',
+                            ECU_R_ADDR_E + ' 03 41 0F 3A \r',
+                            ECU_R_ADDR_E + ' 03 41 0F 38 \r',
+                            ECU_R_ADDR_E + ' 03 41 0F 35 \r'
                             ]
-                # 18 degC
-                # 19 degC
-                # 16 degC
                 # 17 degC
+                # 20 degC
+                # 14 degC
                 # 15 degC
+                # 12 degC
+                # 18 degC
+                # 16 degC
+                # 13 degC
             },
             'MAF': {
                 'Request': '^0110' + ELM_MAX_RESP,
                 'Descr': 'Air Flow Rate (MAF)',
                 'Header': ECU_ADDR_E,
                 'Response': [
-                            ECU_R_ADDR_E + ' 04 41 10 03 8B \r',
-                            ECU_R_ADDR_E + ' 04 41 10 04 04 \r',
-                            ECU_R_ADDR_E + ' 04 41 10 09 99 \r',
-                            ECU_R_ADDR_E + ' 04 41 10 0D EC \r',
-                            ECU_R_ADDR_E + ' 04 41 10 00 11 \r',
-                            ECU_R_ADDR_E + ' 04 41 10 00 12 \r'
+                            ECU_R_ADDR_E + ' 04 41 10 18 1F \r',
+                            ECU_R_ADDR_E + ' 04 41 10 01 46 \r',
+                            ECU_R_ADDR_E + ' 04 41 10 03 0A \r',
+                            ECU_R_ADDR_E + ' 04 41 10 11 5B \r',
+                            ECU_R_ADDR_E + ' 04 41 10 00 14 \r',
+                            ECU_R_ADDR_E + ' 04 41 10 02 86 \r',
+                            ECU_R_ADDR_E + ' 04 41 10 03 05 \r',
+                            ECU_R_ADDR_E + ' 04 41 10 10 16 \r',
+                            ECU_R_ADDR_E + ' 04 41 10 00 12 \r',
+                            ECU_R_ADDR_E + ' 04 41 10 10 05 \r',
+                            ECU_R_ADDR_E + ' 04 41 10 01 3B \r',
+                            ECU_R_ADDR_E + ' 04 41 10 00 51 \r',
+                            ECU_R_ADDR_E + ' 04 41 10 10 20 \r',
+                            ECU_R_ADDR_E + ' 04 41 10 04 93 \r'
                             ]
-                # 0.17 gps
-                # 24.57 gps
-                # 10.28 gps
-                # 35.64 gps
-                # 9.07 gps
+                # 61.75 gps
+                # 3.2600000000000002 gps
+                # 7.78 gps
+                # 44.43 gps
+                # 0.2 gps
+                # 6.46 gps
+                # 7.73 gps
+                # 41.18 gps
                 # 0.18 gps
+                # 41.01 gps
+                # 3.15 gps
+                # 0.81 gps
+                # 41.28 gps
+                # 11.71 gps
             },
             'THROTTLE_POS': {
                 'Request': '^0111' + ELM_MAX_RESP,
                 'Descr': 'Throttle Position',
                 'Header': ECU_ADDR_E,
                 'Response': [
-                            ECU_R_ADDR_E + ' 03 41 11 6E \r',
                             ECU_R_ADDR_E + ' 03 41 11 2B \r',
-                            ECU_R_ADDR_E + ' 03 41 11 69 \r',
-                            ECU_R_ADDR_E + ' 03 41 11 33 \r',
-                            ECU_R_ADDR_E + ' 03 41 11 3A \r'
+                            ECU_R_ADDR_E + ' 03 41 11 70 \r',
+                            ECU_R_ADDR_E + ' 03 41 11 44 \r',
+                            ECU_R_ADDR_E + ' 03 41 11 50 \r',
+                            ECU_R_ADDR_E + ' 03 41 11 32 \r',
+                            ECU_R_ADDR_E + ' 03 41 11 72 \r',
+                            ECU_R_ADDR_E + ' 03 41 11 2E \r',
+                            ECU_R_ADDR_E + ' 03 41 11 36 \r',
+                            ECU_R_ADDR_E + ' 03 41 11 2A \r',
+                            ECU_R_ADDR_E + ' 03 41 11 2F \r'
                             ]
-                # 16.862745098 percent
-                # 20.0 percent
-                # 41.1764705882 percent
-                # 43.137254902 percent
-                # 22.7450980392 percent
+                # 16.862745098039216 percent
+                # 43.92156862745098 percent
+                # 26.666666666666668 percent
+                # 31.372549019607842 percent
+                # 19.607843137254903 percent
+                # 44.705882352941174 percent
+                # 18.03921568627451 percent
+                # 21.176470588235293 percent
+                # 16.470588235294116 percent
+                # 18.431372549019606 percent
             },
             'O2_SENSORS': {
                 'Request': '^0113' + ELM_MAX_RESP,
@@ -870,16 +1038,20 @@ class ELM:
                 'Descr': 'O2: Bank 1 - Sensor 2 Voltage',
                 'Header': ECU_ADDR_E,
                 'Response': [
-                            ECU_R_ADDR_E + ' 04 41 15 B7 FF \r',
+                            ECU_R_ADDR_E + ' 04 41 15 07 FF \r',
                             ECU_R_ADDR_E + ' 04 41 15 00 FF \r',
-                            ECU_R_ADDR_E + ' 04 41 15 B3 FF \r',
-                            ECU_R_ADDR_E + ' 04 41 15 BB FF \r',
-                            ECU_R_ADDR_E + ' 04 41 15 A4 FF \r'
+                            ECU_R_ADDR_E + ' 04 41 15 84 FF \r',
+                            ECU_R_ADDR_E + ' 04 41 15 03 FF \r',
+                            ECU_R_ADDR_E + ' 04 41 15 94 FF \r',
+                            ECU_R_ADDR_E + ' 04 41 15 2A FF \r',
+                            ECU_R_ADDR_E + ' 04 41 15 46 FF \r'
                             ]
-                # 0.82 volt
-                # 0.935 volt
-                # 0.915 volt
-                # 0.895 volt
+                # 0.035 volt
+                # 0.66 volt
+                # 0.015 volt
+                # 0.74 volt
+                # 0.21 volt
+                # 0.35 volt
             },
             'OBD_COMPLIANCE': {
                 'Request': '^011C' + ELM_MAX_RESP,
@@ -892,27 +1064,36 @@ class ELM:
                 'Descr': 'Engine Run Time',
                 'Header': ECU_ADDR_E,
                 'Response': [
-                            ECU_R_ADDR_E + ' 04 41 1F 00 E6 \r',
-                            ECU_R_ADDR_E + ' 04 41 1F 00 6C \r',
-                            ECU_R_ADDR_E + ' 04 41 1F 00 9A \r',
-                            ECU_R_ADDR_E + ' 04 41 1F 00 7C \r',
-                            ECU_R_ADDR_E + ' 04 41 1F 00 B9 \r',
+                            ECU_R_ADDR_E + ' 04 41 1F 00 75 \r',
+                            ECU_R_ADDR_E + ' 04 41 1F 00 26 \r',
+                            ECU_R_ADDR_E + ' 04 41 1F 00 1A \r',
+                            ECU_R_ADDR_E + ' 04 41 1F 00 5F \r',
+                            ECU_R_ADDR_E + ' 04 41 1F 00 A1 \r',
+                            ECU_R_ADDR_E + ' 04 41 1F 00 96 \r',
+                            ECU_R_ADDR_E + ' 04 41 1F 00 80 \r',
+                            ECU_R_ADDR_E + ' 04 41 1F 00 3D \r',
+                            ECU_R_ADDR_E + ' 04 41 1F 00 0E \r',
+                            ECU_R_ADDR_E + ' 04 41 1F 00 00 \r',
+                            ECU_R_ADDR_E + ' 04 41 1F 00 53 \r',
                             ECU_R_ADDR_E + ' 04 41 1F 00 8B \r',
-                            ECU_R_ADDR_E + ' 04 41 1F 00 F6 \r',
-                            ECU_R_ADDR_E + ' 04 41 1F 00 A9 \r',
-                            ECU_R_ADDR_E + ' 04 41 1F 00 D7 \r',
-                            ECU_R_ADDR_E + ' 04 41 1F 00 C8 \r'
+                            ECU_R_ADDR_E + ' 04 41 1F 00 32 \r',
+                            ECU_R_ADDR_E + ' 04 41 1F 00 48 \r',
+                            ECU_R_ADDR_E + ' 04 41 1F 00 6A \r'
                             ]
-                # 200 second
-                # 108 second
+                # 117 second
+                # 38 second
+                # 26 second
+                # 95 second
+                # 161 second
+                # 150 second
+                # 128 second
+                # 61 second
+                # 14 second
+                # 83 second
                 # 139 second
-                # 185 second
-                # 169 second
-                # 246 second
-                # 124 second
-                # 154 second
-                # 215 second
-                # 230 second
+                # 50 second
+                # 72 second
+                # 106 second
             },
             'PIDS_B': {
                 'Request': '^0120' + ELM_MAX_RESP,
@@ -931,27 +1112,35 @@ class ELM:
                 'Descr': '02 Sensor 1 WR Lambda Voltage',
                 'Header': ECU_ADDR_E,
                 'Response': [
-                            ECU_R_ADDR_E + ' 06 41 24 68 1C 1F 7A \r',
-                            ECU_R_ADDR_E + ' 06 41 24 7B 7F 64 E9 \r',
-                            ECU_R_ADDR_E + ' 06 41 24 73 CE 56 D9 \r',
-                            ECU_R_ADDR_E + ' 06 41 24 68 1C 27 04 \r',
-                            ECU_R_ADDR_E + ' 06 41 24 7B 11 65 89 \r',
-                            ECU_R_ADDR_E + ' 06 41 24 82 0B 6D F9 \r',
-                            ECU_R_ADDR_E + ' 06 41 24 7E 2A 68 A9 \r',
-                            ECU_R_ADDR_E + ' 06 41 24 79 45 61 C9 \r',
-                            ECU_R_ADDR_E + ' 06 41 24 72 95 54 31 \r',
-                            ECU_R_ADDR_E + ' 06 41 24 68 1C 1B B6 \r'
+                            ECU_R_ADDR_E + ' 06 41 24 7B A8 65 D9 \r',
+                            ECU_R_ADDR_E + ' 06 41 24 81 BA 6D 81 \r',
+                            ECU_R_ADDR_E + ' 06 41 24 80 4A 6B F1 \r',
+                            ECU_R_ADDR_E + ' 06 41 24 80 71 6B F1 \r',
+                            ECU_R_ADDR_E + ' 06 41 24 7E 87 69 71 \r',
+                            ECU_R_ADDR_E + ' 06 41 24 7F F5 6B 29 \r',
+                            ECU_R_ADDR_E + ' 06 41 24 91 2A 7C 31 \r',
+                            ECU_R_ADDR_E + ' 06 41 24 7E 28 68 A9 \r',
+                            ECU_R_ADDR_E + ' 06 41 24 7E DC 69 99 \r',
+                            ECU_R_ADDR_E + ' 06 41 24 82 B4 6E E9 \r',
+                            ECU_R_ADDR_E + ' 06 41 24 9D CF 9F FF \r',
+                            ECU_R_ADDR_E + ' 06 41 24 84 32 70 29 \r',
+                            ECU_R_ADDR_E + ' 06 41 24 7F B5 69 49 \r',
+                            ECU_R_ADDR_E + ' 06 41 24 81 46 6C E1 \r'
                             ]
-                # 3.05583276112 volt
-                # 2.63102159152 volt
-                # 3.43669794766 volt
-                # 0.865980010681 volt
-                # 3.17302204929 volt
-                # 3.27067978943 volt
-                # 0.983657587549 volt
-                # 2.71403067063 volt
-                # 3.15349050126 volt
-                # 1.21925688563 volt
+                # 3.1827878233005262 volt
+                # 3.422049286640726 volt
+                # 3.373220416571298 volt
+                # 3.373220416571298 volt
+                # 3.295094224460212 volt
+                # 3.3488059815365836 volt
+                # 3.8810406652933547 volt
+                # 3.2706797894254978 volt
+                # 3.2999771114671548 volt
+                # 3.465995269703212 volt
+                # 4.99995422293431 volt
+                # 3.505058365758755 volt
+                # 3.290211337453269 volt
+                # 3.402517738612955 volt
             },
             'COMMANDED_EGR': {
                 'Request': '^012C' + ELM_MAX_RESP,
@@ -969,23 +1158,21 @@ class ELM:
                 'Request': '^0130' + ELM_MAX_RESP,
                 'Descr': 'Number of warm-ups since codes cleared',
                 'Header': ECU_ADDR_E,
-                'Response': [
-                            ECU_R_ADDR_E + ' 03 41 30 00 \r',
-                            ECU_R_ADDR_E + ' 03 41 30 1A \r' +
-                            ECU_R_ADDR_H + ' 03 41 30 FF \r'
-                            ]
-                # 26 count
+                'Response': ECU_R_ADDR_E + ' 03 41 30 04 \r'
+                # 4 count
             },
             'DISTANCE_SINCE_DTC_CLEAR': {
                 'Request': '^0131' + ELM_MAX_RESP,
                 'Descr': 'Distance traveled since codes cleared',
                 'Header': ECU_ADDR_E,
                 'Response': [
-                            ECU_R_ADDR_E + ' 04 41 31 00 00 \r',
-                            ECU_R_ADDR_E + ' 04 41 31 03 6A \r' +
-                            ECU_R_ADDR_H + ' 04 41 31 CB 87 \r'
+                            ECU_R_ADDR_E + ' 04 41 31 00 32 \r',
+                            ECU_R_ADDR_E + ' 04 41 31 00 31 \r',
+                            ECU_R_ADDR_E + ' 04 41 31 00 33 \r'
                             ]
-                # 874 kilometer
+                # 50 kilometer
+                # 49 kilometer
+                # 51 kilometer
             },
             'BAROMETRIC_PRESSURE': {
                 'Request': '^0133' + ELM_MAX_RESP,
@@ -999,174 +1186,272 @@ class ELM:
                 'Descr': '02 Sensor 1 WR Lambda Current',
                 'Header': ECU_ADDR_E,
                 'Response': [
-                            ECU_R_ADDR_E + ' 06 41 34 85 72 80 16 \r',
-                            ECU_R_ADDR_E + ' 06 41 34 7B 8E 7F F4 \r',
-                            ECU_R_ADDR_E + ' 06 41 34 79 10 7F DF \r',
-                            ECU_R_ADDR_E + ' 06 41 34 68 1C 7F 35 \r',
-                            ECU_R_ADDR_E + ' 06 41 34 85 E8 80 18 \r',
-                            ECU_R_ADDR_E + ' 06 41 34 68 1C 7F 72 \r',
-                            ECU_R_ADDR_E + ' 06 41 34 7F 3F 80 01 \r',
-                            ECU_R_ADDR_E + ' 06 41 34 68 1C 7F 7F \r',
-                            ECU_R_ADDR_E + ' 06 41 34 68 1C 7F 22 \r',
-                            ECU_R_ADDR_E + ' 06 41 34 7F 41 80 00 \r'
+                            ECU_R_ADDR_E + ' 06 41 34 7A F9 7F F1 \r',
+                            ECU_R_ADDR_E + ' 06 41 34 69 9E 7F 9F \r',
+                            ECU_R_ADDR_E + ' 06 41 34 7E EB 80 01 \r',
+                            ECU_R_ADDR_E + ' 06 41 34 7E 84 80 00 \r',
+                            ECU_R_ADDR_E + ' 06 41 34 80 9D 80 07 \r',
+                            ECU_R_ADDR_E + ' 06 41 34 7E 17 7F FE \r',
+                            ECU_R_ADDR_E + ' 06 41 34 9D CF 81 6D \r',
+                            ECU_R_ADDR_E + ' 06 41 34 81 81 80 0B \r',
+                            ECU_R_ADDR_E + ' 06 41 34 7A AC 7F EF \r',
+                            ECU_R_ADDR_E + ' 06 41 34 99 CC 80 47 \r',
+                            ECU_R_ADDR_E + ' 06 41 34 7E 9C 80 00 \r',
+                            ECU_R_ADDR_E + ' 06 41 34 7E A1 80 00 \r',
+                            ECU_R_ADDR_E + ' 06 41 34 9D CF 81 96 \r',
+                            ECU_R_ADDR_E + ' 06 41 34 83 FD 80 14 \r',
+                            ECU_R_ADDR_E + ' 06 41 34 74 77 7F CD \r'
                             ]
-                # -0.50390625 milliampere
-                # -0.79296875 milliampere
+                # -0.05859375 milliampere
+                # -0.37890625 milliampere
                 # 0.00390625 milliampere
-                # 0.0859375 milliampere
-                # -0.8671875 milliampere
-                # -0.5546875 milliampere
-                # 0.09375 milliampere
-                # -0.12890625 milliampere
-                # -0.046875 milliampere
+                # 0.02734375 milliampere
+                # -0.0078125 milliampere
+                # 1.42578125 milliampere
+                # 0.04296875 milliampere
+                # -0.06640625 milliampere
+                # 0.27734375 milliampere
+                # 1.5859375 milliampere
+                # 0.078125 milliampere
+                # -0.19921875 milliampere
             },
             'CATALYST_TEMP_B1S1': {
                 'Request': '^013C' + ELM_MAX_RESP,
                 'Descr': 'Catalyst Temperature: Bank 1 - Sensor 1',
                 'Header': ECU_ADDR_E,
                 'Response': [
-                            ECU_R_ADDR_E + ' 04 41 3C 18 7F \r',
-                            ECU_R_ADDR_E + ' 04 41 3C 16 9F \r',
-                            ECU_R_ADDR_E + ' 04 41 3C 17 58 \r',
-                            ECU_R_ADDR_E + ' 04 41 3C 17 BF \r',
-                            ECU_R_ADDR_E + ' 04 41 3C 0F 7E \r',
-                            ECU_R_ADDR_E + ' 04 41 3C 18 EC \r',
-                            ECU_R_ADDR_E + ' 04 41 3C 12 D0 \r',
-                            ECU_R_ADDR_E + ' 04 41 3C 18 C9 \r',
-                            ECU_R_ADDR_E + ' 04 41 3C 18 A6 \r',
-                            ECU_R_ADDR_E + ' 04 41 3C 18 78 \r'
+                            ECU_R_ADDR_E + ' 04 41 3C 15 9A \r',
+                            ECU_R_ADDR_E + ' 04 41 3C 1D 7C \r',
+                            ECU_R_ADDR_E + ' 04 41 3C 1C 1C \r',
+                            ECU_R_ADDR_E + ' 04 41 3C 04 76 \r',
+                            ECU_R_ADDR_E + ' 04 41 3C 0E 43 \r',
+                            ECU_R_ADDR_E + ' 04 41 3C 0D 71 \r',
+                            ECU_R_ADDR_E + ' 04 41 3C 15 C5 \r',
+                            ECU_R_ADDR_E + ' 04 41 3C 15 B3 \r',
+                            ECU_R_ADDR_E + ' 04 41 3C 05 82 \r',
+                            ECU_R_ADDR_E + ' 04 41 3C 23 0F \r',
+                            ECU_R_ADDR_E + ' 04 41 3C 06 9E \r',
+                            ECU_R_ADDR_E + ' 04 41 3C 22 36 \r',
+                            ECU_R_ADDR_E + ' 04 41 3C 22 E0 \r',
+                            ECU_R_ADDR_E + ' 04 41 3C 20 4E \r',
+                            ECU_R_ADDR_E + ' 04 41 3C 1C 66 \r'
                             ]
-                # 594.5 degC
-                # 356.6 degC
-                # 557.6 degC
-                # 586.4 degC
-                # 441.6 degC
-                # 539.1 degC
-                # 567.9 degC
-                # 587.1 degC
-                # 598.0 degC
-                # 591.0 degC
+                # 513.0 degC
+                # 714.8000000000001 degC
+                # 679.6 degC
+                # 74.2 degC
+                # 325.1 degC
+                # 304.1 degC
+                # 517.3000000000001 degC
+                # 515.5 degC
+                # 101.0 degC
+                # 857.5 degC
+                # 129.4 degC
+                # 835.8000000000001 degC
+                # 852.8000000000001 degC
+                # 787.0 degC
+                # 687.0 degC
             },
             'CATALYST_TEMP_B1S2': {
                 'Request': '^013E' + ELM_MAX_RESP,
                 'Descr': 'Catalyst Temperature: Bank 1 - Sensor 2',
                 'Header': ECU_ADDR_E,
                 'Response': [
-                            ECU_R_ADDR_E + ' 04 41 3E 0A 6B \r',
-                            ECU_R_ADDR_E + ' 04 41 3E 11 7F \r',
-                            ECU_R_ADDR_E + ' 04 41 3E 0E 4C \r',
-                            ECU_R_ADDR_E + ' 04 41 3E 11 84 \r',
-                            ECU_R_ADDR_E + ' 04 41 3E 10 A4 \r',
-                            ECU_R_ADDR_E + ' 04 41 3E 11 7C \r',
-                            ECU_R_ADDR_E + ' 04 41 3E 11 BE \r',
-                            ECU_R_ADDR_E + ' 04 41 3E 0D 0D \r',
-                            ECU_R_ADDR_E + ' 04 41 3E 10 E8 \r',
-                            ECU_R_ADDR_E + ' 04 41 3E 11 A1 \r'
+                            ECU_R_ADDR_E + ' 04 41 3E 02 B9 \r',
+                            ECU_R_ADDR_E + ' 04 41 3E 09 44 \r',
+                            ECU_R_ADDR_E + ' 04 41 3E 06 B7 \r',
+                            ECU_R_ADDR_E + ' 04 41 3E 0E 77 \r',
+                            ECU_R_ADDR_E + ' 04 41 3E 03 69 \r',
+                            ECU_R_ADDR_E + ' 04 41 3E 20 A1 \r',
+                            ECU_R_ADDR_E + ' 04 41 3E 18 1B \r',
+                            ECU_R_ADDR_E + ' 04 41 3E 15 A0 \r',
+                            ECU_R_ADDR_E + ' 04 41 3E 11 3E \r',
+                            ECU_R_ADDR_E + ' 04 41 3E 1E 38 \r',
+                            ECU_R_ADDR_E + ' 04 41 3E 10 C4 \r',
+                            ECU_R_ADDR_E + ' 04 41 3E 20 3F \r',
+                            ECU_R_ADDR_E + ' 04 41 3E 02 83 \r',
+                            ECU_R_ADDR_E + ' 04 41 3E 16 DD \r',
+                            ECU_R_ADDR_E + ' 04 41 3E 1B 27 \r'
                             ]
-                # 386.0 degC
-                # 226.7 degC
-                # 407.9 degC
-                # 294.1 degC
-                # 392.8 degC
-                # 411.3 degC
-                # 414.2 degC
-                # 407.6 degC
-                # 408.4 degC
-                # 326.0 degC
+                # 29.700000000000003 degC
+                # 197.20000000000002 degC
+                # 131.9 degC
+                # 330.3 degC
+                # 47.30000000000001 degC
+                # 795.3000000000001 degC
+                # 577.1 degC
+                # 513.6 degC
+                # 401.40000000000003 degC
+                # 733.6 degC
+                # 389.20000000000005 degC
+                # 785.5 degC
+                # 24.299999999999997 degC
+                # 545.3000000000001 degC
+                # 655.1 degC
             },
             'PIDS_C': {
                 'Request': '^0140' + ELM_MAX_RESP,
                 'Descr': 'Supported PIDs [41-60]',
                 'Header': ECU_ADDR_E,
-                'Response': ECU_R_ADDR_E + ' 06 41 40 7A 1C 80 00 \r'
+                'Response': [
+                            ECU_R_ADDR_E + ' 06 41 40 7A 1C 80 00 \r' +
+                            ECU_R_ADDR_H + ' 06 41 40 44 CC 00 21 \r',
+                            ECU_R_ADDR_E + ' 06 41 40 7A 1C 80 00 \r'
+                            ]
             },
             'CONTROL_MODULE_VOLTAGE': {
                 'Request': '^0142' + ELM_MAX_RESP,
                 'Descr': 'Control module voltage',
                 'Header': ECU_ADDR_E,
                 'Response': [
-                            ECU_R_ADDR_E + ' 04 41 42 39 AD \r',
+                            ECU_R_ADDR_E + ' 04 41 42 39 4B \r',
+                            ECU_R_ADDR_E + ' 04 41 42 39 C1 \r',
+                            ECU_R_ADDR_E + ' 04 41 42 39 73 \r',
+                            ECU_R_ADDR_E + ' 04 41 42 39 5F \r',
                             ECU_R_ADDR_E + ' 04 41 42 39 9A \r',
-                            ECU_R_ADDR_E + ' 04 41 42 39 5F \r'
+                            ECU_R_ADDR_E + ' 04 41 42 39 38 \r'
                             ]
-                # 14.765 volt
+                # 14.667 volt
+                # 14.785 volt
+                # 14.707 volt
+                # 14.687000000000001 volt
                 # 14.746 volt
-                # 14.687 volt
+                # 14.648 volt
             },
             'ABSOLUTE_LOAD': {
                 'Request': '^0143' + ELM_MAX_RESP,
                 'Descr': 'Absolute load value',
                 'Header': ECU_ADDR_E,
                 'Response': [
-                            ECU_R_ADDR_E + ' 04 41 43 00 B5 \r',
+                            ECU_R_ADDR_E + ' 04 41 43 00 54 \r',
+                            ECU_R_ADDR_E + ' 04 41 43 00 3C \r',
+                            ECU_R_ADDR_E + ' 04 41 43 00 39 \r',
+                            ECU_R_ADDR_E + ' 04 41 43 00 29 \r',
+                            ECU_R_ADDR_E + ' 04 41 43 00 BB \r',
+                            ECU_R_ADDR_E + ' 04 41 43 00 66 \r',
+                            ECU_R_ADDR_E + ' 04 41 43 00 C0 \r',
+                            ECU_R_ADDR_E + ' 04 41 43 00 6F \r',
+                            ECU_R_ADDR_E + ' 04 41 43 00 1B \r',
+                            ECU_R_ADDR_E + ' 04 41 43 00 BE \r',
                             ECU_R_ADDR_E + ' 04 41 43 00 00 \r',
-                            ECU_R_ADDR_E + ' 04 41 43 00 31 \r',
-                            ECU_R_ADDR_E + ' 04 41 43 00 5D \r'
+                            ECU_R_ADDR_E + ' 04 41 43 00 55 \r'
                             ]
-                # 70.9803921569 percent
-                # 36.4705882353 percent
-                # 19.2156862745 percent
+                # 32.94117647058823 percent
+                # 23.52941176470588 percent
+                # 22.352941176470587 percent
+                # 16.07843137254902 percent
+                # 73.33333333333333 percent
+                # 40.0 percent
+                # 75.29411764705883 percent
+                # 43.529411764705884 percent
+                # 10.588235294117647 percent
+                # 74.50980392156863 percent
+                # 33.333333333333336 percent
             },
             'COMMANDED_EQUIV_RATIO': {
                 'Request': '^0144' + ELM_MAX_RESP,
                 'Descr': 'Commanded equivalence ratio',
                 'Header': ECU_ADDR_E,
                 'Response': [
-                            ECU_R_ADDR_E + ' 04 41 44 70 FD \r',
-                            ECU_R_ADDR_E + ' 04 41 44 76 B8 \r',
-                            ECU_R_ADDR_E + ' 04 41 44 7F F2 \r',
+                            ECU_R_ADDR_E + ' 04 41 44 7E 71 \r',
+                            ECU_R_ADDR_E + ' 04 41 44 7E 82 \r',
                             ECU_R_ADDR_E + ' 04 41 44 7F 20 \r',
-                            ECU_R_ADDR_E + ' 04 41 44 7D 8A \r'
+                            ECU_R_ADDR_E + ' 04 41 44 80 C5 \r',
+                            ECU_R_ADDR_E + ' 04 41 44 7F F2 \r',
+                            ECU_R_ADDR_E + ' 04 41 44 75 A8 \r',
+                            ECU_R_ADDR_E + ' 04 41 44 7E 07 \r',
+                            ECU_R_ADDR_E + ' 04 41 44 62 8C \r',
+                            ECU_R_ADDR_E + ' 04 41 44 7E 4E \r'
                             ]
-                # 0.926956 ratio
-                # 0.8822125 ratio
+                # 0.9872545 ratio
+                # 0.987773 ratio
                 # 0.992592 ratio
+                # 1.0054325 ratio
                 # 0.998997 ratio
-                # 0.980209 ratio
+                # 0.91866 ratio
+                # 0.9840215 ratio
+                # 0.769454 ratio
+                # 0.9861869999999999 ratio
             },
             'RELATIVE_THROTTLE_POS': {
                 'Request': '^0145' + ELM_MAX_RESP,
                 'Descr': 'Relative throttle position',
                 'Header': ECU_ADDR_E,
                 'Response': [
-                            ECU_R_ADDR_E + ' 03 41 45 11 \r',
-                            ECU_R_ADDR_E + ' 03 41 45 14 \r',
-                            ECU_R_ADDR_E + ' 03 41 45 00 \r',
-                            ECU_R_ADDR_E + ' 03 41 45 21 \r'
+                            ECU_R_ADDR_E + ' 03 41 45 19 \r',
+                            ECU_R_ADDR_E + ' 03 41 45 42 \r',
+                            ECU_R_ADDR_E + ' 03 41 45 10 \r',
+                            ECU_R_ADDR_E + ' 03 41 45 46 \r',
+                            ECU_R_ADDR_E + ' 03 41 45 27 \r',
+                            ECU_R_ADDR_E + ' 03 41 45 03 \r',
+                            ECU_R_ADDR_E + ' 03 41 45 02 \r',
+                            ECU_R_ADDR_E + ' 03 41 45 00 \r'
                             ]
-                # 12.9411764706 percent
-                # 6.66666666667 percent
-                # 7.8431372549 percent
+                # 9.803921568627452 percent
+                # 25.88235294117647 percent
+                # 6.2745098039215685 percent
+                # 27.45098039215686 percent
+                # 15.294117647058824 percent
+                # 1.1764705882352942 percent
+                # 0.7843137254901961 percent
             },
             'THROTTLE_POS_B': {
                 'Request': '^0147' + ELM_MAX_RESP,
                 'Descr': 'Absolute throttle position B',
                 'Header': ECU_ADDR_E,
                 'Response': [
-                            ECU_R_ADDR_E + ' 03 41 47 CD \r',
-                            ECU_R_ADDR_E + ' 03 41 47 89 \r',
+                            ECU_R_ADDR_E + ' 03 41 47 92 \r',
+                            ECU_R_ADDR_E + ' 03 41 47 7B \r',
                             ECU_R_ADDR_E + ' 03 41 47 7D \r',
-                            ECU_R_ADDR_E + ' 03 41 47 7F \r'
+                            ECU_R_ADDR_E + ' 03 41 47 81 \r',
+                            ECU_R_ADDR_E + ' 03 41 47 AD \r',
+                            ECU_R_ADDR_E + ' 03 41 47 E9 \r',
+                            ECU_R_ADDR_E + ' 03 41 47 D3 \r',
+                            ECU_R_ADDR_E + ' 03 41 47 95 \r',
+                            ECU_R_ADDR_E + ' 03 41 47 85 \r',
+                            ECU_R_ADDR_E + ' 03 41 47 7C \r'
                             ]
-                # 80.3921568627 percent
-                # 49.0196078431 percent
-                # 53.7254901961 percent
-                # 49.8039215686 percent
+                # 57.254901960784316 percent
+                # 48.23529411764706 percent
+                # 49.01960784313726 percent
+                # 50.588235294117645 percent
+                # 67.84313725490196 percent
+                # 91.37254901960785 percent
+                # 82.74509803921569 percent
+                # 58.431372549019606 percent
+                # 52.15686274509804 percent
+                # 48.627450980392155 percent
             },
             'THROTTLE_ACTUATOR': {
                 'Request': '^014C' + ELM_MAX_RESP,
                 'Descr': 'Commanded throttle actuator',
                 'Header': ECU_ADDR_E,
                 'Response': [
+                            ECU_R_ADDR_E + ' 03 41 4C 71 \r',
+                            ECU_R_ADDR_E + ' 03 41 4C 33 \r',
+                            ECU_R_ADDR_E + ' 03 41 4C 6F \r',
+                            ECU_R_ADDR_E + ' 03 41 4C 3D \r',
+                            ECU_R_ADDR_E + ' 03 41 4C 74 \r',
+                            ECU_R_ADDR_E + ' 03 41 4C 2F \r',
+                            ECU_R_ADDR_E + ' 03 41 4C 2A \r',
                             ECU_R_ADDR_E + ' 03 41 4C 6B \r',
-                            ECU_R_ADDR_E + ' 03 41 4C 2C \r',
+                            ECU_R_ADDR_E + ' 03 41 4C 32 \r',
+                            ECU_R_ADDR_E + ' 03 41 4C 22 \r',
                             ECU_R_ADDR_E + ' 03 41 4C 2B \r',
-                            ECU_R_ADDR_E + ' 03 41 4C 33 \r'
+                            ECU_R_ADDR_E + ' 03 41 4C 75 \r'
                             ]
-                # 16.862745098 percent
-                # 17.2549019608 percent
+                # 44.31372549019608 percent
                 # 20.0 percent
-                # 41.9607843137 percent
+                # 43.529411764705884 percent
+                # 23.92156862745098 percent
+                # 45.490196078431374 percent
+                # 18.431372549019606 percent
+                # 16.470588235294116 percent
+                # 41.96078431372549 percent
+                # 19.607843137254903 percent
+                # 13.333333333333334 percent
+                # 16.862745098039216 percent
+                # 45.88235294117647 percent
             },
             'RUN_TIME_MIL': {
                 'Request': '^014D' + ELM_MAX_RESP,
@@ -1179,10 +1464,13 @@ class ELM:
                 'Descr': 'Time since trouble codes cleared',
                 'Header': ECU_ADDR_E,
                 'Response': [
-                            ECU_R_ADDR_E + ' 04 41 4E 00 00 \r',
-                            ECU_R_ADDR_E + ' 04 41 4E 04 C2 \r'
+                            ECU_R_ADDR_E + ' 04 41 4E 00 5B \r',
+                            ECU_R_ADDR_E + ' 04 41 4E 00 5C \r',
+                            ECU_R_ADDR_E + ' 04 41 4E 00 5D \r'
                             ]
-                # 1218 minute
+                # 91 minute
+                # 92 minute
+                # 93 minute
             },
             'FUEL_TYPE': {
                 'Request': '^0151' + ELM_MAX_RESP,
@@ -1207,7 +1495,7 @@ class ELM:
                 'Descr': 'DTC Calculated Engine Load',
                 'Header': ECU_ADDR_E,
                 'Response': ECU_R_ADDR_E + ' 03 7F 02 12 \r'
-                # 7.05882352941 percent
+                # 7.0588235294117645 percent
             },
             'DTC_COOLANT_TEMP': {
                 'Request': '^0205' + ELM_MAX_RESP,
@@ -1277,7 +1565,7 @@ class ELM:
                 'Descr': 'DTC Throttle Position',
                 'Header': ECU_ADDR_E,
                 'Response': ECU_R_ADDR_E + ' 03 7F 02 12 \r'
-                # 7.05882352941 percent
+                # 7.0588235294117645 percent
             },
             'DTC_O2_SENSORS': {
                 'Request': '^0213' + ELM_MAX_RESP,
@@ -1309,7 +1597,10 @@ class ELM:
                 'Request': '^0220' + ELM_MAX_RESP,
                 'Descr': 'DTC Supported PIDs [21-40]',
                 'Header': ECU_ADDR_E,
-                'Response': ECU_R_ADDR_E + ' 03 7F 02 12 \r'
+                'Response': [
+                            'NO DATA \r',
+                            ECU_R_ADDR_E + ' 03 7F 02 12 \r'
+                            ]
             },
             'DTC_DISTANCE_W_MIL': {
                 'Request': '^0221' + ELM_MAX_RESP,
@@ -1329,20 +1620,23 @@ class ELM:
                 'Descr': 'DTC Commanded EGR',
                 'Header': ECU_ADDR_E,
                 'Response': ECU_R_ADDR_E + ' 03 7F 02 12 \r'
-                # 7.05882352941 percent
+                # 7.0588235294117645 percent
             },
             'DTC_EVAPORATIVE_PURGE': {
                 'Request': '^022E' + ELM_MAX_RESP,
                 'Descr': 'DTC Commanded Evaporative Purge',
                 'Header': ECU_ADDR_E,
                 'Response': ECU_R_ADDR_E + ' 03 7F 02 12 \r'
-                # 7.05882352941 percent
+                # 7.0588235294117645 percent
             },
             'DTC_WARMUPS_SINCE_DTC_CLEAR': {
                 'Request': '^0230' + ELM_MAX_RESP,
                 'Descr': 'DTC Number of warm-ups since codes cleared',
                 'Header': ECU_ADDR_E,
-                'Response': ECU_R_ADDR_E + ' 03 7F 02 12 \r'
+                'Response': [
+                            'NO DATA \r',
+                            ECU_R_ADDR_E + ' 03 7F 02 12 \r'
+                            ]
                 # 18 count
             },
             'DTC_DISTANCE_SINCE_DTC_CLEAR': {
@@ -1391,14 +1685,14 @@ class ELM:
                 'Descr': 'DTC Control module voltage',
                 'Header': ECU_ADDR_E,
                 'Response': ECU_R_ADDR_E + ' 03 7F 02 12 \r'
-                # 4.608 volt
+                # 4.6080000000000005 volt
             },
             'DTC_ABSOLUTE_LOAD': {
                 'Request': '^0243' + ELM_MAX_RESP,
                 'Descr': 'DTC Absolute load value',
                 'Header': ECU_ADDR_E,
                 'Response': ECU_R_ADDR_E + ' 03 7F 02 12 \r'
-                # 1807.05882353 percent
+                # 1807.0588235294117 percent
             },
             'DTC_COMMANDED_EQUIV_RATIO': {
                 'Request': '^0244' + ELM_MAX_RESP,
@@ -1412,21 +1706,21 @@ class ELM:
                 'Descr': 'DTC Relative throttle position',
                 'Header': ECU_ADDR_E,
                 'Response': ECU_R_ADDR_E + ' 03 7F 02 12 \r'
-                # 7.05882352941 percent
+                # 7.0588235294117645 percent
             },
             'DTC_THROTTLE_POS_B': {
                 'Request': '^0247' + ELM_MAX_RESP,
                 'Descr': 'DTC Absolute throttle position B',
                 'Header': ECU_ADDR_E,
                 'Response': ECU_R_ADDR_E + ' 03 7F 02 12 \r'
-                # 7.05882352941 percent
+                # 7.0588235294117645 percent
             },
             'DTC_THROTTLE_ACTUATOR': {
                 'Request': '^024C' + ELM_MAX_RESP,
                 'Descr': 'DTC Commanded throttle actuator',
                 'Header': ECU_ADDR_E,
                 'Response': ECU_R_ADDR_E + ' 03 7F 02 12 \r'
-                # 7.05882352941 percent
+                # 7.0588235294117645 percent
             },
             'DTC_RUN_TIME_MIL': {
                 'Request': '^024D' + ELM_MAX_RESP,
@@ -1446,19 +1740,16 @@ class ELM:
                 'Request': '^0251' + ELM_MAX_RESP,
                 'Descr': 'DTC Fuel Type',
                 'Header': ECU_ADDR_E,
-                'Response': ECU_R_ADDR_E + ' 03 7F 02 12 \r'
+                'Response': [
+                            'NO DATA \r',
+                            ECU_R_ADDR_E + ' 03 7F 02 12 \r'
+                            ]
             },
             'GET_DTC': {
                 'Request': '^03' + ELM_MAX_RESP,
                 'Descr': 'Get DTCs',
                 'Header': ECU_ADDR_E,
                 'Response': ECU_R_ADDR_E + ' 02 43 00 \r'
-            },
-            'CLEAR_DTC': {
-                'Request': '^04' + ELM_MAX_RESP,
-                'Descr': 'Clear DTCs and Freeze data',
-                'Header': ECU_ADDR_E,
-                'Response': ECU_R_ADDR_E + ' 01 44 \r'
             },
             'MIDS_A': {
                 'Request': '^0600' + ELM_MAX_RESP,
@@ -1470,18 +1761,24 @@ class ELM:
                 'Request': '^0601' + ELM_MAX_RESP,
                 'Descr': 'O2 Sensor Monitor Bank 1 - Sensor 1',
                 'Header': ECU_ADDR_E,
-                'Response': [
-                            '7E8101346018E0B0280\r7E82100A94DBA01918D\r7E82201A000B4022F00 \r',
-                            '7E8101346018E0B0000\r7E8210000000001918D\r7E82200000000000000 \r'
-                            ]
+                'Response': ECU_R_ADDR_E + ' 10 13 46 01 8E 0B 02 27 \r' +
+                            ECU_R_ADDR_E + ' 21 00 A9 4D BA 01 91 8D \r' +
+                            ECU_R_ADDR_E + ' 22 01 9D 00 B4 02 2F 00 \r'
             },
             'MONITOR_O2_B1S2': {
                 'Request': '^0602' + ELM_MAX_RESP,
                 'Descr': 'O2 Sensor Monitor Bank 1 - Sensor 2',
                 'Header': ECU_ADDR_E,
                 'Response': [
-                            '7E8101C4602070B0000\r7E8210000000002080B\r7E82200000000000002\r7E8238F860000000000\r7E82400000000000000 \r',
-                            '7E8101C4602070B0088\r7E821000000D602080B\r7E8220334024903E302\r7E8238F86098000001A\r7E824E0000000000000 \r'
+                            ECU_R_ADDR_E + ' 10 1C 46 02 07 0B 00 88 \r' +
+                            ECU_R_ADDR_E + ' 21 00 00 00 D6 02 08 0B \r' +
+                            ECU_R_ADDR_E + ' 22 02 F9 02 49 03 E3 02 \r' +
+                            ECU_R_ADDR_E + ' 23 8F 86 03 C2 00 00 1A \r' +
+                            ECU_R_ADDR_E + ' 24 E0 00 00 00 00 00 00 \r',
+                            ECU_R_ADDR_E + ' 10 1C 46 02 07 0B 00 88 \r' +
+                            ECU_R_ADDR_E + ' 21 00 00 00 D6 02 08 0B \r' +
+                            ECU_R_ADDR_E + ' 22 02 F9 02 49 03 E3 02 \r' +
+                            ECU_R_ADDR_E + ' 23 8F 86 03 C2 00 00 1A \r'
                             ]
             },
             'MIDS_B': {
@@ -1494,13 +1791,15 @@ class ELM:
                 'Request': '^0621' + ELM_MAX_RESP,
                 'Descr': 'Catalyst Monitor Bank 1',
                 'Header': ECU_ADDR_E,
-                'Response': '7E8100A4621A9860000\r7E82100000000000000 \r'
+                'Response': ECU_R_ADDR_E + ' 10 0A 46 21 A9 86 02 E5 \r' +
+                            ECU_R_ADDR_E + ' 21 02 D0 7F FF 00 00 00 \r'
             },
             'MONITOR_EGR_B1': {
                 'Request': '^0631' + ELM_MAX_RESP,
                 'Descr': 'EGR Monitor Bank 1',
                 'Header': ECU_ADDR_E,
-                'Response': '7E8100A4631BD170000\r7E82100000000000000 \r'
+                'Response': ECU_R_ADDR_E + ' 10 0A 46 31 BD 17 07 47 \r' +
+                            ECU_R_ADDR_E + ' 21 00 63 FF FF 00 00 00 \r'
             },
             'MIDS_C': {
                 'Request': '^0640' + ELM_MAX_RESP,
@@ -1530,51 +1829,41 @@ class ELM:
                 'Request': '^06A1' + ELM_MAX_RESP,
                 'Descr': 'Misfire Monitor General Data',
                 'Header': ECU_ADDR_E,
-                'Response': [
-                            '7E8101346A10B240000\r7E82100000000A10C24\r7E82200000000FFFF00 \r',
-                            '7E8101346A10B240000\r7E8210000FFFFA10C24\r7E82200000000FFFF00 \r',
-                            '7E8101346A10B240000\r7E82100000000A10C24\r7E82200000000000000 \r'
-                            ]
+                'Response': ECU_R_ADDR_E + ' 10 13 46 A1 0B 24 00 00 \r' +
+                            ECU_R_ADDR_E + ' 21 00 00 FF FF A1 0C 24 \r' +
+                            ECU_R_ADDR_E + ' 22 00 00 00 00 FF FF 00 \r'
             },
             'MONITOR_MISFIRE_CYLINDER_1': {
                 'Request': '^06A2' + ELM_MAX_RESP,
                 'Descr': 'Misfire Cylinder 1 Data',
                 'Header': ECU_ADDR_E,
-                'Response': [
-                            '7E8101346A20B240000\r7E82100000000A20C24\r7E82200000000FFFF00 \r',
-                            '7E8101346A20B240000\r7E82100000000A20C24\r7E82200000000000000 \r',
-                            '7E8101346A20B240000\r7E8210000FFFFA20C24\r7E82200000000FFFF00 \r'
-                            ]
+                'Response': ECU_R_ADDR_E + ' 10 13 46 A2 0B 24 00 00 \r' +
+                            ECU_R_ADDR_E + ' 21 00 00 FF FF A2 0C 24 \r' +
+                            ECU_R_ADDR_E + ' 22 00 00 00 00 FF FF 00 \r'
             },
             'MONITOR_MISFIRE_CYLINDER_2': {
                 'Request': '^06A3' + ELM_MAX_RESP,
                 'Descr': 'Misfire Cylinder 2 Data',
                 'Header': ECU_ADDR_E,
-                'Response': [
-                            '7E8101346A30B240000\r7E82100000000A30C24\r7E82200000000FFFF00 \r',
-                            '7E8101346A30B240000\r7E8210000FFFFA30C24\r7E82200000000FFFF00 \r',
-                            '7E8101346A30B240000\r7E82100000000A30C24\r7E82200000000000000 \r'
-                            ]
+                'Response': ECU_R_ADDR_E + ' 10 13 46 A3 0B 24 00 00 \r' +
+                            ECU_R_ADDR_E + ' 21 00 00 FF FF A3 0C 24 \r' +
+                            ECU_R_ADDR_E + ' 22 00 00 00 00 FF FF 00 \r'
             },
             'MONITOR_MISFIRE_CYLINDER_3': {
                 'Request': '^06A4' + ELM_MAX_RESP,
                 'Descr': 'Misfire Cylinder 3 Data',
                 'Header': ECU_ADDR_E,
-                'Response': [
-                            '7E8101346A40B240000\r7E82100000000A40C24\r7E82200000000FFFF00 \r',
-                            '7E8101346A40B240000\r7E82100000000A40C24\r7E82200000000000000 \r',
-                            '7E8101346A40B240000\r7E8210000FFFFA40C24\r7E82200000000FFFF00 \r'
-                            ]
+                'Response': ECU_R_ADDR_E + ' 10 13 46 A4 0B 24 00 00 \r' +
+                            ECU_R_ADDR_E + ' 21 00 00 FF FF A4 0C 24 \r' +
+                            ECU_R_ADDR_E + ' 22 00 00 00 00 FF FF 00 \r'
             },
             'MONITOR_MISFIRE_CYLINDER_4': {
                 'Request': '^06A5' + ELM_MAX_RESP,
                 'Descr': 'Misfire Cylinder 4 Data',
                 'Header': ECU_ADDR_E,
-                'Response': [
-                            '7E8101346A50B240000\r7E82100000000A50C24\r7E82200000000000000 \r',
-                            '7E8101346A50B240000\r7E8210000FFFFA50C24\r7E82200000000FFFF00 \r',
-                            '7E8101346A50B240000\r7E82100000000A50C24\r7E82200000000FFFF00 \r'
-                            ]
+                'Response': ECU_R_ADDR_E + ' 10 13 46 A5 0B 24 00 00 \r' +
+                            ECU_R_ADDR_E + ' 21 00 00 FF FF A5 0C 24 \r' +
+                            ECU_R_ADDR_E + ' 22 00 00 00 00 FF FF 00 \r'
             },
             'GET_CURRENT_DTC': {
                 'Request': '^07' + ELM_MAX_RESP,
@@ -1582,7 +1871,8 @@ class ELM:
                 'Header': ECU_ADDR_E,
                 'Response': ECU_R_ADDR_E + ' 02 47 00 \r'
             },
-            'CUSTOM_CAL_D_LOAD': {
+        # Custom OBD Commands
+            "CUSTOM_CAL'D_LOAD": {
                 'Request': '^2101' + ELM_MAX_RESP,
                 'Descr': 'Calculated Load',
                 'Equation': 'A * 20 / 51',
@@ -1591,54 +1881,67 @@ class ELM:
                 'Unit': '%',
                 'Header': ECU_ADDR_E,
                 'Response': [
-                            '7E8101B6101EC008D06\r7E821C7593861571B86\r7E82210009A1A469F46\r7E8230000000000395F \r',
-                            '7E8101B6101EF009806\r7E8219F5737615618F0\r7E82240008A1B439B43\r7E8230000000000394B \r',
-                            '7E8101B610100000000\r7E82111633A61560000\r7E8222200C8002B7D2B\r7E8230000000000399A \r',
-                            '7E8101B610100000000\r7E82112633961580000\r7E8222400B8002B7D2B\r7E823000000000039AD \r',
-                            '7E8101B610100000000\r7E82112633961550000\r7E8222100E6002B7D2C\r7E8230000000000399A \r',
-                            '7E8101B610100000000\r7E82111633A61540000\r7E8221D00F5002B7D2C\r7E8230000000000399A \r',
-                            '7E8101B6101F7009F08\r7E8219C5B3761571F04\r7E8222800A9224DA84E\r7E8230000000000394B \r',
-                            '7E8101B61013C000700\r7E82138123861531181\r7E82233006B00227121\r7E823000000000039AD \r',
-                            '7E8101B610100000001\r7E82170483961550000\r7E8221D00D7002B7D2C\r7E823000000000039AD \r',
-                            '7E8101B6101C0003801\r7E821F53E386153140B\r7E82219007B002C7E2C\r7E82300000000003973 \r'
+                            ECU_R_ADDR_E + ' 10 1B 61 01 66 00 29 01 \r' +
+                            ECU_R_ADDR_E + ' 21 3B 24 37 61 66 11 26 \r' +
+                            ECU_R_ADDR_E + ' 22 53 00 9B 00 2A 7B 2A \r' +
+                            ECU_R_ADDR_E + ' 23 04 00 33 00 5D 39 73 \r',
+                            ECU_R_ADDR_E + ' 10 1B 61 01 98 00 57 03 \r' +
+                            ECU_R_ADDR_E + ' 21 13 35 3A 61 44 14 3D \r' +
+                            ECU_R_ADDR_E + ' 22 00 00 13 02 32 85 32 \r' +
+                            ECU_R_ADDR_E + ' 23 04 00 31 00 5B 39 38 \r',
+                            ECU_R_ADDR_E + ' 10 1B 61 01 A5 00 61 03 \r' +
+                            ECU_R_ADDR_E + ' 21 8A 3D 37 61 59 14 EC \r' +
+                            ECU_R_ADDR_E + ' 22 4C 00 63 07 33 87 33 \r' +
+                            ECU_R_ADDR_E + ' 23 04 00 32 00 5C 39 5F \r',
+                            ECU_R_ADDR_E + ' 10 1B 61 01 00 00 00 00 \r' +
+                            ECU_R_ADDR_E + ' 21 14 63 38 61 65 00 00 \r' +
+                            ECU_R_ADDR_E + ' 22 2D 00 A6 00 2A 7C 2A \r' +
+                            ECU_R_ADDR_E + ' 23 04 00 33 00 5D 39 C1 \r',
+                            ECU_R_ADDR_E + ' 10 1B 61 01 96 00 55 03 \r' +
+                            ECU_R_ADDR_E + ' 21 07 35 3A 61 47 14 65 \r' +
+                            ECU_R_ADDR_E + ' 22 09 00 1F 02 32 85 32 \r' +
+                            ECU_R_ADDR_E + ' 23 04 00 31 00 5B 39 4B \r',
+                            ECU_R_ADDR_E + ' 10 1B 61 01 00 00 25 00 \r' +
+                            ECU_R_ADDR_E + ' 21 1D 5C 3E 61 42 00 00 \r' +
+                            ECU_R_ADDR_E + ' 22 03 00 05 00 2B 7C 2B \r' +
+                            ECU_R_ADDR_E + ' 23 04 00 31 00 5B 39 38 \r',
+                            ECU_R_ADDR_E + ' 10 1B 61 01 00 00 00 00 \r' +
+                            ECU_R_ADDR_E + ' 21 12 63 3A 61 5B 00 00 \r' +
+                            ECU_R_ADDR_E + ' 22 2B 00 6F 00 2B 7D 2B \r' +
+                            ECU_R_ADDR_E + ' 23 04 00 32 00 5C 39 AD \r',
+                            ECU_R_ADDR_E + ' 10 1B 61 01 71 00 3C 02 \r' +
+                            ECU_R_ADDR_E + ' 21 29 29 38 61 55 14 5C \r' +
+                            ECU_R_ADDR_E + ' 22 34 00 4D 03 2E 81 2F \r' +
+                            ECU_R_ADDR_E + ' 23 04 00 32 00 5C 39 5F \r',
+                            ECU_R_ADDR_E + ' 10 1B 61 01 EE 00 94 06 \r' +
+                            ECU_R_ADDR_E + ' 21 94 5B 39 61 56 19 6D \r' +
+                            ECU_R_ADDR_E + ' 22 1C 00 58 1B 47 9F 47 \r' +
+                            ECU_R_ADDR_E + ' 23 04 00 32 00 5C 39 4B \r',
+                            ECU_R_ADDR_E + ' 10 1B 61 01 F9 00 BF 12 \r' +
+                            ECU_R_ADDR_E + ' 21 D9 60 36 61 5B 38 7E \r' +
+                            ECU_R_ADDR_E + ' 22 41 00 7A 46 71 D5 71 \r' +
+                            ECU_R_ADDR_E + ' 23 04 00 32 00 5D 39 38 \r',
+                            ECU_R_ADDR_E + ' 10 1B 61 01 95 00 54 03 \r' +
+                            ECU_R_ADDR_E + ' 21 02 35 38 61 4E 14 78 \r' +
+                            ECU_R_ADDR_E + ' 22 16 00 37 02 31 85 31 \r' +
+                            ECU_R_ADDR_E + ' 23 04 00 31 00 5B 39 4B \r',
+                            ECU_R_ADDR_E + ' 10 1B 61 01 F3 00 B9 12 \r' +
+                            ECU_R_ADDR_E + ' 21 B6 5D 35 61 62 39 C6 \r' +
+                            ECU_R_ADDR_E + ' 22 69 00 90 43 6E D1 6E \r' +
+                            ECU_R_ADDR_E + ' 23 04 00 33 00 5D 39 4B \r',
+                            ECU_R_ADDR_E + ' 10 1B 61 01 3E 00 1B 01 \r' +
+                            ECU_R_ADDR_E + ' 21 8C 15 38 61 52 20 9A \r' +
+                            ECU_R_ADDR_E + ' 22 41 00 42 00 2C 7D 2C \r' +
+                            ECU_R_ADDR_E + ' 23 04 00 31 00 5C 39 5F \r',
+                            ECU_R_ADDR_E + ' 10 1B 61 01 6F 00 44 02 \r' +
+                            ECU_R_ADDR_E + ' 21 C6 28 38 61 4B 17 21 \r' +
+                            ECU_R_ADDR_E + ' 22 31 00 2B 01 30 83 31 \r' +
+                            ECU_R_ADDR_E + ' 23 04 00 31 00 5B 39 5F \r',
+                            ECU_R_ADDR_E + ' 10 1B 61 01 E8 00 AD 0F \r' +
+                            ECU_R_ADDR_E + ' 21 EF 59 35 61 5E 34 C8 \r' +
+                            ECU_R_ADDR_E + ' 22 59 00 85 2D 58 B5 58 \r' +
+                            ECU_R_ADDR_E + ' 23 04 00 32 00 5D 39 4B \r'
                             ]
-            },
-            'ELM_IGNITION': {
-                'Request': '^AT IGN' + ELM_MAX_RESP,
-                'Descr': 'IgnMon input level',
-                'Header': ECU_ADDR_E,
-                'Response': [
-                            '? \r',
-                            'ON \r'
-                            ]
-            },
-            'ELM_DESCR': {
-                'Request': '^AT@1' + ELM_MAX_RESP,
-                'Descr': 'Device description',
-                'Header': ECU_ADDR_E,
-                'Response': [
-                            '? \r',
-                            'OBDII to RS232 Interpreter \r'
-                            ]
-            },
-            'ELM_ID': {
-                'Request': '^AT@2' + ELM_MAX_RESP,
-                'Descr': 'Device identifier',
-                'Header': ECU_ADDR_E,
-                'Response': '? \r'
-            },
-            'ELM_VERSION': {
-                'Request': '^ATI' + ELM_MAX_RESP,
-                'Descr': 'ELM327 version string',
-                'Header': ECU_ADDR_E,
-                'Response': 'ELM327 v1.5 \r'
-            },
-            'ELM_VOLTAGE': {
-                'Request': '^ATRV' + ELM_MAX_RESP,
-                'Descr': 'Voltage detected by OBD-II adapter',
-                'Header': ECU_ADDR_E,
-                'Response': '14.7V \r'
-                # 14.7 volt
             },
             'CUSTOM_SOC': {
                 'Request': '^015B' + ELM_MAX_RESP,
@@ -1649,11 +1952,16 @@ class ELM:
                 'Unit': '%',
                 'Header': ECU_ADDR_H,
                 'Response': [
-                            ECU_R_ADDR_H + ' 03 41 5B A0 \r',
+                            ECU_R_ADDR_H + ' 03 41 5B 95 \r',
+                            ECU_R_ADDR_H + ' 03 41 5B 97 \r',
+                            ECU_R_ADDR_H + ' 03 41 5B 96 \r',
+                            ECU_R_ADDR_H + ' 03 41 5B 94 \r',
+                            ECU_R_ADDR_H + ' 03 41 5B 99 \r',
+                            ECU_R_ADDR_H + ' 03 41 5B 93 \r',
                             ECU_R_ADDR_H + ' 03 41 5B 9E \r',
-                            ECU_R_ADDR_H + ' 03 41 5B A1 \r',
-                            ECU_R_ADDR_H + ' 03 41 5B 9F \r',
-                            ECU_R_ADDR_H + ' 03 41 5B A3 \r'
+                            ECU_R_ADDR_H + ' 03 41 5B 92 \r',
+                            ECU_R_ADDR_H + ' 03 41 5B 98 \r',
+                            ECU_R_ADDR_H + ' 03 41 5B 9A \r'
                             ]
             },
             'CUSTOM_MG1T': {
@@ -1665,16 +1973,21 @@ class ELM:
                 'Unit': 'C',
                 'Header': ECU_ADDR_H,
                 'Response': [
-                            ECU_R_ADDR_H + ' 07 61 61 3E 3D 3E 89 C0 \r',
-                            ECU_R_ADDR_H + ' 07 61 61 42 3D 42 76 F7 \r',
-                            ECU_R_ADDR_H + ' 07 61 61 3F 3D 3F 7D 82 \r',
-                            ECU_R_ADDR_H + ' 07 61 61 3E 3D 3E 79 16 \r',
-                            ECU_R_ADDR_H + ' 07 61 61 41 3D 41 87 FB \r',
-                            ECU_R_ADDR_H + ' 07 61 61 41 3D 41 76 38 \r',
-                            ECU_R_ADDR_H + ' 07 61 61 41 3D 41 76 98 \r',
-                            ECU_R_ADDR_H + ' 07 61 61 3F 3D 3F 8E 5B \r',
-                            ECU_R_ADDR_H + ' 07 61 61 3D 3D 3D 83 A1 \r',
-                            ECU_R_ADDR_H + ' 07 61 61 40 3D 40 74 82 \r'
+                            ECU_R_ADDR_H + ' 07 61 61 3D 3C 3D 8F 4D \r',
+                            ECU_R_ADDR_H + ' 07 61 61 3D 3C 3D 85 8E \r',
+                            ECU_R_ADDR_H + ' 07 61 61 3E 3C 3E 7C 2C \r',
+                            ECU_R_ADDR_H + ' 07 61 61 3D 3C 3D 87 95 \r',
+                            ECU_R_ADDR_H + ' 07 61 61 42 3C 42 79 0E \r',
+                            ECU_R_ADDR_H + ' 07 61 61 3F 3C 3F 74 61 \r',
+                            ECU_R_ADDR_H + ' 07 61 61 3D 3C 3D 90 0E \r',
+                            ECU_R_ADDR_H + ' 07 61 61 40 3C 40 90 0A \r',
+                            ECU_R_ADDR_H + ' 07 61 61 40 3C 40 9B 9F \r',
+                            ECU_R_ADDR_H + ' 07 61 61 3D 3C 3D 92 86 \r',
+                            ECU_R_ADDR_H + ' 07 61 61 41 3C 41 A3 EB \r',
+                            ECU_R_ADDR_H + ' 07 61 61 43 3C 43 76 FB \r',
+                            ECU_R_ADDR_H + ' 07 61 61 3E 3C 3E 9C 2E \r',
+                            ECU_R_ADDR_H + ' 07 61 61 3D 3C 3D 8F BF \r',
+                            ECU_R_ADDR_H + ' 07 61 61 3E 3C 3E 87 70 \r'
                             ]
             },
             'CUSTOM_MG2T': {
@@ -1686,16 +1999,21 @@ class ELM:
                 'Unit': 'C',
                 'Header': ECU_ADDR_H,
                 'Response': [
-                            ECU_R_ADDR_H + ' 07 61 62 40 3B 40 8E CD \r',
-                            ECU_R_ADDR_H + ' 07 61 62 41 3B 41 82 83 \r',
-                            ECU_R_ADDR_H + ' 07 61 62 44 3B 44 89 1B \r',
-                            ECU_R_ADDR_H + ' 07 61 62 43 3B 43 8B 9D \r',
-                            ECU_R_ADDR_H + ' 07 61 62 43 3B 43 89 8B \r',
-                            ECU_R_ADDR_H + ' 07 61 62 41 3B 41 92 28 \r',
-                            ECU_R_ADDR_H + ' 07 61 62 40 3B 40 86 DE \r',
-                            ECU_R_ADDR_H + ' 07 61 62 43 3B 43 89 3D \r',
-                            ECU_R_ADDR_H + ' 07 61 62 42 3B 42 8A D2 \r',
-                            ECU_R_ADDR_H + ' 07 61 62 44 3B 44 89 F8 \r'
+                            ECU_R_ADDR_H + ' 07 61 62 3F 3A 3F 8E 13 \r',
+                            ECU_R_ADDR_H + ' 07 61 62 43 3A 43 9F EA \r',
+                            ECU_R_ADDR_H + ' 07 61 62 3A 3A 3A 80 99 \r',
+                            ECU_R_ADDR_H + ' 07 61 62 40 3A 40 8A 22 \r',
+                            ECU_R_ADDR_H + ' 07 61 62 3D 3A 3D 87 FB \r',
+                            ECU_R_ADDR_H + ' 07 61 62 44 3A 44 8A F1 \r',
+                            ECU_R_ADDR_H + ' 07 61 62 3B 3A 3B 82 6D \r',
+                            ECU_R_ADDR_H + ' 07 61 62 3E 3A 3E 91 BC \r',
+                            ECU_R_ADDR_H + ' 07 61 62 42 3A 42 95 3E \r',
+                            ECU_R_ADDR_H + ' 07 61 62 40 3A 40 95 EC \r',
+                            ECU_R_ADDR_H + ' 07 61 62 44 3A 44 97 85 \r',
+                            ECU_R_ADDR_H + ' 07 61 62 3A 3A 3A 80 75 \r',
+                            ECU_R_ADDR_H + ' 07 61 62 41 3A 41 8C 1B \r',
+                            ECU_R_ADDR_H + ' 07 61 62 42 3A 42 9A CD \r',
+                            ECU_R_ADDR_H + ' 07 61 62 3C 3A 3C 8D 81 \r'
                             ]
             },
             'CUSTOM_MG1_TORQ': {
@@ -1707,14 +2025,21 @@ class ELM:
                 'Unit': 'Nm',
                 'Header': ECU_ADDR_H,
                 'Response': [
-                            ECU_R_ADDR_H + ' 07 61 67 7E FA 7F 13 00 \r',
-                            ECU_R_ADDR_H + ' 07 61 67 80 00 80 01 00 \r',
+                            ECU_R_ADDR_H + ' 07 61 67 7F FD 7F FA 00 \r',
+                            ECU_R_ADDR_H + ' 07 61 67 7F C9 7F C7 00 \r',
                             ECU_R_ADDR_H + ' 07 61 67 80 00 80 00 00 \r',
-                            ECU_R_ADDR_H + ' 07 61 67 80 00 7F FC 00 \r',
-                            ECU_R_ADDR_H + ' 07 61 67 80 00 7F FD 00 \r',
-                            ECU_R_ADDR_H + ' 07 61 67 7F A5 7F 87 00 \r',
-                            ECU_R_ADDR_H + ' 07 61 67 7F 51 7F 5E 00 \r',
-                            ECU_R_ADDR_H + ' 07 61 67 7F 1A 7F 2B 00 \r'
+                            ECU_R_ADDR_H + ' 07 61 67 7F 5A 7F 60 00 \r',
+                            ECU_R_ADDR_H + ' 07 61 67 7F E8 7F EB 00 \r',
+                            ECU_R_ADDR_H + ' 07 61 67 7F 67 7F 7B 00 \r',
+                            ECU_R_ADDR_H + ' 07 61 67 80 00 80 04 00 \r',
+                            ECU_R_ADDR_H + ' 07 61 67 7F CF 7F CD 00 \r',
+                            ECU_R_ADDR_H + ' 07 61 67 7E E3 7F 04 02 \r',
+                            ECU_R_ADDR_H + ' 07 61 67 7E E2 7E F2 01 \r',
+                            ECU_R_ADDR_H + ' 07 61 67 80 22 80 1C 00 \r',
+                            ECU_R_ADDR_H + ' 07 61 67 7F DD 7F E0 00 \r',
+                            ECU_R_ADDR_H + ' 07 61 67 7F AC 7F C6 00 \r',
+                            ECU_R_ADDR_H + ' 07 61 67 7F EE 7F ED 02 \r',
+                            ECU_R_ADDR_H + ' 07 61 67 80 00 7F FE 00 \r'
                             ]
             },
             'CUSTOM_INV1T': {
@@ -1726,10 +2051,18 @@ class ELM:
                 'Unit': 'C',
                 'Header': ECU_ADDR_H,
                 'Response': [
-                            ECU_R_ADDR_H + ' 06 61 70 37 37 43 00 \r',
-                            ECU_R_ADDR_H + ' 06 61 70 41 37 43 00 \r',
-                            ECU_R_ADDR_H + ' 06 61 70 39 37 40 00 \r',
-                            ECU_R_ADDR_H + ' 06 61 70 37 37 43 80 \r'
+                            ECU_R_ADDR_H + ' 06 61 70 37 37 41 00 \r',
+                            ECU_R_ADDR_H + ' 06 61 70 37 37 39 00 \r',
+                            ECU_R_ADDR_H + ' 06 61 70 40 37 41 00 \r',
+                            ECU_R_ADDR_H + ' 06 61 70 38 37 47 00 \r',
+                            ECU_R_ADDR_H + ' 06 61 70 44 37 44 00 \r',
+                            ECU_R_ADDR_H + ' 06 61 70 3C 37 41 00 \r',
+                            ECU_R_ADDR_H + ' 06 61 70 41 37 40 00 \r',
+                            ECU_R_ADDR_H + ' 06 61 70 3D 37 41 00 \r',
+                            ECU_R_ADDR_H + ' 06 61 70 37 37 47 80 \r',
+                            ECU_R_ADDR_H + ' 06 61 70 3E 37 41 00 \r',
+                            ECU_R_ADDR_H + ' 06 61 70 44 37 47 00 \r',
+                            ECU_R_ADDR_H + ' 06 61 70 37 37 37 80 \r'
                             ]
             },
             'CUSTOM_INV2T': {
@@ -1742,9 +2075,14 @@ class ELM:
                 'Header': ECU_ADDR_H,
                 'Response': [
                             ECU_R_ADDR_H + ' 06 61 71 3A 37 46 00 \r',
+                            ECU_R_ADDR_H + ' 06 61 71 3D 37 46 00 \r',
+                            ECU_R_ADDR_H + ' 06 61 71 39 37 3C 00 \r',
+                            ECU_R_ADDR_H + ' 06 61 71 37 37 46 00 \r',
                             ECU_R_ADDR_H + ' 06 61 71 3B 37 46 00 \r',
-                            ECU_R_ADDR_H + ' 06 61 71 3E 37 46 00 \r',
-                            ECU_R_ADDR_H + ' 06 61 71 37 37 46 00 \r'
+                            ECU_R_ADDR_H + ' 06 61 71 3F 37 46 00 \r',
+                            ECU_R_ADDR_H + ' 06 61 71 38 37 46 00 \r',
+                            ECU_R_ADDR_H + ' 06 61 71 43 37 46 00 \r',
+                            ECU_R_ADDR_H + ' 06 61 71 37 37 39 00 \r'
                             ]
             },
             'CUSTOM_BC_U': {
@@ -1756,16 +2094,36 @@ class ELM:
                 'Unit': 'C',
                 'Header': ECU_ADDR_H,
                 'Response': [
-                            '7EA100B61744F3A3854\r7EA210001F3031F0000 \r',
-                            '7EA100B617438373854\r7EA210001BE02B90000 \r',
-                            '7EA100B617439373854\r7EA210001C801CB0000 \r',
-                            '7EA100B617439413854\r7EA210001A404070000 \r',
-                            '7EA100B61743F3C384A\r7EA210001C003E80000 \r',
-                            '7EA100B617438373854\r7EA210001BA01B70000 \r',
-                            '7EA100B61744339384F\r7EA210001DD03EA0000 \r',
-                            '7EA100B61743A373854\r7EA210001DA01DD0000 \r',
-                            '7EA100B617438373854\r7EA210001AE03630000 \r',
-                            '7EA100B61743C39384F\r7EA210001CC02150000 \r'
+                            ECU_R_ADDR_H + ' 10 0B 61 74 46 39 37 50 \r' +
+                            ECU_R_ADDR_H + ' 21 00 01 C8 03 E8 00 00 \r',
+                            ECU_R_ADDR_H + ' 10 0B 61 74 43 3B 37 56 \r' +
+                            ECU_R_ADDR_H + ' 21 00 01 D1 03 E8 00 00 \r',
+                            ECU_R_ADDR_H + ' 10 0B 61 74 3E 46 37 50 \r' +
+                            ECU_R_ADDR_H + ' 21 00 01 9B 05 12 00 00 \r',
+                            ECU_R_ADDR_H + ' 10 0B 61 74 3D 41 37 50 \r' +
+                            ECU_R_ADDR_H + ' 21 00 01 9E 05 10 00 00 \r',
+                            ECU_R_ADDR_H + ' 10 0B 61 74 49 39 37 56 \r' +
+                            ECU_R_ADDR_H + ' 21 00 01 E1 03 E8 00 00 \r',
+                            ECU_R_ADDR_H + ' 10 0B 61 74 38 3C 37 56 \r' +
+                            ECU_R_ADDR_H + ' 21 00 01 9E 05 0D 00 00 \r',
+                            ECU_R_ADDR_H + ' 10 0B 61 74 42 39 37 50 \r' +
+                            ECU_R_ADDR_H + ' 21 00 01 CD 01 D0 00 00 \r',
+                            ECU_R_ADDR_H + ' 10 0B 61 74 4D 39 37 50 \r' +
+                            ECU_R_ADDR_H + ' 21 00 01 F8 03 E8 00 00 \r',
+                            ECU_R_ADDR_H + ' 10 0B 61 74 4F 3A 37 50 \r' +
+                            ECU_R_ADDR_H + ' 21 00 01 E6 03 E9 00 00 \r',
+                            ECU_R_ADDR_H + ' 10 0B 61 74 4A 3F 37 56 \r' +
+                            ECU_R_ADDR_H + ' 21 00 01 E4 04 3B 00 00 \r',
+                            ECU_R_ADDR_H + ' 10 0B 61 74 38 37 37 3A \r' +
+                            ECU_R_ADDR_H + ' 21 00 01 AA 01 A8 00 00 \r',
+                            ECU_R_ADDR_H + ' 10 0B 61 74 37 37 37 37 \r' +
+                            ECU_R_ADDR_H + ' 21 00 01 BA 01 BB 00 00 \r',
+                            ECU_R_ADDR_H + ' 10 0B 61 74 39 37 37 3F \r' +
+                            ECU_R_ADDR_H + ' 21 00 01 9C 01 99 00 00 \r',
+                            ECU_R_ADDR_H + ' 10 0B 61 74 47 3B 37 56 \r' +
+                            ECU_R_ADDR_H + ' 21 00 01 DA 03 E8 00 00 \r',
+                            ECU_R_ADDR_H + ' 10 0B 61 74 38 37 37 3A \r' +
+                            ECU_R_ADDR_H + ' 21 00 01 BA 01 BD 00 00 \r'
                             ]
             },
             'CUSTOM_P_DCDC': {
@@ -1777,10 +2135,18 @@ class ELM:
                 'Unit': 'Off/On',
                 'Header': ECU_ADDR_H,
                 'Response': [
-                            '7EA10086175200D2F38\r7EA21C5C00000000000 \r',
-                            '7EA10086175200D2F39\r7EA21C5800000000000 \r',
-                            '7EA10086175200D2F39\r7EA21C5C00000000000 \r',
-                            '7EA10086175200D2F3A\r7EA21C5800000000000 \r'
+                            ECU_R_ADDR_H + ' 10 08 61 75 20 0D 2F 3A \r' +
+                            ECU_R_ADDR_H + ' 21 C5 C0 00 00 00 00 00 \r',
+                            ECU_R_ADDR_H + ' 10 08 61 75 20 0D 2F 38 \r' +
+                            ECU_R_ADDR_H + ' 21 C5 80 00 00 00 00 00 \r',
+                            ECU_R_ADDR_H + ' 10 08 61 75 20 0D 2F 39 \r' +
+                            ECU_R_ADDR_H + ' 21 C5 80 00 00 00 00 00 \r',
+                            ECU_R_ADDR_H + ' 10 08 61 75 20 0D 2F 39 \r' +
+                            ECU_R_ADDR_H + ' 21 C5 C0 00 00 00 00 00 \r',
+                            ECU_R_ADDR_H + ' 10 08 61 75 20 0D 2F 38 \r' +
+                            ECU_R_ADDR_H + ' 21 C5 C0 00 00 00 00 00 \r',
+                            ECU_R_ADDR_H + ' 10 08 61 75 20 0D 2F 3A \r' +
+                            ECU_R_ADDR_H + ' 21 C5 80 00 00 00 00 00 \r'
                             ]
             },
             'CUSTOM_INV1_S/D': {
@@ -1792,8 +2158,8 @@ class ELM:
                 'Unit': 'Off/On',
                 'Header': ECU_ADDR_H,
                 'Response': [
-                            ECU_R_ADDR_H + ' 04 61 78 00 00 \r',
-                            ECU_R_ADDR_H + ' 04 61 78 80 00 \r'
+                            ECU_R_ADDR_H + ' 04 61 78 80 00 \r',
+                            ECU_R_ADDR_H + ' 04 61 78 00 00 \r'
                             ]
             },
             'CUSTOM_DCTPD': {
@@ -1815,10 +2181,10 @@ class ELM:
                 'Unit': 'kHz',
                 'Header': ECU_ADDR_H,
                 'Response': [
-                            ECU_R_ADDR_H + ' 04 61 7C 64 32 \r',
-                            ECU_R_ADDR_H + ' 04 61 7C 4B 32 \r',
                             ECU_R_ADDR_H + ' 04 61 7C 64 64 \r',
-                            ECU_R_ADDR_H + ' 04 61 7C 4B 64 \r'
+                            ECU_R_ADDR_H + ' 04 61 7C 64 32 \r',
+                            ECU_R_ADDR_H + ' 04 61 7C 4B 64 \r',
+                            ECU_R_ADDR_H + ' 04 61 7C 4B 32 \r'
                             ]
             },
             'CUSTOM_B_RATIO': {
@@ -1830,13 +2196,19 @@ class ELM:
                 'Unit': '%',
                 'Header': ECU_ADDR_H,
                 'Response': [
-                            ECU_R_ADDR_H + ' 05 61 7D 69 00 00 \r',
-                            ECU_R_ADDR_H + ' 05 61 7D 71 05 00 \r',
-                            ECU_R_ADDR_H + ' 05 61 7D 6C 05 00 \r',
+                            ECU_R_ADDR_H + ' 05 61 7D 59 00 00 \r',
+                            ECU_R_ADDR_H + ' 05 61 7D 6F 05 00 \r',
+                            ECU_R_ADDR_H + ' 05 61 7D 6B 00 00 \r',
                             ECU_R_ADDR_H + ' 05 61 7D 00 00 00 \r',
-                            ECU_R_ADDR_H + ' 05 61 7D 48 00 00 \r',
-                            ECU_R_ADDR_H + ' 05 61 7D 73 00 00 \r',
-                            ECU_R_ADDR_H + ' 05 61 7D 2B 00 00 \r'
+                            ECU_R_ADDR_H + ' 05 61 7D 77 05 00 \r',
+                            ECU_R_ADDR_H + ' 05 61 7D 86 05 00 \r',
+                            ECU_R_ADDR_H + ' 05 61 7D 95 05 00 \r',
+                            ECU_R_ADDR_H + ' 05 61 7D 64 00 00 \r',
+                            ECU_R_ADDR_H + ' 05 61 7D 5C 00 00 \r',
+                            ECU_R_ADDR_H + ' 05 61 7D 6D 00 00 \r',
+                            ECU_R_ADDR_H + ' 05 61 7D 6A 05 00 \r',
+                            ECU_R_ADDR_H + ' 05 61 7D 00 05 00 \r',
+                            ECU_R_ADDR_H + ' 05 61 7D 57 00 00 \r'
                             ]
             },
             'CUSTOM_V01': {
@@ -1848,16 +2220,81 @@ class ELM:
                 'Unit': 'V',
                 'Header': ECU_ADDR_H,
                 'Response': [
-                            '7EA10226181341033CE\r7EA2133BE33AE33AE33\r7EA22AE3385336C3385\r7EA23338533BE33CE33\r7EA24AE33E7AF4B08D4 \r',
-                            '7EA10226181341033CE\r7EA2133CE33AE33AE33\r7EA22AE33AE339533AE\r7EA2333AE33BE33BE33\r7EA24F73420AF4B08DE \r',
-                            '7EA1022618131CA31A1\r7EA21321C3204321C32\r7EA221C3168316831CA\r7EA2331C23168316831\r7EA24B231B2AF3B088E \r',
-                            '7EA10226181361435DB\r7EA2135DB35CA35B235\r7EA22A135B235B235B2\r7EA2335A135DB35DB35\r7EA24DB362DAF4B092E \r',
-                            '7EA1022618131B23191\r7EA2131CA31A1319131\r7EA227831B231B23191\r7EA23319931B231B231\r7EA24A131B2AF4B087A \r',
-                            '7EA10226181363D35DB\r7EA2135DB35DB358935\r7EA2278358935893578\r7EA2335683589358936\r7EA24043656AF4B0924 \r',
-                            '7EA1022618134AC3449\r7EA21341033E7343934\r7EA2220342034103420\r7EA2334393439343933\r7EA24F73439AF4B08F2 \r',
-                            '7EA10226181344933F7\r7EA2133F733E733CE33\r7EA22CE33E733E733F7\r7EA23340033F733F734\r7EA24203449AF4B08DE \r',
-                            '7EA10226181312630FD\r7EA2130ED30ED30DD30\r7EA22C4313F313F30FD\r7EA23310E313F312630\r7EA24DD30EDAF2B0866 \r',
-                            '7EA1022618132663256\r7EA21328F328F32E132\r7EA22E132B832A732E1\r7EA2332D932B832B833\r7EA240A3333AF3B0898 \r'
+                            ECU_R_ADDR_H + ' 10 22 61 81 37 7C 37 1A \r' +
+                            ECU_R_ADDR_H + ' 21 38 08 38 08 38 BC 38 \r' +
+                            ECU_R_ADDR_H + ' 22 BC 37 95 37 95 37 33 \r' +
+                            ECU_R_ADDR_H + ' 23 37 22 38 49 38 5A 37 \r' +
+                            ECU_R_ADDR_H + ' 24 53 37 95 AF 3B 09 74 \r',
+                            ECU_R_ADDR_H + ' 10 22 61 81 38 72 38 20 \r' +
+                            ECU_R_ADDR_H + ' 21 38 08 38 08 38 08 38 \r' +
+                            ECU_R_ADDR_H + ' 22 20 37 F7 37 F7 38 31 \r' +
+                            ECU_R_ADDR_H + ' 23 38 39 38 31 38 49 38 \r' +
+                            ECU_R_ADDR_H + ' 24 72 38 BC AF 4B 09 92 \r',
+                            ECU_R_ADDR_H + ' 10 22 61 81 2D 58 2D 58 \r' +
+                            ECU_R_ADDR_H + ' 21 2E 1C 2E 0C 2D 81 2D \r' +
+                            ECU_R_ADDR_H + ' 22 91 2E 0C 2E 0C 2E A7 \r' +
+                            ECU_R_ADDR_H + ' 23 2E B8 2E 6E 2E 7E 2D \r' +
+                            ECU_R_ADDR_H + ' 24 16 2D 2F AF 3B 07 BC \r',
+                            ECU_R_ADDR_H + ' 10 22 61 81 30 DD 30 B4 \r' +
+                            ECU_R_ADDR_H + ' 21 31 3F 31 3F 31 4F 31 \r' +
+                            ECU_R_ADDR_H + ' 22 3F 30 C4 30 DD 31 26 \r' +
+                            ECU_R_ADDR_H + ' 23 31 37 30 C4 30 C4 31 \r' +
+                            ECU_R_ADDR_H + ' 24 4F 31 68 AF 3B 08 52 \r',
+                            ECU_R_ADDR_H + ' 10 22 61 81 30 72 30 49 \r' +
+                            ECU_R_ADDR_H + ' 21 30 49 30 49 30 49 30 \r' +
+                            ECU_R_ADDR_H + ' 22 49 30 28 30 28 30 39 \r' +
+                            ECU_R_ADDR_H + ' 23 30 20 30 49 30 49 30 \r' +
+                            ECU_R_ADDR_H + ' 24 49 30 72 AF 3B 08 3E \r',
+                            ECU_R_ADDR_H + ' 10 22 61 81 33 CE 33 AE \r' +
+                            ECU_R_ADDR_H + ' 21 33 CE 33 CE 34 49 34 \r' +
+                            ECU_R_ADDR_H + ' 22 62 33 E7 33 E7 34 49 \r' +
+                            ECU_R_ADDR_H + ' 23 34 5A 33 F7 33 F7 34 \r' +
+                            ECU_R_ADDR_H + ' 24 49 34 72 AF 2B 08 D4 \r',
+                            ECU_R_ADDR_H + ' 10 22 61 81 37 CE 37 6C \r' +
+                            ECU_R_ADDR_H + ' 21 37 33 37 1A 37 7C 37 \r' +
+                            ECU_R_ADDR_H + ' 22 6C 37 6C 37 6C 37 53 \r' +
+                            ECU_R_ADDR_H + ' 23 37 5C 37 7C 37 A5 37 \r' +
+                            ECU_R_ADDR_H + ' 24 7C 37 BE AF 4B 09 7E \r',
+                            ECU_R_ADDR_H + ' 10 22 61 81 33 1A 32 F9 \r' +
+                            ECU_R_ADDR_H + ' 21 32 E1 32 D0 32 8F 32 \r' +
+                            ECU_R_ADDR_H + ' 22 A7 32 B8 32 A7 32 D0 \r' +
+                            ECU_R_ADDR_H + ' 23 32 D9 32 8F 32 A7 32 \r' +
+                            ECU_R_ADDR_H + ' 24 E1 33 33 AF 3B 08 AC \r',
+                            ECU_R_ADDR_H + ' 10 22 61 81 3A 66 3A 24 \r' +
+                            ECU_R_ADDR_H + ' 21 3A 24 3A 24 3A 24 3A \r' +
+                            ECU_R_ADDR_H + ' 22 24 3A 14 3A 14 3A 24 \r' +
+                            ECU_R_ADDR_H + ' 23 3A 2D 3A 24 3A 3D 3A \r' +
+                            ECU_R_ADDR_H + ' 24 76 3A C8 AF 4B 09 EC \r',
+                            ECU_R_ADDR_H + ' 10 22 61 81 32 1C 32 04 \r' +
+                            ECU_R_ADDR_H + ' 21 32 04 31 F3 31 F3 31 \r' +
+                            ECU_R_ADDR_H + ' 22 DB 31 DB 31 DB 31 F3 \r' +
+                            ECU_R_ADDR_H + ' 23 31 DB 31 DB 32 04 32 \r' +
+                            ECU_R_ADDR_H + ' 24 1C 32 45 AF 3B 08 8E \r',
+                            ECU_R_ADDR_H + ' 10 22 61 81 2C 62 2C 8B \r' +
+                            ECU_R_ADDR_H + ' 21 2C A3 2C 8B 2C 39 2C \r' +
+                            ECU_R_ADDR_H + ' 22 51 2D 06 2D 06 2C 18 \r' +
+                            ECU_R_ADDR_H + ' 23 2C 18 2C 8B 2C 8B 2C \r' +
+                            ECU_R_ADDR_H + ' 24 8B 2C 8B AF 0A 07 A8 \r',
+                            ECU_R_ADDR_H + ' 10 22 61 81 3A 24 39 FB \r' +
+                            ECU_R_ADDR_H + ' 21 38 FD 38 E5 39 60 39 \r' +
+                            ECU_R_ADDR_H + ' 22 70 39 26 39 0E 39 89 \r' +
+                            ECU_R_ADDR_H + ' 23 39 81 39 26 39 26 39 \r' +
+                            ECU_R_ADDR_H + ' 24 99 39 DB AF 4B 09 C4 \r',
+                            ECU_R_ADDR_H + ' 10 22 61 81 36 F1 36 B8 \r' +
+                            ECU_R_ADDR_H + ' 21 35 37 35 26 36 8F 36 \r' +
+                            ECU_R_ADDR_H + ' 22 8F 35 B2 35 A1 36 B8 \r' +
+                            ECU_R_ADDR_H + ' 23 36 C0 35 89 35 78 36 \r' +
+                            ECU_R_ADDR_H + ' 24 C8 37 1A AF 1A 09 6A \r',
+                            ECU_R_ADDR_H + ' 10 22 61 81 34 AC 34 83 \r' +
+                            ECU_R_ADDR_H + ' 21 34 72 34 72 34 72 34 \r' +
+                            ECU_R_ADDR_H + ' 22 72 34 72 34 62 34 72 \r' +
+                            ECU_R_ADDR_H + ' 23 34 6A 34 72 34 72 34 \r' +
+                            ECU_R_ADDR_H + ' 24 9B 34 AC AF 4B 08 F2 \r',
+                            ECU_R_ADDR_H + ' 10 22 61 81 32 D0 32 B8 \r' +
+                            ECU_R_ADDR_H + ' 21 32 A7 32 8F 32 8F 32 \r' +
+                            ECU_R_ADDR_H + ' 22 8F 32 8F 32 7E 32 8F \r' +
+                            ECU_R_ADDR_H + ' 23 32 9F 32 8F 32 A7 32 \r' +
+                            ECU_R_ADDR_H + ' 24 B8 32 E1 AF 3B 08 AC \r'
                             ]
             },
             'CUSTOM_TB_INTAKE': {
@@ -1869,16 +2306,30 @@ class ELM:
                 'Unit': 'C',
                 'Header': ECU_ADDR_H,
                 'Response': [
-                            '7EA100A61874217479E\r7EA214B28474F000000 \r',
-                            '7EA100A618741E347D4\r7EA214B424785000000 \r',
-                            '7EA100A618741E347EE\r7EA214B5E479E000000 \r',
-                            '7EA100A6187424C476B\r7EA214B0C4735000000 \r',
-                            '7EA100A618741E3480A\r7EA214B78479E000000 \r',
-                            '7EA100A618742304785\r7EA214B0C474F000000 \r',
-                            '7EA100A618741FD47BA\r7EA214B28476B000000 \r',
-                            '7EA100A618741E34823\r7EA214B9447BA000000 \r',
-                            '7EA100A618741FD4859\r7EA214BAE47EE000000 \r',
-                            '7EA100A618741E3483D\r7EA214B9447D4000000 \r'
+                            ECU_R_ADDR_H + ' 10 0A 61 87 3D C2 40 73 \r' +
+                            ECU_R_ADDR_H + ' 21 41 5E 40 8C 00 00 00 \r',
+                            ECU_R_ADDR_H + ' 10 0A 61 87 3D A8 3F D4 \r' +
+                            ECU_R_ADDR_H + ' 21 40 DC 3F EE 00 00 00 \r',
+                            ECU_R_ADDR_H + ' 10 0A 61 87 3D A8 3F D4 \r' +
+                            ECU_R_ADDR_H + ' 21 40 DC 40 07 00 00 00 \r',
+                            ECU_R_ADDR_H + ' 10 0A 61 87 3D A8 40 57 \r' +
+                            ECU_R_ADDR_H + ' 21 41 45 40 73 00 00 00 \r',
+                            ECU_R_ADDR_H + ' 10 0A 61 87 3E 11 40 C2 \r' +
+                            ECU_R_ADDR_H + ' 21 41 94 40 C2 00 00 00 \r',
+                            ECU_R_ADDR_H + ' 10 0A 61 87 3D 8F 40 07 \r' +
+                            ECU_R_ADDR_H + ' 21 40 F5 40 23 00 00 00 \r',
+                            ECU_R_ADDR_H + ' 10 0A 61 87 3D A8 40 3D \r' +
+                            ECU_R_ADDR_H + ' 21 41 2B 40 57 00 00 00 \r',
+                            ECU_R_ADDR_H + ' 10 0A 61 87 3D 8F 3F EE \r' +
+                            ECU_R_ADDR_H + ' 21 40 F5 40 07 00 00 00 \r',
+                            ECU_R_ADDR_H + ' 10 0A 61 87 3D F8 40 8C \r' +
+                            ECU_R_ADDR_H + ' 21 41 7A 40 A8 00 00 00 \r',
+                            ECU_R_ADDR_H + ' 10 0A 61 87 3D 8F 40 23 \r' +
+                            ECU_R_ADDR_H + ' 21 41 11 40 3D 00 00 00 \r',
+                            ECU_R_ADDR_H + ' 10 0A 61 87 3D A8 3F B8 \r' +
+                            ECU_R_ADDR_H + ' 21 40 C2 3F EE 00 00 00 \r',
+                            ECU_R_ADDR_H + ' 10 0A 61 87 3D A8 3F D4 \r' +
+                            ECU_R_ADDR_H + ' 21 40 C2 3F EE 00 00 00 \r'
                             ]
             },
             'CUSTOM_IB': {
@@ -1890,15 +2341,21 @@ class ELM:
                 'Unit': 'Amperes',
                 'Header': ECU_ADDR_H,
                 'Response': [
-                            ECU_R_ADDR_H + ' 06 61 8A 89 21 00 00 \r',
-                            ECU_R_ADDR_H + ' 06 61 8A 7F C6 00 00 \r',
-                            ECU_R_ADDR_H + ' 06 61 8A 7E 70 00 00 \r',
-                            ECU_R_ADDR_H + ' 06 61 8A 8E 49 00 00 \r',
-                            ECU_R_ADDR_H + ' 06 61 8A 7F 33 00 00 \r',
-                            ECU_R_ADDR_H + ' 06 61 8A 7B 62 00 00 \r',
-                            ECU_R_ADDR_H + ' 06 61 8A 7C E9 00 00 \r',
-                            ECU_R_ADDR_H + ' 06 61 8A 7F F7 00 00 \r',
-                            ECU_R_ADDR_H + ' 06 61 8A 80 BA 00 00 \r'
+                            ECU_R_ADDR_H + ' 06 61 8A 82 17 00 00 \r',
+                            ECU_R_ADDR_H + ' 06 61 8A 7F 6A 00 00 \r',
+                            ECU_R_ADDR_H + ' 06 61 8A 78 29 00 00 \r',
+                            ECU_R_ADDR_H + ' 06 61 8A 83 3C 00 00 \r',
+                            ECU_R_ADDR_H + ' 06 61 8A 61 40 00 00 \r',
+                            ECU_R_ADDR_H + ' 06 61 8A 8B 71 00 00 \r',
+                            ECU_R_ADDR_H + ' 06 61 8A 81 53 00 00 \r',
+                            ECU_R_ADDR_H + ' 06 61 8A 7C BE 00 00 \r',
+                            ECU_R_ADDR_H + ' 06 61 8A 82 78 00 00 \r',
+                            ECU_R_ADDR_H + ' 06 61 8A 65 A4 00 00 \r',
+                            ECU_R_ADDR_H + ' 06 61 8A 7F 39 00 00 \r',
+                            ECU_R_ADDR_H + ' 06 61 8A 62 C7 00 00 \r',
+                            ECU_R_ADDR_H + ' 06 61 8A 67 EF 00 00 \r',
+                            ECU_R_ADDR_H + ' 06 61 8A A3 B1 00 00 \r',
+                            ECU_R_ADDR_H + ' 06 61 8A 66 68 00 00 \r'
                             ]
             },
             'CUSTOM_C_FAN_0': {
@@ -1920,16 +2377,51 @@ class ELM:
                 'Unit': 'V',
                 'Header': ECU_ADDR_H,
                 'Response': [
-                            '7EA1011619235890536\r7EA2114000E00000000\r7EA2200000000000000 \r',
-                            '7EA1011619234830735\r7EA21160D0E00000000\r7EA2200000000000000 \r',
-                            '7EA1011619233CE0434\r7EA2183000E00000000\r7EA2200000000000000 \r',
-                            '7EA10116192322D0532\r7EA218F000E00000000\r7EA2200000000000000 \r',
-                            '7EA1011619235890536\r7EA212D0D0E00000000\r7EA2200000000000000 \r',
-                            '7EA1011619233CE0534\r7EA21620D0E00000000\r7EA2200000000000000 \r',
-                            '7EA1011619233F70434\r7EA219B0D0E00000000\r7EA2200000000000000 \r',
-                            '7EA1011619233850734\r7EA2110000E00000000\r7EA2200000000000000 \r',
-                            '7EA1011619231DB0432\r7EA21450D0E00000000\r7EA2200000000000000 \r',
-                            '7EA1011619234390334\r7EA21D4000E00000000\r7EA2200000000000000 \r'
+                            ECU_R_ADDR_H + ' 10 11 61 92 33 F7 04 35 \r' +
+                            ECU_R_ADDR_H + ' 21 26 0D 0E 00 00 00 00 \r' +
+                            ECU_R_ADDR_H + ' 22 00 00 00 00 00 00 00 \r',
+                            ECU_R_ADDR_H + ' 10 11 61 92 3B 64 06 3C \r' +
+                            ECU_R_ADDR_H + ' 21 83 0D 0E 00 00 00 00 \r' +
+                            ECU_R_ADDR_H + ' 22 00 00 00 00 00 00 00 \r',
+                            ECU_R_ADDR_H + ' 10 11 61 92 32 66 08 32 \r' +
+                            ECU_R_ADDR_H + ' 21 E1 00 0E 00 00 00 00 \r' +
+                            ECU_R_ADDR_H + ' 22 00 00 00 00 00 00 00 \r',
+                            ECU_R_ADDR_H + ' 10 11 61 92 31 B2 06 32 \r' +
+                            ECU_R_ADDR_H + ' 21 8F 0D 0E 00 00 00 00 \r' +
+                            ECU_R_ADDR_H + ' 22 00 00 00 00 00 00 00 \r',
+                            ECU_R_ADDR_H + ' 10 11 61 92 32 7E 07 32 \r' +
+                            ECU_R_ADDR_H + ' 21 E1 0D 0E 00 00 00 00 \r' +
+                            ECU_R_ADDR_H + ' 22 00 00 00 00 00 00 00 \r',
+                            ECU_R_ADDR_H + ' 10 11 61 92 2E 97 04 2F \r' +
+                            ECU_R_ADDR_H + ' 21 74 06 0E 00 00 00 00 \r' +
+                            ECU_R_ADDR_H + ' 22 00 00 00 00 00 00 00 \r',
+                            ECU_R_ADDR_H + ' 10 11 61 92 32 7E 07 32 \r' +
+                            ECU_R_ADDR_H + ' 21 F9 0D 0E 00 00 00 00 \r' +
+                            ECU_R_ADDR_H + ' 22 00 00 00 00 00 00 00 \r',
+                            ECU_R_ADDR_H + ' 10 11 61 92 35 C2 09 36 \r' +
+                            ECU_R_ADDR_H + ' 21 66 00 0E 00 00 00 00 \r' +
+                            ECU_R_ADDR_H + ' 22 00 00 00 00 00 00 00 \r',
+                            ECU_R_ADDR_H + ' 10 11 61 92 34 C4 04 35 \r' +
+                            ECU_R_ADDR_H + ' 21 CA 00 0E 00 00 00 00 \r' +
+                            ECU_R_ADDR_H + ' 22 00 00 00 00 00 00 00 \r',
+                            ECU_R_ADDR_H + ' 10 11 61 92 31 EB 09 32 \r' +
+                            ECU_R_ADDR_H + ' 21 7E 0D 0E 00 00 00 00 \r' +
+                            ECU_R_ADDR_H + ' 22 00 00 00 00 00 00 00 \r',
+                            ECU_R_ADDR_H + ' 10 11 61 92 35 EB 06 36 \r' +
+                            ECU_R_ADDR_H + ' 21 56 00 0E 00 00 00 00 \r' +
+                            ECU_R_ADDR_H + ' 22 00 00 00 00 00 00 00 \r',
+                            ECU_R_ADDR_H + ' 10 11 61 92 32 2D 0B 32 \r' +
+                            ECU_R_ADDR_H + ' 21 A7 00 0E 00 00 00 00 \r' +
+                            ECU_R_ADDR_H + ' 22 00 00 00 00 00 00 00 \r',
+                            ECU_R_ADDR_H + ' 10 11 61 92 31 91 02 31 \r' +
+                            ECU_R_ADDR_H + ' 21 DB 0D 0E 00 00 00 00 \r' +
+                            ECU_R_ADDR_H + ' 22 00 00 00 00 00 00 00 \r',
+                            ECU_R_ADDR_H + ' 10 11 61 92 33 33 04 33 \r' +
+                            ECU_R_ADDR_H + ' 21 E7 0D 0E 00 00 00 00 \r' +
+                            ECU_R_ADDR_H + ' 22 00 00 00 00 00 00 00 \r',
+                            ECU_R_ADDR_H + ' 10 11 61 92 2E C0 04 2F \r' +
+                            ECU_R_ADDR_H + ' 21 22 00 0E 00 00 00 00 \r' +
+                            ECU_R_ADDR_H + ' 22 00 00 00 00 00 00 00 \r'
                             ]
             },
             'CUSTOM_R01': {
@@ -1940,7 +2432,9 @@ class ELM:
                 'Max': '0.255',
                 'Unit': 'ohm',
                 'Header': ECU_ADDR_H,
-                'Response': '7EA1010619514131413\r7EA2113131313131313\r7EA2213141500000000 \r'
+                'Response': ECU_R_ADDR_H + ' 10 10 61 95 17 16 15 16 \r' +
+                            ECU_R_ADDR_H + ' 21 16 16 16 16 16 16 16 \r' +
+                            ECU_R_ADDR_H + ' 22 16 16 17 00 00 00 00 \r'
             },
             'CUSTOM_BTY_CURR': {
                 'Request': '^2198' + ELM_MAX_RESP,
@@ -1951,16 +2445,36 @@ class ELM:
                 'Unit': 'Amperes',
                 'Header': ECU_ADDR_H,
                 'Response': [
-                            '7EA100A61987CD755A7\r7EA21007D8077000000 \r',
-                            '7EA100A61988DEA55A7\r7EA21007D8077000000 \r',
-                            '7EA100A61987AB056A7\r7EA21007D8077000000 \r',
-                            '7EA100A61987B3455A7\r7EA21007D8077000000 \r',
-                            '7EA100A619882F355A7\r7EA21007D8077000000 \r',
-                            '7EA100A61987C7355A7\r7EA21007D8077000000 \r',
-                            '7EA100A61987E4356A7\r7EA21007D7E77000000 \r',
-                            '7EA100A6198846056A7\r7EA21007D8077000000 \r',
-                            '7EA100A61987F5D56A7\r7EA21007D7D77000000 \r',
-                            '7EA100A61987B7156A7\r7EA21007D7E77000000 \r'
+                            ECU_R_ADDR_H + ' 10 0A 61 98 74 E9 5A A1 \r' +
+                            ECU_R_ADDR_H + ' 21 00 79 79 72 00 00 00 \r',
+                            ECU_R_ADDR_H + ' 10 0A 61 98 7F 4D 5A A1 \r' +
+                            ECU_R_ADDR_H + ' 21 00 79 79 77 00 00 00 \r',
+                            ECU_R_ADDR_H + ' 10 0A 61 98 62 57 5A A1 \r' +
+                            ECU_R_ADDR_H + ' 21 00 79 79 72 00 00 00 \r',
+                            ECU_R_ADDR_H + ' 10 0A 61 98 9C 1A 5A A1 \r' +
+                            ECU_R_ADDR_H + ' 21 00 79 79 72 00 00 00 \r',
+                            ECU_R_ADDR_H + ' 10 0A 61 98 87 10 5A A1 \r' +
+                            ECU_R_ADDR_H + ' 21 00 79 79 72 00 00 00 \r',
+                            ECU_R_ADDR_H + ' 10 0A 61 98 9C AB 5A A1 \r' +
+                            ECU_R_ADDR_H + ' 21 00 79 79 73 00 00 00 \r',
+                            ECU_R_ADDR_H + ' 10 0A 61 98 A2 58 59 A1 \r' +
+                            ECU_R_ADDR_H + ' 21 00 79 79 72 00 00 00 \r',
+                            ECU_R_ADDR_H + ' 10 0A 61 98 72 15 59 A1 \r' +
+                            ECU_R_ADDR_H + ' 21 00 79 7B 72 00 00 00 \r',
+                            ECU_R_ADDR_H + ' 10 0A 61 98 81 5C 5A A1 \r' +
+                            ECU_R_ADDR_H + ' 21 00 79 79 78 00 00 00 \r',
+                            ECU_R_ADDR_H + ' 10 0A 61 98 63 40 59 A1 \r' +
+                            ECU_R_ADDR_H + ' 21 00 79 79 72 00 00 00 \r',
+                            ECU_R_ADDR_H + ' 10 0A 61 98 7D 8E 5A A1 \r' +
+                            ECU_R_ADDR_H + ' 21 00 79 79 72 00 00 00 \r',
+                            ECU_R_ADDR_H + ' 10 0A 61 98 85 EF 5A A1 \r' +
+                            ECU_R_ADDR_H + ' 21 00 79 79 72 00 00 00 \r',
+                            ECU_R_ADDR_H + ' 10 0A 61 98 A0 1B 5A A1 \r' +
+                            ECU_R_ADDR_H + ' 21 00 79 79 72 00 00 00 \r',
+                            ECU_R_ADDR_H + ' 10 0A 61 98 7C CE 5A A1 \r' +
+                            ECU_R_ADDR_H + ' 21 00 79 79 72 00 00 00 \r',
+                            ECU_R_ADDR_H + ' 10 0A 61 98 91 31 5A A1 \r' +
+                            ECU_R_ADDR_H + ' 21 00 79 79 76 00 00 00 \r'
                             ]
             },
             'CUSTOM_ECU_MODE': {
@@ -1972,13 +2486,15 @@ class ELM:
                 'Unit': 'Number',
                 'Header': ECU_ADDR_H,
                 'Response': [
-                            ECU_R_ADDR_H + ' 06 61 9B 00 00 00 D2 \r',
-                            ECU_R_ADDR_H + ' 06 61 9B 00 00 00 CD \r',
-                            ECU_R_ADDR_H + ' 06 61 9B 00 00 00 D8 \r',
-                            ECU_R_ADDR_H + ' 06 61 9B 00 00 00 D4 \r',
-                            ECU_R_ADDR_H + ' 06 61 9B 00 00 00 D0 \r',
+                            ECU_R_ADDR_H + ' 06 61 9B 00 00 00 D3 \r',
                             ECU_R_ADDR_H + ' 06 61 9B 00 00 00 D1 \r',
-                            ECU_R_ADDR_H + ' 06 61 9B 00 00 00 FF \r'
+                            ECU_R_ADDR_H + ' 06 61 9B 00 00 00 DA \r',
+                            ECU_R_ADDR_H + ' 06 61 9B 00 00 00 D7 \r',
+                            ECU_R_ADDR_H + ' 06 61 9B 00 00 00 D4 \r',
+                            ECU_R_ADDR_H + ' 06 61 9B 00 00 00 CB \r',
+                            ECU_R_ADDR_H + ' 06 61 9B 00 00 00 E4 \r',
+                            ECU_R_ADDR_H + ' 06 61 9B 00 00 00 C7 \r',
+                            ECU_R_ADDR_H + ' 06 61 9B 00 00 00 D2 \r'
                             ]
             },
             'CUSTOM_MODEL_CODE': {
@@ -1999,7 +2515,9 @@ class ELM:
                 'Max': '0',
                 'Unit': 'Number',
                 'Header': ECU_ADDR_H,
-                'Response': '7EA100F61C230323035\r7EA2130002205040000\r7EA2200010000000000 \r'
+                'Response': ECU_R_ADDR_H + ' 10 0F 61 C2 30 32 30 35 \r' +
+                            ECU_R_ADDR_H + ' 21 30 00 22 05 04 00 00 \r' +
+                            ECU_R_ADDR_H + ' 22 00 01 00 00 00 00 00 \r'
             },
             'CUSTOM_#CURR_CODE': {
                 'Request': '^21E1' + ELM_MAX_RESP,
@@ -2010,16 +2528,36 @@ class ELM:
                 'Unit': 'Number',
                 'Header': ECU_ADDR_H,
                 'Response': [
-                            '7EA100A61E100000EA1\r7EA212000079C000000 \r',
-                            '7EA100A61E100000EA1\r7EA2120000822000000 \r',
-                            '7EA100A61E100000EA1\r7EA212000068D000000 \r',
-                            '7EA100A61E100000EA1\r7EA21200004F8000000 \r',
-                            '7EA100A61E100000EA1\r7EA2120000472000000 \r',
-                            '7EA100A61E100000EA1\r7EA2120000715000000 \r',
-                            '7EA100A61E100000EA1\r7EA21200003E0000000 \r',
-                            '7EA100A61E100000EA1\r7EA21200008AA000000 \r',
-                            '7EA100A61E100000EA1\r7EA2120000608000000 \r',
-                            '7EA100A61E100000EA1\r7EA2120000580000000 \r'
+                            ECU_R_ADDR_H + ' 10 0A 61 E1 00 00 0E B1 \r' +
+                            ECU_R_ADDR_H + ' 21 20 00 04 07 00 00 00 \r',
+                            ECU_R_ADDR_H + ' 10 0A 61 E1 00 00 0E B1 \r' +
+                            ECU_R_ADDR_H + ' 21 20 00 05 2E 00 00 00 \r',
+                            ECU_R_ADDR_H + ' 10 0A 61 E1 00 00 0E B1 \r' +
+                            ECU_R_ADDR_H + ' 21 20 00 04 69 00 00 00 \r',
+                            ECU_R_ADDR_H + ' 10 0A 61 E1 00 00 0E B1 \r' +
+                            ECU_R_ADDR_H + ' 21 20 00 02 D0 00 00 00 \r',
+                            ECU_R_ADDR_H + ' 10 0A 61 E1 00 00 0E B1 \r' +
+                            ECU_R_ADDR_H + ' 21 20 00 01 DD 00 00 00 \r',
+                            ECU_R_ADDR_H + ' 10 0A 61 E1 00 00 0E B1 \r' +
+                            ECU_R_ADDR_H + ' 21 20 00 06 56 00 00 00 \r',
+                            ECU_R_ADDR_H + ' 10 0A 61 E1 00 00 0E B1 \r' +
+                            ECU_R_ADDR_H + ' 21 20 00 07 7D 00 00 00 \r',
+                            ECU_R_ADDR_H + ' 10 0A 61 E1 00 00 0E B1 \r' +
+                            ECU_R_ADDR_H + ' 21 20 00 04 CA 00 00 00 \r',
+                            ECU_R_ADDR_H + ' 10 0A 61 E1 00 00 0E B1 \r' +
+                            ECU_R_ADDR_H + ' 21 20 00 05 F4 00 00 00 \r',
+                            ECU_R_ADDR_H + ' 10 0A 61 E1 00 00 0E B1 \r' +
+                            ECU_R_ADDR_H + ' 21 20 00 03 A4 00 00 00 \r',
+                            ECU_R_ADDR_H + ' 10 0A 61 E1 00 00 0E B1 \r' +
+                            ECU_R_ADDR_H + ' 21 20 00 05 90 00 00 00 \r',
+                            ECU_R_ADDR_H + ' 10 0A 61 E1 00 00 0E B1 \r' +
+                            ECU_R_ADDR_H + ' 21 20 00 03 3C 00 00 00 \r',
+                            ECU_R_ADDR_H + ' 10 0A 61 E1 00 00 0E B1 \r' +
+                            ECU_R_ADDR_H + ' 21 20 00 07 1D 00 00 00 \r',
+                            ECU_R_ADDR_H + ' 10 0A 61 E1 00 00 0E B1 \r' +
+                            ECU_R_ADDR_H + ' 21 20 00 02 63 00 00 00 \r',
+                            ECU_R_ADDR_H + ' 10 0A 61 E1 00 00 0E B1 \r' +
+                            ECU_R_ADDR_H + ' 21 20 00 06 B8 00 00 00 \r'
                             ]
             },
             'CUSTOM_TAIL_CANCEL': {
@@ -2031,10 +2569,10 @@ class ELM:
                 'Unit': 'Off/On',
                 'Header': ECU_ADDR_I,
                 'Response': [
-                            '7C81008611200000710\r7C82100000000000000 \r',
-                            '7C81008611200000701\r7C82100000000000000 \r',
-                            '7C81008611200000712\r7C82100000000000000 \r',
-                            '7C81008611200000700\r7C82100000000000000 \r'
+                            ECU_R_ADDR_I + ' 10 08 61 12 00 00 07 00 \r' +
+                            ECU_R_ADDR_I + ' 21 00 00 00 00 00 00 00 \r',
+                            ECU_R_ADDR_I + ' 10 08 61 12 00 00 07 10 \r' +
+                            ECU_R_ADDR_I + ' 21 00 00 00 00 00 00 00 \r'
                             ]
             },
             'CUSTOM_AUX_B_VOLT': {
@@ -2046,8 +2584,8 @@ class ELM:
                 'Unit': 'V',
                 'Header': ECU_ADDR_I,
                 'Response': [
-                            ECU_R_ADDR_I + ' 03 61 13 96 \r',
-                            ECU_R_ADDR_I + ' 03 61 13 95 \r'
+                            ECU_R_ADDR_I + ' 03 61 13 95 \r',
+                            ECU_R_ADDR_I + ' 03 61 13 96 \r'
                             ]
             },
             'CUSTOM_FUEL_LEVEL': {
@@ -2059,11 +2597,9 @@ class ELM:
                 'Unit': 'Liter',
                 'Header': ECU_ADDR_I,
                 'Response': [
-                            ECU_R_ADDR_I + ' 03 61 29 0F \r',
                             ECU_R_ADDR_I + ' 03 61 29 02 \r',
-                            ECU_R_ADDR_I + ' 03 61 29 0D \r',
-                            ECU_R_ADDR_I + ' 03 61 29 0B \r',
-                            ECU_R_ADDR_I + ' 03 61 29 0C \r'
+                            ECU_R_ADDR_I + ' 03 61 29 0A \r',
+                            ECU_R_ADDR_I + ' 03 61 29 06 \r'
                             ]
             },
             'CUSTOM_OIL_CHG_DIST': {
@@ -2115,13 +2651,14 @@ class ELM:
                 'Unit': 'C',
                 'Header': ECU_ADDR_P,
                 'Response': [
-                            ECU_R_ADDR_P + ' 03 61 21 57 \r',
-                            ECU_R_ADDR_P + ' 03 61 21 5D \r',
-                            ECU_R_ADDR_P + ' 03 61 21 59 \r',
-                            ECU_R_ADDR_P + ' 03 61 21 5C \r',
-                            ECU_R_ADDR_P + ' 03 61 21 5A \r',
-                            ECU_R_ADDR_P + ' 03 61 21 60 \r',
-                            ECU_R_ADDR_P + ' 03 61 21 5E \r'
+                            ECU_R_ADDR_P + ' 03 61 21 54 \r',
+                            ECU_R_ADDR_P + ' 03 61 21 50 \r',
+                            ECU_R_ADDR_P + ' 03 61 21 52 \r',
+                            ECU_R_ADDR_P + ' 03 61 21 53 \r',
+                            ECU_R_ADDR_P + ' 03 61 21 51 \r',
+                            ECU_R_ADDR_P + ' 03 61 21 56 \r',
+                            ECU_R_ADDR_P + ' 03 61 21 55 \r',
+                            ECU_R_ADDR_P + ' 03 61 21 58 \r'
                             ]
             },
             'CUSTOM_AMBIENT': {
@@ -2133,11 +2670,12 @@ class ELM:
                 'Unit': 'C',
                 'Header': ECU_ADDR_P,
                 'Response': [
-                            ECU_R_ADDR_P + ' 03 61 22 59 \r',
-                            ECU_R_ADDR_P + ' 03 61 22 57 \r',
-                            ECU_R_ADDR_P + ' 03 61 22 5B \r',
-                            ECU_R_ADDR_P + ' 03 61 22 5A \r',
-                            ECU_R_ADDR_P + ' 03 61 22 58 \r'
+                            ECU_R_ADDR_P + ' 03 61 22 60 \r',
+                            ECU_R_ADDR_P + ' 03 61 22 62 \r',
+                            ECU_R_ADDR_P + ' 03 61 22 5F \r',
+                            ECU_R_ADDR_P + ' 03 61 22 63 \r',
+                            ECU_R_ADDR_P + ' 03 61 22 61 \r',
+                            ECU_R_ADDR_P + ' 03 61 22 5E \r'
                             ]
             },
             'CUSTOM_SOLAR_D': {
@@ -2149,9 +2687,8 @@ class ELM:
                 'Unit': 'Number',
                 'Header': ECU_ADDR_P,
                 'Response': [
-                            ECU_R_ADDR_P + ' 03 61 24 06 \r',
-                            ECU_R_ADDR_P + ' 03 61 24 08 \r',
-                            ECU_R_ADDR_P + ' 03 61 24 07 \r'
+                            ECU_R_ADDR_P + ' 03 61 24 01 \r',
+                            ECU_R_ADDR_P + ' 03 61 24 00 \r'
                             ]
             },
             'CUSTOM_COOLANT': {
@@ -2163,14 +2700,21 @@ class ELM:
                 'Unit': 'C',
                 'Header': ECU_ADDR_P,
                 'Response': [
-                            ECU_R_ADDR_P + ' 03 61 26 77 \r',
-                            ECU_R_ADDR_P + ' 03 61 26 7F \r',
-                            ECU_R_ADDR_P + ' 03 61 26 83 \r',
-                            ECU_R_ADDR_P + ' 03 61 26 88 \r',
-                            ECU_R_ADDR_P + ' 03 61 26 85 \r',
-                            ECU_R_ADDR_P + ' 03 61 26 7C \r',
-                            ECU_R_ADDR_P + ' 03 61 26 80 \r',
-                            ECU_R_ADDR_P + ' 03 61 26 7D \r'
+                            ECU_R_ADDR_P + ' 03 61 26 5E \r',
+                            ECU_R_ADDR_P + ' 03 61 26 98 \r',
+                            ECU_R_ADDR_P + ' 03 61 26 6B \r',
+                            ECU_R_ADDR_P + ' 03 61 26 A4 \r',
+                            ECU_R_ADDR_P + ' 03 61 26 7E \r',
+                            ECU_R_ADDR_P + ' 03 61 26 B0 \r',
+                            ECU_R_ADDR_P + ' 03 61 26 4C \r',
+                            ECU_R_ADDR_P + ' 03 61 26 91 \r',
+                            ECU_R_ADDR_P + ' 03 61 26 8E \r',
+                            ECU_R_ADDR_P + ' 03 61 26 55 \r',
+                            ECU_R_ADDR_P + ' 03 61 26 81 \r',
+                            ECU_R_ADDR_P + ' 03 61 26 AF \r',
+                            ECU_R_ADDR_P + ' 03 61 26 84 \r',
+                            ECU_R_ADDR_P + ' 03 61 26 75 \r',
+                            ECU_R_ADDR_P + ' 03 61 26 4B \r'
                             ]
             },
             'CUSTOM_BLOWER_LEVEL': {
@@ -2182,11 +2726,14 @@ class ELM:
                 'Unit': 'Number',
                 'Header': ECU_ADDR_P,
                 'Response': [
-                            ECU_R_ADDR_P + ' 03 61 3C 0C \r',
+                            ECU_R_ADDR_P + ' 03 61 3C 04 \r',
                             ECU_R_ADDR_P + ' 03 61 3C 0B \r',
-                            ECU_R_ADDR_P + ' 03 61 3C 07 \r',
+                            ECU_R_ADDR_P + ' 03 61 3C 0F \r',
+                            ECU_R_ADDR_P + ' 03 61 3C 0E \r',
                             ECU_R_ADDR_P + ' 03 61 3C 09 \r',
-                            ECU_R_ADDR_P + ' 03 61 3C 0A \r'
+                            ECU_R_ADDR_P + ' 03 61 3C 05 \r',
+                            ECU_R_ADDR_P + ' 03 61 3C 10 \r',
+                            ECU_R_ADDR_P + ' 03 61 3C 00 \r'
                             ]
             },
             'CUSTOM_ADJAMBIENT': {
@@ -2198,11 +2745,13 @@ class ELM:
                 'Unit': 'C',
                 'Header': ECU_ADDR_P,
                 'Response': [
-                            ECU_R_ADDR_P + ' 03 61 3D 78 \r',
-                            ECU_R_ADDR_P + ' 03 61 3D 7B \r',
-                            ECU_R_ADDR_P + ' 03 61 3D 79 \r',
-                            ECU_R_ADDR_P + ' 03 61 3D 7A \r',
-                            ECU_R_ADDR_P + ' 03 61 3D 7C \r'
+                            ECU_R_ADDR_P + ' 03 61 3D 81 \r',
+                            ECU_R_ADDR_P + ' 03 61 3D 83 \r',
+                            ECU_R_ADDR_P + ' 03 61 3D 85 \r',
+                            ECU_R_ADDR_P + ' 03 61 3D 80 \r',
+                            ECU_R_ADDR_P + ' 03 61 3D 7F \r',
+                            ECU_R_ADDR_P + ' 03 61 3D 82 \r',
+                            ECU_R_ADDR_P + ' 03 61 3D 84 \r'
                             ]
             },
             'CUSTOM_A/O_SP_D': {
@@ -2213,7 +2762,10 @@ class ELM:
                 'Max': '255',
                 'Unit': 'Number',
                 'Header': ECU_ADDR_P,
-                'Response': ECU_R_ADDR_P + ' 06 61 43 09 09 00 00 \r'
+                'Response': [
+                            ECU_R_ADDR_P + ' 06 61 43 09 09 00 00 \r',
+                            ECU_R_ADDR_P + ' 06 61 43 05 05 00 00 \r'
+                            ]
             },
             'CUSTOM_A/I_DTP': {
                 'Request': '^2144' + ELM_MAX_RESP,
@@ -2254,11 +2806,12 @@ class ELM:
                 'Unit': 'C',
                 'Header': ECU_ADDR_P,
                 'Response': [
-                            ECU_R_ADDR_P + ' 03 61 4B 79 \r',
-                            ECU_R_ADDR_P + ' 03 61 4B 76 \r',
-                            ECU_R_ADDR_P + ' 03 61 4B 75 \r',
                             ECU_R_ADDR_P + ' 03 61 4B 77 \r',
-                            ECU_R_ADDR_P + ' 03 61 4B 7B \r'
+                            ECU_R_ADDR_P + ' 03 61 4B 76 \r',
+                            ECU_R_ADDR_P + ' 03 61 4B 79 \r',
+                            ECU_R_ADDR_P + ' 03 61 4B 7A \r',
+                            ECU_R_ADDR_P + ' 03 61 4B 7B \r',
+                            ECU_R_ADDR_P + ' 03 61 4B 78 \r'
                             ]
             },
             'CUSTOM_EVAP_TGT': {
@@ -2280,9 +2833,9 @@ class ELM:
                 'Unit': 'MPaG',
                 'Header': ECU_ADDR_P,
                 'Response': [
+                            ECU_R_ADDR_P + ' 03 61 53 39 \r',
                             ECU_R_ADDR_P + ' 03 61 53 37 \r',
-                            ECU_R_ADDR_P + ' 03 61 53 38 \r',
-                            ECU_R_ADDR_P + ' 03 61 53 36 \r'
+                            ECU_R_ADDR_P + ' 03 61 53 38 \r'
                             ]
             },
             'CUSTOM_FR_WS': {
@@ -2294,16 +2847,20 @@ class ELM:
                 'Unit': 'km/h',
                 'Header': ECU_ADDR_S,
                 'Response': [
-                            ECU_R_ADDR_S + ' 06 61 03 20 20 20 1F \r',
-                            ECU_R_ADDR_S + ' 06 61 03 16 16 16 16 \r',
-                            ECU_R_ADDR_S + ' 06 61 03 0E 0D 0D 0D \r',
-                            ECU_R_ADDR_S + ' 06 61 03 14 14 14 14 \r',
-                            ECU_R_ADDR_S + ' 06 61 03 1C 1C 1C 1C \r',
-                            ECU_R_ADDR_S + ' 06 61 03 27 27 27 27 \r',
-                            ECU_R_ADDR_S + ' 06 61 03 32 32 32 32 \r',
-                            ECU_R_ADDR_S + ' 06 61 03 1B 1B 1B 1B \r',
-                            ECU_R_ADDR_S + ' 06 61 03 1A 1A 1A 1A \r',
-                            ECU_R_ADDR_S + ' 06 61 03 17 16 17 17 \r'
+                            ECU_R_ADDR_S + ' 06 61 03 3E 3E 3D 3D \r',
+                            ECU_R_ADDR_S + ' 06 61 03 06 06 06 06 \r',
+                            ECU_R_ADDR_S + ' 06 61 03 33 33 32 32 \r',
+                            ECU_R_ADDR_S + ' 06 61 03 31 31 31 31 \r',
+                            ECU_R_ADDR_S + ' 06 61 03 02 02 02 02 \r',
+                            ECU_R_ADDR_S + ' 06 61 03 19 19 19 19 \r',
+                            ECU_R_ADDR_S + ' 06 61 03 28 28 27 27 \r',
+                            ECU_R_ADDR_S + ' 06 61 03 4D 4D 4D 4D \r',
+                            ECU_R_ADDR_S + ' 06 61 03 16 14 16 14 \r',
+                            ECU_R_ADDR_S + ' 06 61 03 29 29 29 29 \r',
+                            ECU_R_ADDR_S + ' 06 61 03 4A 4A 4B 4B \r',
+                            ECU_R_ADDR_S + ' 06 61 03 38 38 37 37 \r',
+                            ECU_R_ADDR_S + ' 06 61 03 00 00 00 00 \r',
+                            ECU_R_ADDR_S + ' 06 61 03 13 12 12 12 \r'
                             ]
             },
             'CUSTOM_YR1': {
@@ -2315,14 +2872,17 @@ class ELM:
                 'Unit': 'degrees/s',
                 'Header': ECU_ADDR_S,
                 'Response': [
-                            ECU_R_ADDR_S + ' 06 61 06 7F 7F 7F F1 \r',
-                            ECU_R_ADDR_S + ' 06 61 06 7E 7E 7F 4C \r',
+                            ECU_R_ADDR_S + ' 06 61 06 80 80 8A 5F \r',
                             ECU_R_ADDR_S + ' 06 61 06 80 80 80 0F \r',
-                            ECU_R_ADDR_S + ' 06 61 06 80 80 80 3C \r',
-                            ECU_R_ADDR_S + ' 06 61 06 7F 7F 7F E2 \r',
-                            ECU_R_ADDR_S + ' 06 61 06 85 85 80 E1 \r',
+                            ECU_R_ADDR_S + ' 06 61 06 7E 7E 7F D3 \r',
+                            ECU_R_ADDR_S + ' 06 61 06 7E 7E 7F 01 \r',
+                            ECU_R_ADDR_S + ' 06 61 06 7D 7D 7F 97 \r',
                             ECU_R_ADDR_S + ' 06 61 06 80 80 80 2D \r',
-                            ECU_R_ADDR_S + ' 06 61 06 80 80 80 1E \r'
+                            ECU_R_ADDR_S + ' 06 61 06 80 80 80 00 \r',
+                            ECU_R_ADDR_S + ' 06 61 06 82 82 86 09 \r',
+                            ECU_R_ADDR_S + ' 06 61 06 99 99 85 82 \r',
+                            ECU_R_ADDR_S + ' 06 61 06 80 80 80 1E \r',
+                            ECU_R_ADDR_S + ' 06 61 06 8C 8C 83 57 \r'
                             ]
             },
             'CUSTOM_WC_PRES': {
@@ -2333,7 +2893,11 @@ class ELM:
                 'Max': '5',
                 'Unit': 'V',
                 'Header': ECU_ADDR_S,
-                'Response': ECU_R_ADDR_S + ' 03 61 07 19 \r'
+                'Response': [
+                            ECU_R_ADDR_S + ' 03 61 07 1B \r',
+                            ECU_R_ADDR_S + ' 03 61 07 1C \r',
+                            ECU_R_ADDR_S + ' 03 61 07 19 \r'
+                            ]
             },
             'CUSTOM_LATERAL_G': {
                 'Request': '^2147' + ELM_MAX_RESP,
@@ -2344,16 +2908,21 @@ class ELM:
                 'Unit': 'm/s2',
                 'Header': ECU_ADDR_S,
                 'Response': [
-                            ECU_R_ADDR_S + ' 07 61 47 F8 00 7C 7E FD \r',
-                            ECU_R_ADDR_S + ' 07 61 47 00 FE 80 80 15 \r',
-                            ECU_R_ADDR_S + ' 07 61 47 11 00 98 84 B3 \r',
-                            ECU_R_ADDR_S + ' 07 61 47 00 FE 80 80 00 \r',
-                            ECU_R_ADDR_S + ' 07 61 47 00 00 81 80 4B \r',
-                            ECU_R_ADDR_S + ' 07 61 47 00 E8 7F 7F C7 \r',
-                            ECU_R_ADDR_S + ' 07 61 47 00 07 80 7F F1 \r',
-                            ECU_R_ADDR_S + ' 07 61 47 FF 05 7F 7F D8 \r',
-                            ECU_R_ADDR_S + ' 07 61 47 00 00 80 80 01 \r',
-                            ECU_R_ADDR_S + ' 07 61 47 06 03 84 81 2C \r'
+                            ECU_R_ADDR_S + ' 07 61 47 F5 00 65 70 79 \r',
+                            ECU_R_ADDR_S + ' 07 61 47 0C FF A0 8C 80 \r',
+                            ECU_R_ADDR_S + ' 07 61 47 FD F8 7B 7F 13 \r',
+                            ECU_R_ADDR_S + ' 07 61 47 F8 FB 75 7D EE \r',
+                            ECU_R_ADDR_S + ' 07 61 47 FE FA 7E 7F CC \r',
+                            ECU_R_ADDR_S + ' 07 61 47 00 FF 80 89 24 \r',
+                            ECU_R_ADDR_S + ' 07 61 47 FC 0A 7B 7F 30 \r',
+                            ECU_R_ADDR_S + ' 07 61 47 01 00 80 80 0B \r',
+                            ECU_R_ADDR_S + ' 07 61 47 FD 09 7D 7F 91 \r',
+                            ECU_R_ADDR_S + ' 07 61 47 00 F4 80 80 0B \r',
+                            ECU_R_ADDR_S + ' 07 61 47 00 FF 80 8A 5F \r',
+                            ECU_R_ADDR_S + ' 07 61 47 00 FC 80 80 0B \r',
+                            ECU_R_ADDR_S + ' 07 61 47 FE FE 7F 7F D9 \r',
+                            ECU_R_ADDR_S + ' 07 61 47 03 00 83 80 84 \r',
+                            ECU_R_ADDR_S + ' 07 61 47 00 FE 80 80 07 \r'
                             ]
             },
             'CUSTOM_REGENCOOP': {
@@ -2365,8 +2934,8 @@ class ELM:
                 'Unit': 'Off/On',
                 'Header': ECU_ADDR_S,
                 'Response': [
-                            ECU_R_ADDR_S + ' 03 61 58 80 \r',
-                            ECU_R_ADDR_S + ' 03 61 58 00 \r'
+                            ECU_R_ADDR_S + ' 03 61 58 00 \r',
+                            ECU_R_ADDR_S + ' 03 61 58 80 \r'
                             ]
             },
             'CUSTOM_SLA_CURR': {
@@ -2378,9 +2947,18 @@ class ELM:
                 'Unit': 'A',
                 'Header': ECU_ADDR_S,
                 'Response': [
-                            '7B8100861A300002433\r7B8214A4B0000000000 \r',
-                            '7B8100861A300602433\r7B8214A4A0000000000 \r',
-                            '7B8100861A300002433\r7B82100000000000000 \r'
+                            ECU_R_ADDR_S + ' 10 08 61 A3 25 00 24 33 \r' +
+                            ECU_R_ADDR_S + ' 21 4A 4A 00 00 00 00 00 \r',
+                            ECU_R_ADDR_S + ' 10 08 61 A3 00 25 24 33 \r' +
+                            ECU_R_ADDR_S + ' 21 4A 4A 00 00 00 00 00 \r',
+                            ECU_R_ADDR_S + ' 10 08 61 A3 30 00 24 34 \r' +
+                            ECU_R_ADDR_S + ' 21 4A 4A 00 00 00 00 00 \r',
+                            ECU_R_ADDR_S + ' 10 08 61 A3 00 00 24 33 \r' +
+                            ECU_R_ADDR_S + ' 21 00 00 00 00 00 00 00 \r',
+                            ECU_R_ADDR_S + ' 10 08 61 A3 00 00 24 34 \r' +
+                            ECU_R_ADDR_S + ' 21 00 00 00 00 00 00 00 \r',
+                            ECU_R_ADDR_S + ' 10 08 61 A3 18 00 24 33 \r' +
+                            ECU_R_ADDR_S + ' 21 4A 4A 00 00 00 00 00 \r'
                             ]
             },
             'CUSTOM_INSP_MODE': {
@@ -2412,8 +2990,8 @@ class ELM:
                 'Unit': 'Off/On',
                 'Header': ECU_ADDR_S,
                 'Response': ECU_R_ADDR_S + ' 05 61 BE 00 00 00 \r'
-            },
-        },
+            }
+        }
     }
 
     ELM_VALID_CHARS = r"[a-zA-Z0-9 \n\r]*"
