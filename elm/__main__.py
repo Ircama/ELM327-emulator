@@ -5,16 +5,20 @@ import time
 import sys
 from cmd import Cmd
 import rlcompleter
+import glob
 
 class python_ELM(Cmd):
 
     __hiden_methods = ('do_EOF',)
     rlc = rlcompleter.Completer().complete
-    ps = '\033[01;32mCMD>\033[00m '
+    ps_color = '\033[01;32mCMD>\033[00m '
+    ps_nocolor = 'CMD> '
+    ps = ps_color
 
     def __init__(self, emulator):
         self.emulator = emulator
         self.prompt_active = True
+        self.color_active = True
         Cmd.prompt = self.ps
         Cmd.__init__(self)
 
@@ -24,7 +28,7 @@ class python_ELM(Cmd):
         self.stdout.write(
         "Available commands include the following list (type help <topic>"
         "\nfor more information on each command). Besides, any Python"
-        "\ncommand isaccepted. Autocompletion is fully allowed."
+        "\ncommand is accepted. Autocompletion is fully allowed."
         "\n=============================================================="
         "==\n")
         self.columnize(cmds, maxcol-1)
@@ -67,6 +71,22 @@ class python_ELM(Cmd):
         print("Prompt %s" % repr(self.prompt_active))
         Cmd.prompt = self.ps if self.prompt_active else ''
 
+    def do_color(self, arg):
+        "Toggle color off/on."
+        self.color_active = not self.color_active
+        if not self.color_active:
+            sys.stdout.write("\033[00m")
+            sys.stdout.flush()
+        print("Color %s" % repr(self.color_active))
+        self.ps = self.ps_color if self.color_active else self.ps_nocolor
+        Cmd.prompt = self.ps if self.prompt_active else ''
+
+    def precmd(self, line):
+        if self.color_active:
+            sys.stdout.write("\u001b[36m")
+            sys.stdout.flush()
+        return Cmd.precmd(self, line)
+
     def do_reset(self, arg):
         "Reset the emulator (counters and variables)"
         self.emulator.set_defaults()
@@ -95,26 +115,51 @@ class python_ELM(Cmd):
         self.emulator.threadState = THREAD.ACTIVE
         print("Backend emulator resumed. Running on %s" % pts_name)
 
-    scenarios = [
-        'default',
-        'test',
-        'off',
-        'car',
-    ]
-
     def complete_scenario(self, text, line, start_index, end_index):
         if text:
-            return [sc for sc in self.scenarios if sc.startswith(text)]
+            return [sc for sc in emulator.ObdMessage if sc.startswith(text)]
         else:
-            return self.scenarios
+            return [sc for sc in emulator.ObdMessage]
 
     def do_scenario(self, arg):
-        "Switch to the scenario specified in the argument; if the scenario is "\
-        "missing or invalid, defaults to 'test'."
-        self.emulator.scenario = 'test' if len(arg) == 0 else arg.split()[0]
+        "Switch to the scenario specified in the argument; if the scenario is\n"\
+        "missing or invalid, defaults to 'car'."
+        if len(arg.split()) == 1 and arg.split()[0] in [
+                sc for sc in emulator.ObdMessage]:
+            self.emulator.scenario = arg.split()[0]
+        else:
+            if len(arg.split()) > 0:
+                print("Invalid scenario '%s'" % arg)
+            self.emulator.scenario = 'car'
         print("Emulator scenario switched to '%s'" % self.emulator.scenario)
 
-    def do_off(self, arg):
+    def complete_merge(self, text, line, start_index, end_index):
+        if text:
+            return [x[:-3] for x in glob.glob('*.py') if x.startswith(text)]
+        else:
+            return [x[:-3] for x in glob.glob('*.py')]
+
+    def do_merge(self, arg):
+        "import a scenario from an external module and merges it with\n"\
+        "the emulator configuration."
+        if len(arg.split()) == 1 and arg.split()[0] in [
+                x[:-3] for x in glob.glob('*.py')]:
+            try:
+                exec('from ' + arg + ' import ObdMessage', globals())
+                emulator.ObdMessage.update(ObdMessage)
+                print("ObdMessage successfully imported and merged. "
+                      "Available scenarios:")
+                print("%s" % ', '.join([
+                sc for sc in emulator.ObdMessage]))
+            except Exception as e:
+                print("Error merging '%s': %s." % (arg, e))
+        else:
+             if arg:
+                print("Import error: invalid scenario '%s'." % arg)
+             else:
+                print("Import error: missing scenario.")
+
+    def do_engineoff(self, arg):
         "Switch to 'engineoff' scenario"
         self.emulator.scenario='engineoff'
         print("Emulator scenario switched to '%s'" % self.emulator.scenario)
@@ -127,14 +172,38 @@ class python_ELM(Cmd):
     # completedefault and completenames manage autocompletion of Python
     # identifiers and namespaces
     def completedefault(self, text, line, begidx, endidx):
-        return [self.rlc(text,x) for x in range(200)]
+        rld='.'.join(text.split('.')[:-1])
+        rlb=text.split('.')[-1]
+        if rld:
+            rl = [
+                rld + '.' + x for x in dir(eval(rld))
+                if x.startswith(rlb) and not x.startswith('__')
+            ]
+        else:
+            rl = [
+                x for x in dir()
+                if x.startswith(rlb) and not x.startswith('__')
+            ]
+        return rl + [self.rlc(text, x) for x in range(200)]
 
     def completenames(self, text, *ignored):
         dotext = 'do_'+text
+        rld='.'.join(text.split('.')[:-1])
+        rlb=text.split('.')[-1]
+        if rld:
+            rl = [
+                rld + '.' + x for x in dir(eval(rld))
+                if x.startswith(rlb) and not x.startswith('__')
+            ]
+        else:
+            rl = [
+                x for x in dir()
+                if x.startswith(rlb) and not x.startswith('__')
+            ]
         if not text:
             return [a[3:] for a in self.get_names() if a.startswith(dotext)]
         return [a[3:] for a in self.get_names() if a.startswith(dotext)
-                ] + [self.rlc(text, x) for x in range(200)]
+                ] + rl + [self.rlc(text, x) for x in range(200)]
 
     # Execution of unrecognized commands
     def default(self, arg):
@@ -142,7 +211,7 @@ class python_ELM(Cmd):
             print ( eval(arg) )
         except Exception:
             try:
-                exec(arg)
+                exec(arg, globals())
             except Exception as e:
                 print("Error executing command: %s" % e)
 
@@ -155,8 +224,8 @@ if __name__ == '__main__':
                 time.sleep(0.1)
             sys.stdout.flush()
             p_elm = python_ELM(emulator)
-            p_elm.cmdloop('Welcome to the ELM327 OBD-II adapter emulator.\n'
-                          'ELM327-emulator running on %s\n'
+            p_elm.cmdloop('Welcome to the ELM327 OBDII adapter emulator.\n'
+                          'ELM327-emulator is running on %s\n'
                           'Type help or ? to list commands.\n' % pts_name)
     except (KeyboardInterrupt, SystemExit):
         print('\n\nExiting.\n')
