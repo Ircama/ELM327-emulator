@@ -3,7 +3,7 @@ ELM327-emulator
 
 A python emulator for the ELM327 OBD-II adapter.
 
-The emulator provides a virtual serial port to external applications simulating the interaction with a vehicle via ELM327 protocol.
+The emulator provides a virtual serial communication port to client applications (via [pseudoterminal](https://en.wikipedia.org/wiki/Pseudoterminal) function), and simulates an [ELM327](https://en.wikipedia.org/wiki/ELM327) adapter connected to a vehicle through [OBD-II](https://en.wikipedia.org/wiki/On-board_diagnostics) protocol.
 
 It also allows testing [python-OBD](https://github.com/brendanwhitfield/python-OBD).
 
@@ -18,6 +18,7 @@ python3.7 -V
 # Installing prerequisites
 python3.7 -m pip install pyyaml
 python3.7 -m pip install hexdump
+python3.7 -m pip install obd # this is needed for obd_dictionary.py
 
 # Downloading ELM327-emulator
 git clone https://github.com/ircama/ELM327-emulator.git
@@ -31,6 +32,8 @@ Run with:
 ```shell
 python3.7 -m elm
 ```
+
+After starting the program, the emulator is ready to use. To enable the preconfigured set of PIDs of a Toyota Auris Hybrid car, issue `scenario car`.
 
 # Compatibility
 
@@ -47,16 +50,16 @@ The serial port to be used by the application interfacing the emulator is displa
 
 A [dictionary](https://docs.python.org/3.7/tutorial/datastructures.html#dictionaries) is used to define commands and PIDs. The dictionary includes more sections (named scenarios):
 
-- `'AT'`: supported AT commands
-- `'default'`: supported default PIDs
-- `'test'`: different values for some of the default PIDs
+- `'AT'`: set of default AT commands
+- `'default'`: set of default PIDs
+- `'car'`: PIDs of a Toyota Auris Hybrid veichle
 - any additional custom section can be used to define specific scenarios
 
 Default settings include both the 'AT' and the 'default' scenarios.
 
 The dictionary used to parse each ELM command is dynamically built as a union of three defined scenarios in the following order: 'default', 'AT', custom scenario (when applied). Each subsequent scenario redefines commands of the previous scenarios. In principle, 'AT scenario is added to 'default' and, if a custom scenario is used, this is also added on top, and all equal keys are replaced. Then the Priority key defines the precedence to match elements.
 
-If `emulator.scenario` is set to a string different from *default*, the custom scenario set by the string is applied; any key defined in the custom scenario replaces the default settings ('AT' and 'default' scenarios).
+If a custom scenario is selected through the *scenario* command, any key defined in the custom scenario replaces the default settings ('AT' and 'default' scenarios).
 
 The key used in the dictionary consists of a unique identifier for each PID. Allowed values for each key (PID):
 
@@ -154,7 +157,26 @@ It is possible to add marks in the log file via commands like `emulator.logger.i
 Command to count the number of different PIDs (OBD Commands) used by the client (excluding AT Commands):
 ```python
 import re
-len([(k, v) for k, v in emulator.counters.items() if re.match('^[A-Z]', k) and not k.startswith('AT_') and v ! = 0])
+from functools import reduce
+reduce(lambda x, key: x + (1 if re.match('^[A-Z]', key) and not key.startswith('AT_') and emulator.counters[key] > 0 else 0), emulator.counters, 0)
+```
+
+The following command returns the total number of OBD Commands (PID queries issued by the client excluding AT Commands):
+```python
+import re
+from functools import reduce
+reduce(lambda x, key: x + (emulator.counters[key] if re.match('^[A-Z]', key) and not key.startswith('AT_') else 0), emulator.counters, 0)
+```
+
+To only count AT Commands:
+```python
+from functools import reduce
+reduce(lambda x, key: x + (emulator.counters[key] if key.startswith('AT_') else 0), emulator.counters, 0)
+```
+
+To save a CSV file including the *emulator.counters* dictionary:
+```python
+with open('mycounters.txt', 'w') as f: f.write('\r\n'.join([x + ', ' + repr(emulator.counters[x]) for x in emulator.counters]))
 ```
 
 ## ObdMessage Dictionary Generator for "ELM327-emulator" (obd_dictionary) ##
@@ -214,6 +236,6 @@ merge AurisOutput
 scenario Auris
 ```
 
-To help configuring the emulator, autocompletion is allowed (by pressing TAB) when prompting the `merge` command, including the `merge` argument. Also variables and tokens like `scenario` accept autocompletion, including the `scenario` argument.
+To help configuring the emulator, autocompletion is allowed (by pressing TAB) when prompting the `merge` command, including the `merge` argument. Also variables and keywords like `scenario` accept autocompletion, including the `scenario` argument.
 
-A merged scenario can be removed via `del emulator.ObdMessage['<name of the new scenario>']`.
+A merged scenario can be removed via `del emulator.ObdMessage['<name of the scenario to be removed>']`.

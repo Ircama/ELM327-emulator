@@ -208,126 +208,6 @@ class ELM:
                 'Priority': 6
             },
         },
-        'test' : {
-            'ENGINE_LOAD': {
-                'Request': '^0104' + ELM_MAX_RESP,
-                'Descr': 'Calculated Engine Load',
-                'Header': ECU_ADDR_E,
-                'Response': ECU_R_ADDR_E + ' 03 41 04 3F \r'
-            },
-            'COOLANT_TEMP': {
-                'Request': '^0105' + ELM_MAX_RESP,
-                'Descr': 'Engine Coolant Temperature',
-                'Header': ECU_ADDR_E,
-                'Response': ECU_R_ADDR_E + ' 03 41 05 4B \r'
-            },
-            'INTAKE_TEMP': {
-                'Request': '^010F' + ELM_MAX_RESP,
-                'Descr': 'Intake Air Temp',
-                'Header': ECU_ADDR_E,
-                'Response': ECU_R_ADDR_E + ' 03 41 0F 4B \r'
-            },
-            'MAF': {
-                'Request': '^0110' + ELM_MAX_RESP,
-                'Descr': 'Air Flow Rate (MAF)',
-                'Header': ECU_ADDR_E,
-                'Response': ECU_R_ADDR_E + ' 04 41 10 0B F7 \r'
-            },
-            'RUN_TIME': {
-                'Request': '^011F' + ELM_MAX_RESP,
-                'Descr': 'Engine Run Time',
-                'Header': ECU_ADDR_E,
-                'Response': ECU_R_ADDR_E + ' 04 41 1F 00 8D \r'
-            },
-            'DISTANCE_W_MIL': {
-                'Request': '^0121' + ELM_MAX_RESP,
-                'Descr': 'Distance Traveled with MIL on',
-                'Header': ECU_ADDR_E,
-                'Response': ECU_R_ADDR_E + ' 04 41 21 00 00 \r'
-            },
-            'FUEL_RAIL_PRESSURE_DIRECT': {
-                'Request': '^0123' + ELM_MAX_RESP,
-                'Descr': 'Fuel Rail Pressure (direct inject)',
-                'Header': ECU_ADDR_E,
-                'Response': ECU_R_ADDR_E + ' 04 41 23 10 66 \r'
-            },
-            'COMMANDED_EGR': {
-                'Request': '^012C' + ELM_MAX_RESP,
-                'Descr': 'Commanded EGR',
-                'Header': ECU_ADDR_E,
-                'Response': ECU_R_ADDR_E + ' 03 41 2C 00 \r'
-            },
-            'EGR_ERROR': {
-                'Request': '^012D' + ELM_MAX_RESP,
-                'Descr': 'EGR Error',
-                'Header': ECU_ADDR_E,
-                'Response': ECU_R_ADDR_E + ' 03 41 2D A9 \r'
-            },
-            'DISTANCE_SINCE_DTC_CLEAR': {
-                'Request': '^0131' + ELM_MAX_RESP,
-                'Descr': 'Distance traveled since codes cleared',
-                'Header': ECU_ADDR_E,
-                'Response': ECU_R_ADDR_E + ' 04 41 31 01 77 \r'
-            },
-            'BAROMETRIC_PRESSURE': {
-                'Request': '^0133' + ELM_MAX_RESP,
-                'Descr': 'Barometric Pressure',
-                'Header': ECU_ADDR_E,
-                'Response': ECU_R_ADDR_E + ' 03 41 33 63 \r'
-            },
-            'CATALYST_TEMP_B1S1': {
-                'Request': '^013C' + ELM_MAX_RESP,
-                'Descr': 'Catalyst Temperature: Bank 1 - Sensor 1',
-                'Header': ECU_ADDR_E,
-                'Response': ECU_R_ADDR_E + ' 04 41 3C 04 4C \r'
-            },
-            'ELM_PIDS_C': {
-                'Request': '^0140' + ELM_MAX_RESP,
-                'Descr': 'PIDS_C',
-                'Header': ECU_ADDR_E,
-                'Response':
-                ECU_R_ADDR_T + ' 06 41 40 40 0C 00 00 \r' + ECU_R_ADDR_E +
-                ' 06 41 40 44 DC 00 09 \r'
-            },
-            'CONTROL_MODULE_VOLTAGE': {
-                'Request': '^0142' + ELM_MAX_RESP,
-                'Descr': 'Control module voltage',
-                'Header': ECU_ADDR_E,
-                'Response': ECU_R_ADDR_T + ' 04 41 42 3A 56 \r00 \r'
-            },
-            'ACCELERATOR_POS_E': {
-                'Request': '^014A' + ELM_MAX_RESP,
-                'Descr': 'Accelerator pedal position E',
-                'Header': ECU_ADDR_E,
-                'Response': ECU_R_ADDR_E + ' 03 41 4A 00 \r'
-            },
-            'RUN_TIME_MIL': {
-                'Request': '^014D' + ELM_MAX_RESP,
-                'Descr': 'Time run with MIL on',
-                'Header': ECU_ADDR_E,
-                'Response': ECU_R_ADDR_E + ' 04 41 4D 00 00 \r'
-            },
-            'TIME_SINCE_DTC_CLEARED': {
-                'Request': '^014E' + ELM_MAX_RESP,
-                'Descr': 'Time since trouble codes cleared',
-                'Header': ECU_ADDR_E,
-                'Response': ECU_R_ADDR_E + ' 04 41 4E 02 00 \r'
-            },
-            'FUEL_INJECT_TIMING': {
-                'Request': '^015D' + ELM_MAX_RESP,
-                'Descr': 'Fuel injection timing',
-                'Header': ECU_ADDR_E,
-                'Response': ECU_R_ADDR_E + ' 04 41 5D 69 00 \r'
-            },
-            'CUSTOM_T_P': {
-                'Request': '^2101' + ELM_MAX_RESP,
-                'Descr': 'Ambient temperature & pressure',
-                'Response':
-                '7EA 10 18 61 01 00 63 42 32 \r7EA 21 63 38 00 00 00 00 00 \r'
-                + '7EA 22 2D 28 51 FF C8 1D FF \r7EA 23 FF 1C 13 99 00 00 00 \r',
-                'Header': ECU_ADDR_H
-            },
-        },
         'default' : {
             'FUEL_STATUS': {
                 'Request': '^0103' + ELM_MAX_RESP,
@@ -499,85 +379,11 @@ class ELM:
                 'Header': ECU_ADDR_E,
                 'Response': ECU_R_ADDR_E + ' 03 41 51 01 \r'
             },
-            'UNKNOWN': {
-                'Request': '^015B' + ELM_MAX_RESP,
-                'Descr': 'Unknown',
-                'Header': ECU_ADDR_E,
-                'Response': ECU_R_ADDR_E + ' 03 41 51 01 \r'
-            },
             'FUEL_INJECT_TIMING': {
                 'Request': '^015D' + ELM_MAX_RESP,
                 'Descr': 'Fuel injection timing',
                 'Header': ECU_ADDR_E,
                 'Response': ECU_R_ADDR_E + ' 04 41 5D 66 00 \r'
-            },
-           # Custom
-            'CUSTOM_T_P': {
-                'Request': '^2101' + ELM_MAX_RESP,
-                'Descr': 'Ambient temperature & pressure',
-                'Response': ECU_R_ADDR_H + ' 10 18 61 01 00 64 4B FF \r',
-                'Header': ECU_ADDR_H
-            },
-            'CUSTOM_AUX_B_VOLT': {
-                'Request': '^2113' + ELM_MAX_RESP,
-                'Descr': '+B Voltage Value',
-                'Response': ECU_R_ADDR_I + ' 03 61 13 95 \r',
-                'Header': ECU_ADDR_I
-            },
-            'CUSTOM_ROOM': {
-                'Request': '^2121' + ELM_MAX_RESP,
-                'Descr': 'Room Temp Sensor',
-                'Response': ECU_R_ADDR_P + ' 03 61 21 53 \r',
-                'Header': ECU_ADDR_P
-            },
-            'CUSTOM_AMBIENT': {
-                'Request': '^2122' + ELM_MAX_RESP,
-                'Descr': 'Ambient Temp Sensor',
-                'Response': ECU_R_ADDR_P + ' 03 61 22 5F \r',
-                'Header': ECU_ADDR_P
-            },
-            'CUSTOM_SOLAR': {
-                'Request': '^2124' + ELM_MAX_RESP,
-                'Descr': 'Solar sensor',
-                'Response': ECU_R_ADDR_P + ' 03 61 24 01 \r',
-                'Header': ECU_ADDR_P
-            },
-            'CUSTOM_FUEL_MAIN': {
-                'Request': '^2129' + ELM_MAX_RESP,
-                'Descr': 'Fuel level - main tank',
-                'Response': (ECU_R_ADDR_I + ' 03 61 29 15 \r',
-                             ECU_R_ADDR_I + ' 03 61 29 16 \r'),
-                'Header': ECU_ADDR_I
-            },
-            'CUSTOM_SET_TEMP_D': {
-                'Request': '^2129[012]?$',
-                'Descr': 'Set Temperature (D side)',
-                'Response': ECU_R_ADDR_P + ' 03 7F 21 12 \r',
-                'Header': ECU_ADDR_P
-            },
-            'CUSTOM_FUEL_SUB': {
-                'Request': '^212A' + ELM_MAX_RESP,
-                'Descr': 'Fuel level - sub tank',
-                'Response': ECU_R_ADDR_I + ' 03 7F 21 12 \r',
-                'Header': ECU_ADDR_I
-            },
-            'CUSTOM_ADJUSTED': {
-                'Request': '^213D' + ELM_MAX_RESP,
-                'Descr': 'Adjusted Ambient Temp',
-                'Response': ECU_R_ADDR_P + ' 03 61 3D 81 \r',
-                'Header': ECU_ADDR_P
-            },
-            'CUSTOM_RHEOSTAT': {
-                'Request': '^2168' + ELM_MAX_RESP,
-                'Descr': 'Rheostat value (dark=0,bright=255)',
-                'Response': ECU_R_ADDR_I + ' 03 7F 21 12 \r',
-                'Header': ECU_ADDR_I
-            },
-            'CUSTOM_SEAT': {
-                'Request': '^21A7' + ELM_MAX_RESP,
-                'Descr': 'Seat belt',
-                'Response': ECU_R_ADDR_I + ' 03 61 A7 20 \r',
-                'Header': ECU_ADDR_I
             },
             # Supported PIDs for protocols
             'ELM_PIDS_A': {
@@ -2602,6 +2408,12 @@ class ELM:
                             ECU_R_ADDR_I + ' 03 61 29 06 \r'
                             ]
             },
+            'CUSTOM_FUEL_SUB': {
+                'Request': '^212A' + ELM_MAX_RESP,
+                'Descr': 'Fuel level - sub tank',
+                'Response': ECU_R_ADDR_I + ' 03 7F 21 12 \r',
+                'Header': ECU_ADDR_I
+            },
             'CUSTOM_OIL_CHG_DIST': {
                 'Request': '^2141' + ELM_MAX_RESP,
                 'Descr': 'Distance Since Oil Change for U.S.A. (reset)',
@@ -2716,6 +2528,12 @@ class ELM:
                             ECU_R_ADDR_P + ' 03 61 26 75 \r',
                             ECU_R_ADDR_P + ' 03 61 26 4B \r'
                             ]
+            },
+            'CUSTOM_SET_TEMP_D': {
+                'Request': '^2129[012]?$',
+                'Descr': 'Set Temperature (D side)',
+                'Response': ECU_R_ADDR_P + ' 03 7F 21 12 \r',
+                'Header': ECU_ADDR_P
             },
             'CUSTOM_BLOWER_LEVEL': {
                 'Request': '^213C' + ELM_MAX_RESP,
