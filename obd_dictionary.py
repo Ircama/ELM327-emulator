@@ -235,23 +235,8 @@ def main():
         sys.stdout = args.dictionary_out
 
     # Print header information
-    print('\
-ECU_ADDR_H = "7E2"\n\
-ECU_R_ADDR_H = "7EA"\n\
-ECU_ADDR_E = "7E0"\n\
-ECU_R_ADDR_E = "7E8"\n\
-ECU_ADDR_T = "7E1"\n\
-ECU_R_ADDR_T = "7E9"\n\
-ECU_ADDR_I = "7C0"\n\
-ECU_R_ADDR_I = "7C8"\n\
-ECU_ADDR_B = "7E3"\n\
-ECU_R_ADDR_B = "7EB"\n\
-ECU_ADDR_P = "7C4"\n\
-ECU_R_ADDR_P = "7CC"\n\
-ECU_ADDR_S = "7B0"\n\
-ECU_R_ADDR_S = "7B8"\n\
-ELM_R_OK = "OK\\r"\n\
-ELM_MAX_RESP = "[0123456]?$"\n')
+    print("\n".join([ecu[k] + ' = "' + k + '"' for k in ecu]))
+    print('ELM_R_OK = "OK\\r"\nELM_MAX_RESP = "[0123456]?$"\n')
     print("ObdMessage = {")
     print("        '" + args.car_name + "': {")
 

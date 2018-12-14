@@ -6,14 +6,21 @@ import sys
 from cmd import Cmd
 import rlcompleter
 import glob
+import os.path
+try:
+    import readline
+except ImportError:
+    readline = None
 
-class python_ELM(Cmd):
+class ELM327_emulator(Cmd):
 
     __hiden_methods = ('do_EOF',)
     rlc = rlcompleter.Completer().complete
     ps_color = '\x01\033[01;32m\x02CMD>\x01\033[00m\x02 '
     ps_nocolor = 'CMD> '
     ps = ps_color
+    histfile = os.path.expanduser('~/.ELM327_emulator_history')
+    histfile_size = 1000
 
     def __init__(self, emulator):
         self.emulator = emulator
@@ -45,12 +52,19 @@ class python_ELM(Cmd):
 
     def do_quit(self, arg):
         'Quit the emulator'
+        if arg:
+            print ("Invalid format")
+            return
         sys.exit(0)
 
     def do_delay(self, arg):
         "Delay each command of the seconds specified in the argument.\n"\
         "(Floating point number; default is 0.5 seconds.)"
-        delay = 0.5 if len(arg) == 0 else float(arg.split()[0])
+        try:
+            delay = 0.5 if len(arg) == 0 else float(arg.split()[0])
+        except ValueError:
+            print ("Invalid format")
+            return
         if delay > 0:
             print("Delaying each command of %s seconds" % delay)
             self.emulator.delay = delay
@@ -61,18 +75,28 @@ class python_ELM(Cmd):
     def do_wait(self, arg):
         "Perform an immediate sleep of the seconds specified in the argument.\n"\
         "(Floating point number; default is 10 seconds.)"
-        delay = 10 if len(arg) == 0 else float(arg.split()[0])
+        try:
+            delay = 10 if len(arg) == 0 else float(arg.split()[0])
+        except ValueError:
+            print ("Invalid format")
+            return
         print("Sleeping for %s seconds" % delay)
         time.sleep(delay)
 
     def do_prompt(self, arg):
         "Toggle prompt off/on."
+        if arg:
+            print ("Invalid format")
+            return
         self.prompt_active = not self.prompt_active
         print("Prompt %s" % repr(self.prompt_active))
         Cmd.prompt = self.ps if self.prompt_active else ''
 
     def do_color(self, arg):
         "Toggle color off/on."
+        if arg:
+            print ("Invalid format")
+            return
         self.color_active = not self.color_active
         if not self.color_active:
             sys.stdout.write("\x01\033[00m\x02")
@@ -89,6 +113,9 @@ class python_ELM(Cmd):
 
     def do_reset(self, arg):
         "Reset the emulator (counters and variables)"
+        if arg:
+            print ("Invalid format")
+            return
         self.emulator.set_defaults()
         print("Reset done.")
 
@@ -96,6 +123,9 @@ class python_ELM(Cmd):
         "Print the number of each executed PID (upper case names), the values\n"\
         "associated to some 'AT' PIDs, the unknown requests, the emulator response\n"\
         "delay, the total number of executed commands and the current scenario."
+        if arg:
+            print ("Invalid format")
+            return
         if self.emulator.counters:
             print("PID Counters:")
             for i in sorted(self.emulator.counters):
@@ -107,11 +137,17 @@ class python_ELM(Cmd):
 
     def do_pause(self, arg):
         "Pause the execution."
+        if arg:
+            print ("Invalid format")
+            return
         self.emulator.threadState = THREAD.PAUSED
         print("Backend emulator paused")
 
     def do_resume(self, arg):
         "Resume the execution after pausing; prints the used device."
+        if arg:
+            print ("Invalid format")
+            return
         self.emulator.threadState = THREAD.ACTIVE
         print("Backend emulator resumed. Running on %s" % pts_name)
 
@@ -161,13 +197,35 @@ class python_ELM(Cmd):
 
     def do_engineoff(self, arg):
         "Switch to 'engineoff' scenario"
+        if arg:
+            print ("Invalid format")
+            return
         self.emulator.scenario='engineoff'
         print("Emulator scenario switched to '%s'" % self.emulator.scenario)
 
     def do_default(self, arg):
         "Reset to 'default' scenario"
+        if arg:
+            print ("Invalid format")
+            return
         self.emulator.scenario='default'
         print("Emulator scenario reset to '%s'" % self.emulator.scenario)
+
+    def do_history(self, arg):
+        "print the command history; if an argument is given, print the last\n"\
+        "n commands in the history; with argument 'clear', clears the history"
+        if arg == "clear":
+            readline.clear_history()
+            return
+        try:
+            n = 20 if len(arg) == 0 else int(arg.split()[0])
+        except ValueError:
+            print ("Invalid format")
+            return
+        num=readline.get_current_history_length() - n
+        for i in range(num if num > 0 else 0,
+                       readline.get_current_history_length()):
+            print (readline.get_history_item(i + 1))
 
     # completedefault and completenames manage autocompletion of Python
     # identifiers and namespaces
@@ -205,6 +263,18 @@ class python_ELM(Cmd):
         return [a[3:] for a in self.get_names() if a.startswith(dotext)
                 ] + rl + [self.rlc(text, x) for x in range(200)]
 
+    def preloop(self):
+        if readline and os.path.exists(self.histfile):
+            try:
+                readline.read_history_file(self.histfile)
+            except FileNotFoundError:
+                pass
+
+    def postloop(self):
+        if readline:
+            readline.set_history_length(self.histfile_size)
+            readline.write_history_file(self.histfile)
+
     # Execution of unrecognized commands
     def default(self, arg):
         try:
@@ -223,11 +293,12 @@ if __name__ == '__main__':
             while emulator.threadState == THREAD.STARTING:
                 time.sleep(0.1)
             sys.stdout.flush()
-            p_elm = python_ELM(emulator)
+            p_elm = ELM327_emulator(emulator)
             p_elm.cmdloop('Welcome to the ELM327 OBDII adapter emulator.\n'
                           'ELM327-emulator is running on %s\n'
                           'Type help or ? to list commands.\n' % pts_name)
     except (KeyboardInterrupt, SystemExit):
+        p_elm.postloop()
         print('\n\nExiting.\n')
         sys.exit(0)
     sys.exit(1)

@@ -6,7 +6,6 @@ import re
 import os
 import pty
 import threading
-import hexdump
 import time
 import sys
 from random import randint
@@ -176,10 +175,9 @@ class ELM:
             'ELM_PIDS_A': {
                 'Request': '^0100$',
                 'Descr': 'PIDS_A',
-                'Exec': 'time.sleep(1 if self.counters[pid] == 1 else 0)',
                 'ResponseHeader': \
                 lambda self, cmd, pid, val: \
-                    'SEARCHING...\rUNABLE TO CONNECT\r' \
+                    'SEARCHING...\0 time.sleep(1) \0\rUNABLE TO CONNECT\r' \
                     if self.counters[pid] == 1 else 'NO DATA\r',
                 'Response': '',
                 'Priority': 5
@@ -187,10 +185,9 @@ class ELM:
             'ELM_MIDS_A': {
                 'Request': '^0600$',
                 'Descr': 'MIDS_A',
-                'Exec': 'time.sleep(1 if self.counters[pid] == 1 else 0)',
                 'ResponseHeader': \
                 lambda self, cmd, pid, val: \
-                    'SEARCHING...\rUNABLE TO CONNECT\r' \
+                    'SEARCHING...\0 time.sleep(1) \0\rUNABLE TO CONNECT\r' \
                     if self.counters[pid] == 1 else 'NO DATA\r',
                 'Response': '',
                 'Priority': 5
@@ -389,10 +386,9 @@ class ELM:
             'ELM_PIDS_A': {
                 'Request': '^0100' + ELM_MAX_RESP,
                 'Descr': 'PIDS_A',
-                'Exec': 'time.sleep(1 if self.counters["ELM_PIDS_A"] == 1 else 0)',
                 'ResponseHeader': \
                 lambda self, cmd, pid, val: \
-                    'SEARCHING...\r' if self.counters[pid] == 1 else "",
+                    'SEARCHING...\0 time.sleep(1) \0\r' if self.counters[pid] == 1 else "",
                 'Response':
                 ECU_R_ADDR_H + ' 06 41 00 98 3A 80 13 \r' +
                 ECU_R_ADDR_E + ' 06 41 00 BE 3F A8 13 \r'
@@ -2885,7 +2881,7 @@ class ELM:
                 logging.debug("repeating previous command: %s", repr(self.cmd))
             else:
                 self.counters["last_cmd"] = self.cmd
-                logging.debug("received '%s'", repr(self.cmd))
+                logging.debug("Received %s", repr(self.cmd))
 
             # if it didn't contain any egregious errors, handle it
             if self.validate(self.cmd):
@@ -2927,9 +2923,26 @@ class ELM:
         if 'echo' in self.counters and self.counters['cmd_echo']:
             resp = self.cmd + n + resp
 
-        logging.debug("write: %s", repr(resp))
-
-        return os.write(self.master_fd, resp.encode())
+        j=0
+        for i in re.split(r'\0([^\0]+)\0', resp):
+            if j % 2:
+                msg = i.strip()
+                try:
+                    evalmsg = eval(msg)
+                    os.write(self.master_fd, evalmsg.encode())
+                    logging.debug("Evaluated command: %s", msg)
+                    logging.debug("Written evaluated command: %s", repr(evalmsg))
+                except Exception:
+                    try:
+                        logging.debug("Executing command: %s", msg)
+                        if msg:
+                            exec(msg, globals())
+                    except Exception as e:
+                        logging.error("Cannot execute '%s': %s", i, e)
+            else:
+                logging.debug("Write: %s", repr(i))
+                os.write(self.master_fd, i.encode())
+            j += 1
 
     def validate(self, cmd):
 
@@ -2949,8 +2962,7 @@ class ELM:
             self.counters['commands'] = 0
         self.counters['commands'] += 1
 
-        dump = hexdump.dump(cmd.encode('utf-8'), sep=":")
-        logging.debug("handling: %s - %s", repr(cmd), dump)
+        logging.debug("Handling: %s", repr(cmd))
         if self.delay > 0:
             time.sleep(self.delay)
 
@@ -2980,7 +2992,7 @@ class ELM:
                                   val['Action'])
                     continue
                 if 'Descr' in val:
-                    logging.debug("Received %s, PID %s (%s)",
+                    logging.debug("Description: %s, PID %s (%s)",
                                   val['Descr'], pid, cmd)
                 else:
                     logging.error(
@@ -3023,7 +3035,10 @@ class ELM:
         if "unknown_" + cmd not in self.counters:
             self.counters["unknown_" + cmd] = 0
         self.counters["unknown_" + cmd] += 1
-        logging.info("Unknown ELM command: %s, header=%s, dump=%s", cmd, self.counters["cmd_header"], dump)
+        if "cmd_header" in self.counters:
+            logging.info("Unknown ELM command: %s, header=%s", repr(cmd), self.counters["cmd_header"])
+        else:
+            logging.info("Unknown ELM command: %s", repr(cmd))
         return ""
 
     def sanitize(self, cmd):
