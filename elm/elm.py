@@ -177,7 +177,7 @@ class ELM:
                 'Descr': 'PIDS_A',
                 'ResponseHeader': \
                 lambda self, cmd, pid, val: \
-                    'SEARCHING...\0 time.sleep(1) \0\rUNABLE TO CONNECT\r' \
+                    'SEARCHING...\0 time.sleep(4.5) \0\rUNABLE TO CONNECT\r' \
                     if self.counters[pid] == 1 else 'NO DATA\r',
                 'Response': '',
                 'Priority': 5
@@ -187,7 +187,7 @@ class ELM:
                 'Descr': 'MIDS_A',
                 'ResponseHeader': \
                 lambda self, cmd, pid, val: \
-                    'SEARCHING...\0 time.sleep(1) \0\rUNABLE TO CONNECT\r' \
+                    'SEARCHING...\0 time.sleep(4.5) \0\rUNABLE TO CONNECT\r' \
                     if self.counters[pid] == 1 else 'NO DATA\r',
                 'Response': '',
                 'Priority': 5
@@ -388,7 +388,7 @@ class ELM:
                 'Descr': 'PIDS_A',
                 'ResponseHeader': \
                 lambda self, cmd, pid, val: \
-                    'SEARCHING...\0 time.sleep(1) \0\r' if self.counters[pid] == 1 else "",
+                    'SEARCHING...\0 time.sleep(3) \0\r' if self.counters[pid] == 1 else "",
                 'Response':
                 ECU_R_ADDR_H + ' 06 41 00 98 3A 80 13 \r' +
                 ECU_R_ADDR_E + ' 06 41 00 BE 3F A8 13 \r'
@@ -2813,7 +2813,6 @@ class ELM:
     # Other AT commands
     ELM_WARM_START         = r"ATWS$"
     ELM_DEFAULTS           = r"ATD$"
-    ELM_VERSION            = r"ATI$"
     ELM_SET_PROTO          = r"ATSPA?[0-9A-C]$"
     ELM_ERASE_PROTO        = r"ATSP00$"
 
@@ -2830,6 +2829,7 @@ class ELM:
     def set_defaults(self):
         self.scenario = 'default'
         self.delay = 0
+        self.max_req_timeout = 1440
         self.answer = {}
         self.counters = {}
 
@@ -2893,22 +2893,37 @@ class ELM:
             reads the next newline delimited command from the port
             filters 
 
-            returns a normallized string command
+            returns a normalized string command
         """
         buffer = ""
+        first = True
 
+        req_timeout = self.max_req_timeout
+        try:
+            req_timeout = float(self.counters['req_timeout'])
+        except Exception as e:
+            if 'req_timeout' in self.counters:
+                logging.error("Improper configuration of\n\"self.counters"\
+                              "['req_timeout']\": '%s' (%s). Resetting it to %s",
+                              self.counters['req_timeout'], e, self.max_req_timeout
+                             )
+            self.counters['req_timeout'] = req_timeout
         while True:
+            prev_time = time.time()
             try:
                 c = os.read(self.master_fd, 1).decode()
+                if 'cmd_echo' in self.counters and self.counters['cmd_echo'] == 1:
+                    os.write(self.master_fd, c.encode())
             except OSError:
                 return('')
-
+            if prev_time + req_timeout < time.time() and first == False:
+                buffer = ""
+                logging.debug("'req_timeout' timeout while reading data: %s", c)
             if c == '\r':
                 break
-
             if c == '\n':
                 continue  # ignore newlines
-
+            first = False
             buffer += c
 
         return buffer
@@ -2916,12 +2931,8 @@ class ELM:
     def write(self, resp):
         """ write a response to the port """
 
-        #n = "\r\r" if 'cmd_linefeeds' in self.counters and self.counters['cmd_linefeeds'] else "\r"
-        n = "\r"
+        n = "\r\n" if 'cmd_linefeeds' in self.counters and self.counters['cmd_linefeeds'] == 1 else "\r"
         resp += n + ">"
-
-        if 'echo' in self.counters and self.counters['cmd_echo']:
-            resp = self.cmd + n + resp
 
         j=0
         for i in re.split(r'\0([^\0]+)\0', resp):
