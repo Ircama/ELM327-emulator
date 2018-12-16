@@ -134,6 +134,13 @@ def main():
         default=False,
         help='include blacklisted PIDs within probes')
     parser.add_argument(
+        '-t',
+        '--noat',
+        dest='add_at',
+        action="store_false",
+        default=True,
+        help='exclude AT Commands within probes')
+    parser.add_argument(
         '-m',
         '--missing',
         dest='print_missing_resp',
@@ -157,26 +164,27 @@ def main():
         return
 
     # Enrich the dictionary with some predefined commands
-    connection.supported_commands.add(
-        OBDCommand("ELM_IGNITION", "IgnMon input level", b"AT IGN", 0,
-                   lambda messages: "\n".join([m.raw() for m in messages]),
-                   ECU.ALL, True))
-    connection.supported_commands.add(
-        OBDCommand("ELM_DESCR", "Device description", b"AT@1", 0,
-                   lambda messages: "\n".join([m.raw() for m in messages]),
-                   ECU.ALL, True))
-    connection.supported_commands.add(
-        OBDCommand("ELM_ID", "Device identifier", b"AT@2", 0,
-                   lambda messages: "\n".join([m.raw() for m in messages]),
-                   ECU.ALL, True))
-    connection.supported_commands.add(
-        OBDCommand("ELM_DP", "Current protocol", b"AT DP", 0,
-                   lambda messages: "\n".join([m.raw() for m in messages]),
-                   ECU.ALL, True))
-    connection.supported_commands.add(
-        OBDCommand("ELM_DPN", "Current protocol by number", b"AT DPN", 0,
-                   lambda messages: "\n".join([m.raw() for m in messages]),
-                   ECU.ALL, True))
+    if args.add_at:
+        connection.supported_commands.add(
+            OBDCommand("ELM_IGNITION", "IgnMon input level", b"AT IGN", 0,
+                       lambda messages: "\n".join([m.raw() for m in messages]),
+                       ECU.ALL, True))
+        connection.supported_commands.add(
+            OBDCommand("ELM_DESCR", "Device description", b"AT@1", 0,
+                       lambda messages: "\n".join([m.raw() for m in messages]),
+                       ECU.ALL, True))
+        connection.supported_commands.add(
+            OBDCommand("ELM_ID", "Device identifier", b"AT@2", 0,
+                       lambda messages: "\n".join([m.raw() for m in messages]),
+                       ECU.ALL, True))
+        connection.supported_commands.add(
+            OBDCommand("ELM_DP", "Current protocol", b"AT DP", 0,
+                       lambda messages: "\n".join([m.raw() for m in messages]),
+                       ECU.ALL, True))
+        connection.supported_commands.add(
+            OBDCommand("ELM_DPN", "Current protocol by number", b"AT DPN", 0,
+                       lambda messages: "\n".join([m.raw() for m in messages]),
+                       ECU.ALL, True))
 
     # Read the optional csv file of custom commands and enrich the dictionary
     if args.csv_custom_pids:

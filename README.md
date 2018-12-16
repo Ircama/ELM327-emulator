@@ -283,11 +283,14 @@ optional arguments:
   -n CAR_NAME, --name CAR_NAME
                         name of the car (dictionary label; default is "car")
   -b, --blacklist       include blacklisted PIDs within probes
+  -t, --noat            exclude AT Commands within probes
   -m, --missing         add in-line comment to dictionary for PIDs with
                         missing response
 ```
 
 Sample usage: `obd_dictionary.py -i /dev/ttyUSB0 -c car.csv -o ObdMessage.py -v -p 10 -d 1 -n mycar`
+
+In general, *ELM327-emulator* should already manage all needed AT Commands within its default dictionary, so it is worthwhile removing them from the new scenario via `-t` option.
 
 The file produced by *obd_dictionary.py* can be dynamically imported in *ELM327-emulator* through the `merge` command, which loads an *ObdMessage* dictionary and merges it with *emulator.ObdMessage*. Example:
 
