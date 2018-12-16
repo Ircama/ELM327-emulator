@@ -103,10 +103,12 @@ In addition to the previously listed keywords, any Python command is allowed to 
 
 At the command prompt, cursors and [keyboard shortcuts](https://github.com/chzyer/readline/blob/master/doc/shortcut.md) are allowed. Autocompletion (via TAB key) is active for all previously described commands and also allows Python keywords and namespaces (built-ins, self and globals). If the autocompletion matches a single item, this is immediately expanded; Conversely, if more possibilities are matched, none of them is returned, but pressing TAB again a list of available options is displayed.
 
-*echo* and *linefeed* settings are both disabled by default. They can be configured via related AT commands. To enable them via command line:
+*echo* and *linefeed* settings are both disabled by default. They can be configured via related AT commands (*ATL1* and *ATE1*). To enable them via command line:
 ```
 emulator.counters['cmd_linefeeds'] = True; emulator.counters['cmd_echo'] = True
 ```
+
+Space characters are inserted by default in the ECU response as per specification. To remove them, use the AT command *ATS0* or `emulator.counters['cmd_spaces']=0`, Notice that an *ATZ* command resets all counters.
 
 The emulator includes a timeout management for each entered character, which by default is not active (e.g., set to 1440 seconds). This setting can be configured through `emulator.counters['req_timeout']`. Decimals are allowed. Some adapters provide a feature that discards characters if each of them is not entered within a short time limit (apart from the first one after a CR/Carriage Return). The appropriate emulation for this timeout is to set `emulator.counters['req_timeout']=0.015` (e.g., 15 milliseconds). Typing commands by hand via terminal emulator with such adapters is not possible as the allowed timing is too short. The same happens when setting *req_timeout* to 0.015.
 

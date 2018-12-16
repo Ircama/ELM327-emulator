@@ -2939,8 +2939,11 @@ class ELM:
     def write(self, resp):
         """ write a response to the port """
 
-        n = "\r\n" if 'cmd_linefeeds' in self.counters and self.counters['cmd_linefeeds'] == 1 else "\r"
+        n = "\r\n" if 'cmd_linefeeds' in self.counters and self.counters[
+            'cmd_linefeeds'] == 1 else "\r"
         resp += n + ">"
+        nospaces = 1 if 'cmd_spaces' in self.counters and self.counters[
+            'cmd_spaces'] == 0 else 0
 
         j=0
         for i in re.split(r'\0([^\0]+)\0', resp):
@@ -2948,6 +2951,8 @@ class ELM:
                 msg = i.strip()
                 try:
                     evalmsg = eval(msg)
+                    if nospaces:
+                        evalmsg = re.sub(r'[ \t]+', '', evalmsg)
                     os.write(self.master_fd, evalmsg.encode())
                     logging.debug("Evaluated command: %s", msg)
                     logging.debug("Written evaluated command: %s", repr(evalmsg))
@@ -2960,6 +2965,8 @@ class ELM:
                         logging.error("Cannot execute '%s': %s", i, e)
             else:
                 logging.debug("Write: %s", repr(i))
+                if nospaces:
+                    i = re.sub(r'[ \t]+', '', i)
                 os.write(self.master_fd, i.encode())
             j += 1
 
