@@ -2857,7 +2857,7 @@ class ELM:
         os.close(self.master_fd)
         return False  # don't suppress any exceptions
 
-    def run(self):
+    def run(self): # daemon thread
         setup_logging()
         self.logger = logging.getLogger()
         logging.info('\n\nELM327 OBD-II adapter simulator started\n')
@@ -2885,7 +2885,12 @@ class ELM:
 
             # if it didn't contain any egregious errors, handle it
             if self.validate(self.cmd):
-                resp = self.handle(self.cmd)
+                try:
+                    resp = self.handle(self.cmd)
+                except Exception as e:
+                    logging.error("Error while processing %s:\n%s",
+                                  repr(self.cmd), e)
+                    continue
                 self.write(resp)
 
     def read(self):
@@ -2914,6 +2919,9 @@ class ELM:
                 c = os.read(self.master_fd, 1).decode()
                 if 'cmd_echo' in self.counters and self.counters['cmd_echo'] == 1:
                     os.write(self.master_fd, c.encode())
+            except UnicodeDecodeError as e:
+                logging.error("Invalid character received: %s", e)
+                return('')
             except OSError:
                 return('')
             if prev_time + req_timeout < time.time() and first == False:
