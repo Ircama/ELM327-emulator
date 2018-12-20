@@ -2833,8 +2833,9 @@ class ELM:
         self.answer = {}
         self.counters = {}
 
-    def __init__(self, protocols, ecus):
+    def __init__(self, batch_mode):
         self.set_defaults()
+        self.batch_mode = batch_mode
         self.reset(0)
 
     def __enter__(self):
@@ -2860,7 +2861,8 @@ class ELM:
     def run(self): # daemon thread
         setup_logging()
         self.logger = logging.getLogger()
-        logging.info('\n\nELM327 OBD-II adapter simulator started\n')
+        if not self.batch_mode:
+            logging.info('\n\nELM327 OBD-II adapter simulator started\n')
         """ the ELM's main IO loop """
         
         self.threadState = THREAD.ACTIVE

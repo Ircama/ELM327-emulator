@@ -290,7 +290,7 @@ optional arguments:
 
 Sample usage: `obd_dictionary.py -i /dev/ttyUSB0 -c car.csv -o ObdMessage.py -v -p 10 -d 1 -n mycar`
 
-In general, *ELM327-emulator* should already manage all needed AT Commands within its default dictionary, so it is worthwhile removing them from the new scenario via `-t` option.
+In general, *ELM327-emulator* should already manage all needed AT Commands within its default dictionary, so in most cases it is worthwhile removing them from the new scenario via `-t` option.
 
 The file produced by *obd_dictionary.py* can be dynamically imported in *ELM327-emulator* through the `merge` command, which loads an *ObdMessage* dictionary and merges it with *emulator.ObdMessage*. Example:
 
@@ -305,3 +305,37 @@ scenario Auris
 To help configuring the emulator, autocompletion is allowed (by pressing TAB) when prompting the `merge` command, including the `merge` argument. Also variables and keywords like `scenario` accept autocompletion, including the `scenario` argument.
 
 A merged scenario can be removed via `del emulator.ObdMessage['<name of the scenario to be removed>']`.
+
+*ELM327-emulator* can be run in batch mode to allow automating tests and background execution. The `-b FILE` option allows this mode and writes the output to FILE. The first line in that file will be the virtual serial device, which can be read to a shell variable through `read variable_name < output_file`. Commands can be piped in (e.g., within a bash script) to configure the emulator (e.g., via `echo -e`). The appropiate way to kill a background instance of the emulator is with the SIGINT signal (`kill -2`). To ensure that the external application is started only after correct setup of the emulator, the input commands can be terminated with a string (e.g., "RUNNING") that can then be recognised before starting the application.
+
+The description of the *ELM327-emulator* command-line option is the following:
+
+```
+Usage: python3 -m elm [-h] [-b FILE]
+
+optional arguments:
+  -h, --help            show this help message and exit
+  -b FILE, --batch FILE
+                        Run ELM327-emulator in batch mode. Argument is the
+                        output file. The first line in that file will be the
+                        virtual serial device
+
+ - ELM327 OBDII adapter emulator
+ ```
+
+The following script shows an example of usage of the batch mode. In the example, *obd_dictionary.py* is run after starting *ELM327-emulator* in background.
+
+ ```bash
+FILE=/tmp/elm$$
+echo -e 'scenario car\ncounters\n"RUNNING"' | python3 -m elm -b $FILE &
+EMUL=$!
+
+until grep "^RUNNING$" $FILE; do sleep 0.5; done
+read TTYNAME < $FILE
+
+../obd_dictionary.py -i /dev/pts/0 -o $TTYNAME -t -v -o /dev/null
+
+kill -SIGINT $EMUL
+cat $FILE
+rm $FILE
+```

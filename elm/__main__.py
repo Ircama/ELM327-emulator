@@ -7,12 +7,13 @@ from cmd import Cmd
 import rlcompleter
 import glob
 import os.path
+import argparse
 try:
     import readline
 except ImportError:
     readline = None
 
-class ELM327_emulator(Cmd):
+class Interpreter(Cmd):
 
     __hiden_methods = ('do_EOF',)
     rlc = rlcompleter.Completer().complete
@@ -22,15 +23,22 @@ class ELM327_emulator(Cmd):
     histfile = os.path.expanduser('~/.ELM327_emulator_history')
     histfile_size = 1000
 
-    def __init__(self, emulator):
+    def __init__(self, emulator, args):
         self.emulator = emulator
         self.prompt_active = True
         self.color_active = True
         Cmd.prompt = self.ps
+        if args.batch_mode:
+            self.prompt_active = False
+            self.color_active = False
+            Cmd.prompt = ''
+            self.use_rawinput = False
         Cmd.__init__(self)
 
     def print_topics(self, header, cmds, cmdlen, maxcol):
         if not cmds:
+            return
+        if args.batch_mode:
             return
         self.stdout.write(
         "Available commands include the following list (type help <topic>"
@@ -45,6 +53,9 @@ class ELM327_emulator(Cmd):
         return
 
     def do_EOF(self, arg):
+        if args.batch_mode:
+            while threading.active_count() == 2:
+                time.sleep(0.5)
         sys.exit(0)
 
     def get_names(self):
@@ -264,14 +275,14 @@ class ELM327_emulator(Cmd):
                 ] + rl + [self.rlc(text, x) for x in range(200)]
 
     def preloop(self):
-        if readline and os.path.exists(self.histfile):
+        if readline and os.path.exists(self.histfile) and not args.batch_mode:
             try:
                 readline.read_history_file(self.histfile)
             except FileNotFoundError:
                 pass
 
     def postloop(self):
-        if readline:
+        if readline and not args.batch_mode:
             readline.set_history_length(self.histfile_size)
             readline.write_history_file(self.histfile)
 
@@ -287,18 +298,46 @@ class ELM327_emulator(Cmd):
 
 
 if __name__ == '__main__':
+    # Option handling
+    parser = argparse.ArgumentParser(
+        epilog='ELM327-emulator - ELM327 OBDII adapter emulator')
+    parser.prog = "python3 -m elm"
+    parser.add_argument(
+        "-b", "--batch",
+        dest="batch_mode",
+        type=argparse.FileType('w'),
+        help="Run ELM327-emulator in batch mode. "
+             "Argument is the output file. "
+             "The first line in that file will be the virtual serial device",
+        default=0,
+        nargs=1,
+        metavar='FILE')
+    args = parser.parse_args()
+
+    # Redirect stdout
+    if args.batch_mode:
+        sys.stdout = args.batch_mode[0]
+
     try:
-        emulator = ELM(None, None)
+        emulator = ELM(args.batch_mode)
         with emulator as pts_name:
+            if args.batch_mode:
+                print(pts_name)
             while emulator.threadState == THREAD.STARTING:
                 time.sleep(0.1)
             sys.stdout.flush()
-            p_elm = ELM327_emulator(emulator)
-            p_elm.cmdloop('Welcome to the ELM327 OBDII adapter emulator.\n'
-                          'ELM327-emulator is running on %s\n'
-                          'Type help or ? to list commands.\n' % pts_name)
+            p_elm = Interpreter(emulator, args)
+            if args.batch_mode:
+                p_elm.cmdloop('ELM327-emulator batch mode STARTED\n')
+            else:
+                p_elm.cmdloop('Welcome to the ELM327 OBDII adapter emulator.\n'
+                              'ELM327-emulator is running on %s\n'
+                              'Type help or ? to list commands.\n' % pts_name)
     except (KeyboardInterrupt, SystemExit):
-        p_elm.postloop()
-        print('\n\nExiting.\n')
+        if not args.batch_mode:
+            p_elm.postloop()
+            print('\n\nExiting.\n')
+        else:
+            print("\nELM327-emulator batch mode ENDED")
         sys.exit(0)
     sys.exit(1)
