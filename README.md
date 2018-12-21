@@ -3,7 +3,7 @@ ELM327-emulator
 
 A Python emulator of the ELM327 OBD-II adapter connected to a vehicle.
 
-*ELM327-emulator* provides a virtual serial communication port to client applications (via [pseudoterminal](https://en.wikipedia.org/wiki/Pseudoterminal) function) and simulates an [ELM327](https://en.wikipedia.org/wiki/ELM327) adapter connected to a vehicle through the [OBD-II](https://en.wikipedia.org/wiki/On-board_diagnostics) protocol. It inludes a command-line interface for extensive monitoring and controlling.
+*ELM327-emulator* provides a virtual serial communication port to client applications (via [pseudo-terminal](https://en.wikipedia.org/wiki/Pseudoterminal) function) and simulates an [ELM327](https://en.wikipedia.org/wiki/ELM327) adapter connected to a vehicle through the [OBD-II](https://en.wikipedia.org/wiki/On-board_diagnostics) protocol. It includes a command-line interface for extensive monitoring and controlling.
 
 *ELM327-emulator* is agnostic of the client application accessing the serial port and has been tested with [python-OBD](https://github.com/brendanwhitfield/python-OBD).
 
@@ -27,7 +27,7 @@ cd ELM327-emulator
 
 # Usage
 
-Run with:
+The emulator allows batch and interactive mode. The latter is the default and can be executed as follows:
 
 ```shell
 python3.7 -m elm
@@ -53,11 +53,13 @@ The serial port to be used by the application interfacing the emulator is displa
 
     ELM327-emulator is running on /dev/pts/0
 
+## Embedded dictionary of AT Commands and PIDs
+
 A [dictionary](https://docs.python.org/3.7/tutorial/datastructures.html#dictionaries) named *ObdMessage* is used to define commands and PIDs. The dictionary includes more sections (named scenarios):
 
 - `'AT'`: set of default AT commands
 - `'default'`: set of default PIDs
-- `'car'`: PIDs of a Toyota Auris Hybrid veichle
+- `'car'`: PIDs of a Toyota Auris Hybrid vehicle
 - any additional custom section can be used to define specific scenarios
 
 Default settings include both the 'AT' and the 'default' scenarios.
@@ -81,6 +83,8 @@ The key used in the dictionary consists of a unique identifier for each PID. All
 
 The emulator provides a monitoring front-end, supporting commands and controlling the backend thread which executes the actual process.
 
+## Built-in keywords
+
 At the `CMD> ` prompt, the emulator accepts the following commands:
 
 - `help` = List available commands (or detailed help with "help cmd").
@@ -101,7 +105,9 @@ At the `CMD> ` prompt, the emulator accepts the following commands:
 
 In addition to the previously listed keywords, any Python command is allowed to query/configure the backend thread.
 
-At the command prompt, cursors and [keyboard shortcuts](https://github.com/chzyer/readline/blob/master/doc/shortcut.md) are allowed. Autocompletion (via TAB key) is active for all previously described commands and also allows Python keywords and namespaces (built-ins, self and globals). If the autocompletion matches a single item, this is immediately expanded; Conversely, if more possibilities are matched, none of them is returned, but pressing TAB again a list of available options is displayed.
+At the command prompt, cursors and [keyboard shortcuts](https://github.com/chzyer/readline/blob/master/doc/shortcut.md) are allowed. Autocompletion (via TAB key) is active for all previously described commands and also allows Python keywords and namespaces (built-ins, self and global). If the autocompletion matches a single item, this is immediately expanded; Conversely, if more possibilities are matched, none of them is returned, but pressing TAB again a list of available options is displayed.
+
+## Advanced usage
 
 *echo* and *linefeed* settings are both disabled by default. They can be configured via related AT commands (*ATL1* and *ATE1*). To enable them via command line:
 ```
@@ -144,7 +150,7 @@ To simulate that the adapter is not connected to the vehicle:
 emulator.answer['AT_R_VOLT'] = '0.0V'
 ```
 
-This dictionary can be used to modify answers within a workflow. The front-end allows implementing basic Python workflows and can also be controlled by an external piped automator.
+This dictionary can be used to modify answers within a workflow. The front-end allows implementing basic Python workflows and, when used in batch mode, can also be controlled by a piped external supervisor. The following examples show some simple workflows in interactive mode.
 
 Example of automation which suspends the emulator for 10 seconds:
 
@@ -167,6 +173,8 @@ car
 engineoff
 car
 ```
+
+## Configuring response strings
 
 Response strings allow embedding Python statements and expressions. Specifically, `Response`, `ResponseHeader`, `ResponseFooter` and `emulator.answer` support single and multiple in-line Python commands (expressions or statements) when embraced between `\0` tags: this feature for instance can be used to embed real-time delays between strings or to differentiate answers. The return value of a statement is ignored. The evaluation of an expression is substituted. Spaces inside `\0` tags are allowed and can be used to improve readability. Example: `'Response' = 'SEARCHING...\0 time.sleep(1) \0\rUNABLE TO CONNECT\r'`. This returns `SEARCHING...`, then waits one second, then returns `\rUNABLE TO CONNECT\r`. Notice that, as `time.sleep` is a statement, the related return value is ignored.
 
@@ -202,6 +210,8 @@ emulator.answer['SPEED'] = '\0 self.ECU_R_ADDR_E + " 03 41 0D 0A " if randint(0,
 In the above example, which illustrates an in-line expression substitution, the configuration of the ‘SPEED’ PID is replaced with a dynamic answer and the ‘SPEED’ PID will return `7E8 03 41 0D 0A` + newline for most of the times. With 20% probability, `NO DATA` + newline is returned. Notice that the last `\r` is common to both options. (Notice also that ECU headers shall by referenced within the *self* namespace.)
 
 To list the configuration, type `emulator.answer`, or simply `counters`. To remove the dynamic answer and return to the default configuration of the ‘SPEED’ PID, type `del emulator.answer['SPEED']`.
+
+## Logging and monitoring
 
 Logging is controlled through `elm.yaml` file (in the current directory by default). Its path can be set through the *ELM_LOG_CFG* environment variable.
 
@@ -242,7 +252,7 @@ To save a CSV file including the *emulator.counters* dictionary:
 with open('mycounters.txt', 'w') as f: f.write('\r\n'.join([x + ', ' + repr(emulator.counters[x]) for x in emulator.counters]))
 ```
 
-## ObdMessage Dictionary Generator for "ELM327-emulator" (obd_dictionary) ##
+## ObdMessage Dictionary Generator for "ELM327-emulator" (obd_dictionary)
 
 *obd_dictionary* is a dictionary generator for "ELM327-emulator".
 
@@ -302,11 +312,13 @@ merge AurisOutput
 scenario Auris
 ```
 
+## ELM327-emulator batch mode
+
 To help configuring the emulator, autocompletion is allowed (by pressing TAB) when prompting the `merge` command, including the `merge` argument. Also variables and keywords like `scenario` accept autocompletion, including the `scenario` argument.
 
 A merged scenario can be removed via `del emulator.ObdMessage['<name of the scenario to be removed>']`.
 
-*ELM327-emulator* can be run in batch mode to allow automating tests and background execution. The `-b FILE` option allows this mode and writes the output to FILE. The first line in that file will be the virtual serial device, which can be read to a shell variable through `read variable_name < output_file`. Commands can be piped in (e.g., within a bash script) to configure the emulator (e.g., via `echo -e`). The appropiate way to kill a background instance of the emulator is with the SIGINT signal (`kill -2`). To ensure that the external application is started only after correct setup of the emulator, the input commands can be terminated with a string (e.g., "RUNNING") that can then be recognised before starting the application.
+*ELM327-emulator* can be run in batch mode to allow automating tests and background execution. The `-b FILE` option allows this mode and writes the output to FILE. The first line in that file will be the virtual serial device, which can be read to a shell variable through `read variable_name < output_file`. Commands can be piped in (e.g., within a bash script) to configure the emulator (e.g., via `echo -e`). The appropriate way to kill a background instance of the emulator is with the SIGINT signal (`kill -2`). To ensure that the external application is started only after correct setup of the emulator, the input commands can be terminated with a string (e.g., "RUNNING") that can then be recognised before starting the application.
 
 The description of the *ELM327-emulator* command-line option is the following:
 
@@ -323,19 +335,19 @@ optional arguments:
  - ELM327 OBDII adapter emulator
  ```
 
-The following script shows an example of usage of the batch mode. In the example, *obd_dictionary.py* is run after starting *ELM327-emulator* in background.
+The following script shows an example of batch mode usage. *obd_dictionary.py* is run after starting *ELM327-emulator* in background and is used here as example of external application interfacing the emulator. The output of the emulator is saved to $FILE and the background process id is saved to $EMUL_PID.
 
  ```bash
 FILE=/tmp/elm$$
 echo -e 'scenario car\ncounters\n"RUNNING"' | python3 -m elm -b $FILE &
-EMUL=$!
+EMUL_PID=$!
 
 until grep "^RUNNING$" $FILE; do sleep 0.5; done
 read TTYNAME < $FILE
 
 ../obd_dictionary.py -i /dev/pts/0 -o $TTYNAME -t -v -o /dev/null
 
-kill -SIGINT $EMUL
+kill -SIGINT $EMUL_PID
 cat $FILE
 rm $FILE
 ```
