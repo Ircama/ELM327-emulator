@@ -263,7 +263,7 @@ Its output is a Python *ObdMessage* dictionary that can either replace the *obd_
 Notice that querying the vehicle might be invasive and some commands can change the car configuration (enabling or disabling belts alarm, enabling or disabling reverse beeps, clearing diagnostic codes, controlling fans, etc.). In order to prevent dangerous PIDs to be used for building the dictionary, a PID blacklist (*blacklisted_pids*) can be edited in *elm.py*. To check all PIDs without performing actual OBDII queries (dry-run mode), use the `-p 0` option (the standard error output with default logging level shows the list of produced PIDs).
 
 ```
-usage: obd_dictionary.py [-h] -i DEVICE [-c [CSV_FILE]] [-o [FILE]] [-v] [-V]
+usage: obd_dictionary.py [-h] -i DEVICE [-c CSV_FILE] [-o FILE] [-v] [-V]
                          [-p PROBES] [-d DELAY] [-D DELAY_COMMANDS]
                          [-n CAR_NAME] [-b] [-m]
 
@@ -271,11 +271,11 @@ optional arguments:
   -h, --help            show this help message and exit
   -i DEVICE             serial port connected to the ELM327 adapter (required
                         argument)
-  -c [CSV_FILE], --csv [CSV_FILE]
+  -c CSV_FILE, --csv CSV_FILE
                         input csv file including custom PIDs (Torque CSV
                         Format: https://torque-bhp.com/wiki/PIDs) '-' reads
                         data from the standard input
-  -o [FILE], --out [FILE]
+  -o FILE, --out FILE
                         output dictionary file generated after processing
                         input data (replaced if existing). Default is to print
                         data to the standard output

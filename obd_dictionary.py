@@ -72,7 +72,8 @@ def main():
         help="input csv file including custom PIDs "
              "(Torque CSV Format: https://torque-bhp.com/wiki/PIDs) "
              "'-' reads data from the standard input",
-        nargs='?',
+        default=0,
+        nargs=1,
         metavar='CSV_FILE')
     parser.add_argument(
         '-o',
@@ -82,8 +83,8 @@ def main():
         help="output dictionary file generated after processing input "
              "data (replaced if existing). Default is to print data "
              "to the standard output",
-        default=sys.stdout,
-        nargs='?',
+        default=0,
+        nargs=1,
         metavar='FILE')
     parser.add_argument(
         '-v',
@@ -136,9 +137,9 @@ def main():
     parser.add_argument(
         '-t',
         '--noat',
-        dest='add_at',
-        action="store_false",
-        default=True,
+        dest='no_at',
+        action="store_true",
+        default=False,
         help='exclude AT Commands within probes')
     parser.add_argument(
         '-m',
@@ -164,7 +165,12 @@ def main():
         return
 
     # Enrich the dictionary with some predefined commands
-    if args.add_at:
+    if args.no_at:
+        for cmd in connection.supported_commands.copy():
+            if cmd.name.startswith('ELM_'):
+                print(cmd)
+                connection.supported_commands.remove(cmd)
+    else:
         connection.supported_commands.add(
             OBDCommand("ELM_IGNITION", "IgnMon input level", b"AT IGN", 0,
                        lambda messages: "\n".join([m.raw() for m in messages]),
@@ -189,7 +195,7 @@ def main():
     # Read the optional csv file of custom commands and enrich the dictionary
     if args.csv_custom_pids:
         obd.logger.info("Reading CSV file...")
-        reader = csv.reader(args.csv_custom_pids)
+        reader = csv.reader(args.csv_custom_pids[0])
         custom_pids = list(reader)
         for i in custom_pids:
             if i[0] == 'Name' or len(i) != 8 or not i[7] in ecu:
@@ -240,7 +246,7 @@ def main():
 
     # Redirect stdout
     if args.dictionary_out:
-        sys.stdout = args.dictionary_out
+        sys.stdout = args.dictionary_out[0]
 
     # Print header information
     print("\n".join([ecu[k] + ' = "' + k + '"' for k in ecu]))
