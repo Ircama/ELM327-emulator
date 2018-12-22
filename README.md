@@ -201,7 +201,7 @@ Example of PID definition within the `ObdMessage` dictionary:
 
 In the above example, the first time *ResponseHeader* is executed, the produced response is `SEARCHING...`, followed by a one-second delay and then `\rUNABLE TO CONNECT\r`. For all subsequent messages, the response will be different and produces `'NO DATA\r'`.
 
-The ability to add dynamic differentiators and delays within responses enables testing specific use cases and exceptions that are difficult to be achieved through a real connection with a car. These not only apply to the `ObdMessage` dictionary (by editing *elm.py*), but also to `emulator.answer`, that can be configured through the command line. Consider for instance the following dynamic configuration via command line:
+The ability to add dynamic differentiators and delays within responses enables testing specific use cases and exceptions that are difficult to be achieved through a real connection with a car. These not only apply to the `ObdMessage` dictionary (by editing *obd_message.py*), but also to `emulator.answer`, that can be configured through the command line. Consider for instance the following dynamic configuration via command line:
 
 ```python
 emulator.answer['SPEED'] = '\0 self.ECU_R_ADDR_E + " 03 41 0D 0A " if randint(0, 100) > 20 else "NO DATA" \0\r'
@@ -258,9 +258,9 @@ with open('mycounters.txt', 'w') as f: f.write('\r\n'.join([x + ', ' + repr(emul
 
 It queries the vehicle via *python-OBD* for all available commands and is also able to process custom PIDs described in [Torque CSV files](https://torque-bhp.com/wiki/PIDs).
 
-Its output is a Python *ObdMessage* dictionary that can be added to the *elm.py* program of *ELM327-emulator*, so that the emulator will be able to provide the same commands returned by the car.
+Its output is a Python *ObdMessage* dictionary that can either replace the *obd_message.py* module of *ELM327-emulator*, or extend the existing dictionary via *merge* command, so that the emulator will be able to provide the same commands returned by the vehicle.
 
-Notice that querying the vehicle might be invasive and some commands can change the car configuration (enabling or disabling belts alarm, enabling or disabling reverse beeps, clearing diagnostic codes, controlling fans, etc.). In order to prevent dangerous PIDs to be used for building the dictionary, a PID blacklist (*blacklisted_pids*) can be edited in elm.py. To check all PIDs without performing actual OBDII queries, use the `-p 0` option (the standard error output with default logging level shows the list of produced PIDs).
+Notice that querying the vehicle might be invasive and some commands can change the car configuration (enabling or disabling belts alarm, enabling or disabling reverse beeps, clearing diagnostic codes, controlling fans, etc.). In order to prevent dangerous PIDs to be used for building the dictionary, a PID blacklist (*blacklisted_pids*) can be edited in *elm.py*. To check all PIDs without performing actual OBDII queries (dry-run mode), use the `-p 0` option (the standard error output with default logging level shows the list of produced PIDs).
 
 ```
 usage: obd_dictionary.py [-h] -i DEVICE [-c [CSV_FILE]] [-o [FILE]] [-v] [-V]
@@ -302,7 +302,7 @@ Sample usage: `obd_dictionary.py -i /dev/ttyUSB0 -c car.csv -o ObdMessage.py -v 
 
 In general, *ELM327-emulator* should already manage all needed AT Commands within its default dictionary, so in most cases it is worthwhile removing them from the new scenario via `-t` option.
 
-The file produced by *obd_dictionary.py* can be dynamically imported in *ELM327-emulator* through the `merge` command, which loads an *ObdMessage* dictionary and merges it with *emulator.ObdMessage*. Example:
+The file produced by *obd_dictionary.py* provides the same information model of *obd_message.py*. It can be used to replace the default module or can be dynamically imported in *ELM327-emulator* through the `merge` command, which loads an *ObdMessage* dictionary and merges it to *emulator.ObdMessage*. Example of *merge* process:
 
 ```python
 # Create AurisOutput.py
@@ -312,11 +312,11 @@ merge AurisOutput
 scenario Auris
 ```
 
-## ELM327-emulator batch mode
-
 To help configuring the emulator, autocompletion is allowed (by pressing TAB) when prompting the `merge` command, including the `merge` argument. Also variables and keywords like `scenario` accept autocompletion, including the `scenario` argument.
 
 A merged scenario can be removed via `del emulator.ObdMessage['<name of the scenario to be removed>']`.
+
+## ELM327-emulator batch mode
 
 *ELM327-emulator* can be run in batch mode to allow automating tests and background execution. The `-b FILE` option allows this mode and writes the output to FILE. The first line in that file will be the virtual serial device, which can be read to a shell variable through `read variable_name < output_file`. Commands can be piped in (e.g., within a bash script) to configure the emulator (e.g., via `echo -e`). The appropriate way to kill a background instance of the emulator is with the SIGINT signal (`kill -2`). To ensure that the external application is started only after correct setup of the emulator, the input commands can be terminated with a string (e.g., "RUNNING") that can then be recognised before starting the application.
 
