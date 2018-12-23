@@ -8,6 +8,7 @@ import pty
 import threading
 import time
 import sys
+import traceback
 from random import randint
 from .obd_message import *
 
@@ -122,15 +123,15 @@ class ELM:
 
             # if it didn't contain any egregious errors, handle it
             if self.validate(self.cmd):
-                resp = self.handle(self.cmd)
-                '''ALBE
                 try:
+                    resp = self.handle(self.cmd)
                 except Exception as e:
-                    logging.error("Error while processing %s:\n%s",
-                                  repr(self.cmd), e)
+                    logging.critical("Error while processing %s:\n%s\n%s",
+                                  repr(self.cmd), e, traceback.format_exc())
                     continue
-                '''
                 self.write(resp)
+            else:
+                logging.warning("Invalid request: %s", repr(self.cmd))
 
     def read(self):
         """
@@ -159,7 +160,7 @@ class ELM:
                 if 'cmd_echo' in self.counters and self.counters['cmd_echo'] == 1:
                     os.write(self.master_fd, c.encode())
             except UnicodeDecodeError as e:
-                logging.error("Invalid character received: %s", e)
+                logging.warning("Invalid character received: %s", e)
                 return('')
             except OSError:
                 return('')
@@ -231,12 +232,18 @@ class ELM:
         if self.delay > 0:
             time.sleep(self.delay)
 
-        # Perform a union of the three subdictionaries
-        s = {
-            **self.ObdMessage['default'], # highest priority
-            **self.ObdMessage['AT'],
-            **self.ObdMessage[self.scenario] # lowest priority ('Priority' to be checked)
-            }
+        if not self.scenario in self.ObdMessage:
+            logging.error("Unknown scenario %s", repr(self.scenario))
+            return ""
+        if 'default' in self.ObdMessage and 'AT' in self.ObdMessage:
+            # Perform a union of the three subdictionaries
+            s = {
+                **self.ObdMessage['default'], # highest priority
+                **self.ObdMessage['AT'],
+                **self.ObdMessage[self.scenario] # lowest priority ('Priority' to be checked)
+                }
+        else:
+            s = { **self.ObdMessage[self.scenario] }
         # Add 'Priority' to all pids and sort basing on priority (highest = 1, lowest=10)
         for i in sorted(
                 s.items(), key=lambda x: x[1]['Priority'] if 'Priority' in x[1] else 10 ):
