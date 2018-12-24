@@ -252,20 +252,20 @@ def main():
     print("\n".join([ecu[k] + ' = "' + k + '"' for k in ecu]))
     print('ELM_R_OK = "OK\\r"\nELM_MAX_RESP = "[0123456]?$"\n')
     print("ObdMessage = {")
-    print("        '" + args.car_name + "': {")
+    print("    '" + args.car_name + "': {")
 
     # Loop all sorted commands
     cmd_type = 0
     for cmd in l:
         if cmd.name.startswith('CUSTOM_') and cmd_type != 3:
-            print('        # Custom OBD Commands')
+            print('    # Custom OBD Commands')
             cmd_type = 3
         elif cmd.name.startswith('ELM_') and cmd_type != 2:
-            print('        # AT Commands')
+            print('    # AT Commands')
             cmd_type = 2
         elif not cmd.name.startswith('CUSTOM_') and not cmd.name.startswith(
                 'ELM_') and cmd_type != 1:
-            print('        # OBD Commands')
+            print('    # OBD Commands')
             cmd_type = 1
 
         # for each command, generate the lists of responses and values
@@ -284,10 +284,10 @@ def main():
                         s = r[3:]  # bytes
                         p = " ".join(s[i:i + 2]
                                      for i in range(0, len(s), 2))  # spaced bytes
-                        p_resp += (" +\n                            " if p_resp
+                        p_resp += (" +\n                        " if p_resp
                                    else '') + ecu[h] + " + ' " + p + " \\r'"
                     else: # word (not string of bytes)
-                        p_resp += (" +\n                            "
+                        p_resp += (" +\n                        "
                                    if p_resp else '') + "'" + r\
                             .replace('"', "\\\\'")\
                             .replace("'", "\\\'") + " \\r'"
@@ -307,7 +307,7 @@ def main():
                 obd.logger.error('No response data for PID %s, %s (%s)' % (
                         repr(cmd.name), repr(cmd.desc), repr(cmd.command)))
                 if args.print_missing_resp:
-                    print('            # No response data for PID %s, %s (%s)' % (
+                    print('        # No response data for PID %s, %s (%s)' % (
                         repr(cmd.name), repr(cmd.desc), repr(cmd.command)))
             continue
 
@@ -316,32 +316,32 @@ def main():
 
         # produce the final printable strings of responses and values
         if len(list_resp) > 1:
-            f_resp = ('[\n                            ' +
-                      ',\n                            '.join(list_resp) +
-                      '\n                            ]')
+            f_resp = ('[\n                        ' +
+                      ',\n                        '.join(list_resp) +
+                      '\n                        ]')
         else:
             f_resp = next(iter(list_resp))
-        f_val = "\n                # ".join(
+        f_val = "\n            # ".join(
             [list_vals[x] for x in list_resp if x in list_vals])
 
         # print all data
-        print("            " + repr(cmd.name) + ": {")
-        print("                'Request': '^" + cmd.command.decode() +
+        print("        " + repr(cmd.name) + ": {")
+        print("            'Request': '^" + cmd.command.decode() +
               "' + ELM_MAX_RESP,")
         descr_list = cmd.desc.split(SEP)
-        print("                'Descr': '" + descr_list[0] + "',")
+        print("            'Descr': '" + descr_list[0] + "',")
         if len(descr_list) >= 5:
-            print("                'Equation': '" + descr_list[1] + "',")
-            print("                'Min': '" + descr_list[2] + "',")
-            print("                'Max': '" + descr_list[3] + "',")
-            print("                'Unit': '" + descr_list[4] + "',")
-        print("                'Header': " + ecu[cmd.header.decode()] + ","\
+            print("            'Equation': '" + descr_list[1] + "',")
+            print("            'Min': '" + descr_list[2] + "',")
+            print("            'Max': '" + descr_list[3] + "',")
+            print("            'Unit': '" + descr_list[4] + "',")
+        print("            'Header': " + ecu[cmd.header.decode()] + ","\
             if cmd.header.decode() in ecu else cmd.header.decode() + ",")
-        print("                'Response': " + f_resp)
+        print("            'Response': " + f_resp)
         if f_val:
-            print("                # " + f_val)
-        print("            },")
-    print("        },")
+            print("            # " + f_val)
+        print("        },")
+    print("    },")
     print("}")
     obd.logger.info("Dictionary production complete.")
 
