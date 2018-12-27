@@ -21,12 +21,12 @@ ELM_MAX_RESP = '[0123456]?$'
 ObdMessage = {
     # AT Commands
     'AT' : {
-       'AT_DESCR': {
+        'AT_DESCR': {
             'Request': '^AT@1' + ELM_MAX_RESP,
             'Descr': 'Device description',
             'Response': "OBDII to RS232 Interpreter\r"
         },
-       'AT_ID': {
+        'AT_ID': {
             'Request': '^AT@2' + ELM_MAX_RESP,
             'Descr': 'Device identifier',
             'Response': "?\r"
@@ -38,7 +38,7 @@ ObdMessage = {
             'Log': '"set CAF ON/OFF : %s", self.counters["cmd_caf"]',
             'Response': ELM_R_OK
         },
-         'AT_DESCRIBE_PROTO': {
+        'AT_DESCRIBE_PROTO': {
             'Request': '^ATDP' + ELM_MAX_RESP,
             'Descr': 'set DESCRIBE_PROTO',
             'Exec': 'time.sleep(0.5)',

@@ -265,7 +265,7 @@ Notice that querying the vehicle might be invasive and some commands can change 
 ```
 usage: obd_dictionary.py [-h] -i DEVICE [-c CSV_FILE] [-o FILE] [-v] [-V]
                          [-p PROBES] [-d DELAY] [-D DELAY_COMMANDS]
-                         [-n CAR_NAME] [-b] [-m]
+                         [-n CAR_NAME] [-b] [-t [FILE]] [-m]
 
 optional arguments:
   -h, --help            show this help message and exit
@@ -293,7 +293,10 @@ optional arguments:
   -n CAR_NAME, --name CAR_NAME
                         name of the car (dictionary label; default is "car")
   -b, --blacklist       include blacklisted PIDs within probes
-  -t, --noat            exclude AT Commands within probes
+  -t [FILE], --at [FILE]
+                        include AT Commands within probes. If a dictionary
+                        file is given, also extract AT Commnands from the
+                        input file and add them to the output
   -m, --missing         add in-line comment to dictionary for PIDs with
                         missing response
 ```
@@ -315,6 +318,12 @@ scenario Auris
 To help configuring the emulator, autocompletion is allowed (by pressing TAB) when prompting the `merge` command, including the `merge` argument. Also variables and keywords like `scenario` accept autocompletion, including the `scenario` argument.
 
 A merged scenario can be removed via `del emulator.ObdMessage['<name of the scenario to be removed>']`.
+
+To produce a complete dictionary file that can replace *obd_dictionary.py*:
+
+```python
+python3 obd_dictionary.py -i /dev/ttyUSB0 -c auris.csv -o obd_dictionary.py -n default -t elm/obd_message.py
+```
 
 ## ELM327-emulator batch mode
 

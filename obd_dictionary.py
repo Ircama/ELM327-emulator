@@ -51,6 +51,31 @@ blacklisted_pids = (
     'CUSTOM_RB_DIS', # "Reverse Beep Disable|A|0|0|No reply req'd" ('3BAC40')
 )
 
+
+def add_at(data):
+    stack = 0
+    startIndex = 0
+    stackbreak = 0
+    for i, c in enumerate(data):
+        if c == '{':
+            if stack == 1 and re.search("'AT'[ \t]*:", data[startIndex:i]):
+                startIndex = i + 1
+                stackbreak = stack
+            stack += 1
+        elif c == '}':
+            stack -= 1
+            if stack == stackbreak:
+                break
+
+    if stack == 1 and i > startIndex + 1:
+        try:
+            print('        ' + data[startIndex:i].strip())
+        except:
+            obd.logger.error("Malformed 'AT' scenario in input file")
+    else:
+        obd.logger.error("'AT' scenario not found in input file")
+
+
 def main():
 
     SEP = '|'
@@ -136,11 +161,15 @@ def main():
         help='include blacklisted PIDs within probes')
     parser.add_argument(
         '-t',
-        '--noat',
-        dest='no_at',
-        action="store_true",
-        default=False,
-        help='exclude AT Commands within probes')
+        '--at',
+        dest='at',
+        default=0,
+        type=argparse.FileType('r'),
+        nargs="?",
+        help='include AT Commands within probes. '
+             'If a dictionary file is given, also extract AT Commnands'
+             ' from the input file and add them to the output',
+        metavar='FILE')
     parser.add_argument(
         '-m',
         '--missing',
@@ -165,12 +194,7 @@ def main():
         return
 
     # Enrich the dictionary with some predefined commands
-    if args.no_at:
-        for cmd in connection.supported_commands.copy():
-            if cmd.name.startswith('ELM_'):
-                print(cmd)
-                connection.supported_commands.remove(cmd)
-    else:
+    if args.at != 0:
         connection.supported_commands.add(
             OBDCommand("ELM_IGNITION", "IgnMon input level", b"AT IGN", 0,
                        lambda messages: "\n".join([m.raw() for m in messages]),
@@ -191,6 +215,10 @@ def main():
             OBDCommand("ELM_DPN", "Current protocol by number", b"AT DPN", 0,
                        lambda messages: "\n".join([m.raw() for m in messages]),
                        ECU.ALL, True))
+    else:
+        for cmd in connection.supported_commands.copy():
+            if cmd.name.startswith('ELM_'):
+                connection.supported_commands.remove(cmd)
 
     # Read the optional csv file of custom commands and enrich the dictionary
     if args.csv_custom_pids:
@@ -263,6 +291,8 @@ def main():
         elif cmd.name.startswith('ELM_') and cmd_type != 2:
             print('    # AT Commands')
             cmd_type = 2
+            if args.at:
+                add_at(args.at.read())
         elif not cmd.name.startswith('CUSTOM_') and not cmd.name.startswith(
                 'ELM_') and cmd_type != 1:
             print('    # OBD Commands')
