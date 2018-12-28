@@ -247,6 +247,11 @@ from functools import reduce
 reduce(lambda x, key: x + (emulator.counters[key] if key.startswith('AT_') else 0), emulator.counters, 0)
 ```
 
+Print the average number of processed commands per second within a 5 seconds period:
+```python
+a=emulator.counters['commands'];time.sleep(5);print((emulator.counters['commands']-a)/5)
+```
+
 To save a CSV file including the *emulator.counters* dictionary:
 ```python
 with open('mycounters.txt', 'w') as f: f.write('\r\n'.join([x + ', ' + repr(emulator.counters[x]) for x in emulator.counters]))
