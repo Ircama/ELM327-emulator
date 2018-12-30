@@ -215,17 +215,19 @@ To list the configuration, type `emulator.answer`, or simply `counters`. To remo
 
 Logging is controlled through `elm.yaml` file (in the current directory by default). Its path can be set through the *ELM_LOG_CFG* environment variable.
 
-The logging level can be dynamically changed by referencing `emulator.logger`. For instance, if the logging configuration has *stdout* as the first handler (default settings of the provided `elm.yaml` file), the following commands will change the logging level:
+The logging level can be dynamically changed through `logging.getLogger().handlers[n].setLevel()`. To check that *console* is the first handler (e.g., `handlers[0]`), run `for n, l in enumerate(logging.getLogger().handlers): print(n, l.name)`. For instance, if *console* refers to the first handler (default settings of the provided `elm.yaml` file), the following commands will change the logging level:
 
 ```python
-emulator.logger.handlers[0].setLevel(logging.DEBUG)
-emulator.logger.handlers[0].setLevel(logging.INFO)
-emulator.logger.handlers[0].setLevel(logging.WARNING)
-emulator.logger.handlers[0].setLevel(logging.ERROR)
-emulator.logger.handlers[0].setLevel(logging.CRITICAL)
+logging.getLogger().handlers[0].setLevel(logging.DEBUG)
+logging.getLogger().handlers[0].setLevel(logging.INFO)
+logging.getLogger().handlers[0].setLevel(logging.WARNING)
+logging.getLogger().handlers[0].setLevel(logging.ERROR)
+logging.getLogger().handlers[0].setLevel(logging.CRITICAL)
 ```
 
-It is possible to add marks in the log file via commands like `emulator.logger.info("my mark")`
+It is possible to add marks in the log file via commands like `logging.info("my mark")`
+
+To totally disable logging for all handlers: `logging.disable(logging.CRITICAL)`. To restore logging: `logging.disable(0)`.
 
 Command to count the number of different PIDs (OBD Commands) used by the client (excluding AT Commands):
 ```python

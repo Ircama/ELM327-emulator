@@ -17,9 +17,6 @@ class Interpreter(Cmd):
 
     __hiden_methods = ('do_EOF',)
     rlc = rlcompleter.Completer().complete
-    ps_color = '\x01\033[01;32m\x02CMD>\x01\033[00m\x02 '
-    ps_nocolor = 'CMD> '
-    ps = ps_color
     histfile = os.path.expanduser('~/.ELM327_emulator_history')
     histfile_size = 1000
 
@@ -27,13 +24,22 @@ class Interpreter(Cmd):
         self.emulator = emulator
         self.prompt_active = True
         self.color_active = True
-        Cmd.prompt = self.ps
+        self.__set_ps_string('CMD')
         if args.batch_mode:
             self.prompt_active = False
             self.color_active = False
             Cmd.prompt = ''
             self.use_rawinput = False
         Cmd.__init__(self)
+
+    def __set_ps_string(self, ps_string):
+        self.ps_color = '\x01\033[01;32m\x02' + ps_string + '>\x01\033[00m\x02 '
+        self.ps_nocolor = ps_string + '> '
+        self.__set_ps()
+
+    def __set_ps(self):
+        ps = self.ps_color if self.color_active else self.ps_nocolor
+        Cmd.prompt = ps if self.prompt_active else ''
 
     def print_topics(self, header, cmds, cmdlen, maxcol):
         if not cmds:
@@ -95,13 +101,13 @@ class Interpreter(Cmd):
         time.sleep(delay)
 
     def do_prompt(self, arg):
-        "Toggle prompt off/on."
+        "Toggle prompt off/on or change the prompt."
         if arg:
-            print ("Invalid format")
+            self.__set_ps_string(arg.split()[0])
             return
         self.prompt_active = not self.prompt_active
         print("Prompt %s" % repr(self.prompt_active))
-        Cmd.prompt = self.ps if self.prompt_active else ''
+        self.__set_ps()
 
     def do_color(self, arg):
         "Toggle color off/on."
@@ -110,11 +116,10 @@ class Interpreter(Cmd):
             return
         self.color_active = not self.color_active
         if not self.color_active:
-            sys.stdout.write("\x01\033[00m\x02")
+            sys.stdout.write("\033[00m")
             sys.stdout.flush()
         print("Color %s" % repr(self.color_active))
-        self.ps = self.ps_color if self.color_active else self.ps_nocolor
-        Cmd.prompt = self.ps if self.prompt_active else ''
+        self.__set_ps()
 
     def precmd(self, line):
         if self.color_active:
