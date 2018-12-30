@@ -91,7 +91,7 @@ At the `CMD> ` prompt, the emulator accepts the following commands:
 - `quit` (or end-of-file/Control-D, or break/Control-C) = quit the program
 - `counters` = print the number of each executed PIDs (upper case names), the values associated to some 'AT' PIDs (*cmd_...*), the unknown requests, the emulator response delay, the total number of executed commands (*commands*) and the current scenario (*scenario*). The related dictionary is `emulator.counters`.
 - `pause` = pause the execution. (Related attribute is `emulator.threadState = THREAD.PAUSED`.)
-- `prompt` = toggle prompt off/on
+- `prompt` = toggle prompt off/on if no argument is used, or change the prompt if using an argument
 - `resume` = resume the execution after pausing; also prints the used device. (Related attribute is `emulator.threadState = THREAD.ACTIVE`)
 - `delay <n>` = delay each emulator response of `<n>` seconds (floating point number; default is 0.5 seconds)
 - `wait <n>` = delay the execution of the next command of `<n>` seconds (floating point number; default is 10 seconds)
