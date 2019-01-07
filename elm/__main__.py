@@ -243,22 +243,38 @@ class Interpreter(Cmd):
                        readline.get_current_history_length()):
             print (readline.get_history_item(i + 1))
 
+    def is_matched(self, expression):
+        opening = tuple('({[')
+        closing = tuple(')}]')
+        mapping = dict(zip(opening, closing))
+        queue = []
+        for letter in expression:
+            if letter in opening:
+                queue.append(mapping[letter])
+            elif letter in closing:
+                if not queue or letter != queue.pop():
+                    return False
+        return not queue
+
     # completedefault and completenames manage autocompletion of Python
     # identifiers and namespaces
     def completedefault(self, text, line, begidx, endidx):
         rld='.'.join(text.split('.')[:-1])
         rlb=text.split('.')[-1]
+        if begidx > 0 and line[begidx-1] in ')]}' and line[begidx] == '.' and self.is_matched(line):
+            rlds = line.rstrip('.' + rlb)
+            rl = [ rld + '.' + x for x in dir(eval(rlds))
+                if x.startswith(rlb) and not x.startswith('__')
+            ]
+            return(rl)
         if rld:
             rl = [
                 rld + '.' + x for x in dir(eval(rld))
                 if x.startswith(rlb) and not x.startswith('__')
             ]
         else:
-            rl = [
-                x for x in dir()
-                if x.startswith(rlb) and not x.startswith('__')
-            ]
-        return rl + [self.rlc(text, x) for x in range(200)]
+            rl = ['self'] if rlb != '' and 'self'.startswith(rlb) else []
+        return rl + [self.rlc(text, x) for x in range(400) if self.rlc(text, x)]
 
     def completenames(self, text, *ignored):
         dotext = 'do_'+text
@@ -270,14 +286,11 @@ class Interpreter(Cmd):
                 if x.startswith(rlb) and not x.startswith('__')
             ]
         else:
-            rl = [
-                x for x in dir()
-                if x.startswith(rlb) and not x.startswith('__')
-            ]
+            rl = ['self'] if rlb != '' and 'self'.startswith(rlb) else []
         if not text:
             return [a[3:] for a in self.get_names() if a.startswith(dotext)]
         return [a[3:] for a in self.get_names() if a.startswith(dotext)
-                ] + rl + [self.rlc(text, x) for x in range(200)]
+                ] + rl + [self.rlc(text, x) for x in range(400) if self.rlc(text, x)]
 
     def preloop(self):
         if readline and os.path.exists(self.histfile) and not args.batch_mode:
