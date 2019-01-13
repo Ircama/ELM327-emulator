@@ -14,11 +14,11 @@ An internal dictionary (named *ObdMessage*) allows configuring the emulation, wh
 
 ```shell
 # Checking Python version (should be 3.6 or higher)
-python3.7 -V
+python3 -V
 
 # Installing prerequisites
-python3.7 -m pip install pyyaml
-python3.7 -m pip install obd # this is needed for obd_dictionary.py
+python3 -m pip install pyyaml
+python3 -m pip install obd # this is needed for obd_dictionary.py
 
 # Downloading ELM327-emulator
 git clone https://github.com/ircama/ELM327-emulator.git
@@ -30,7 +30,7 @@ cd ELM327-emulator
 The emulator allows batch and interactive mode. The latter is the default and can be executed as follows:
 
 ```shell
-python3.7 -m elm
+python3 -m elm
 ```
 
 After starting the program, the emulator is ready to use. To enable the preconfigured set of PIDs of a Toyota Auris Hybrid car, enter `scenario car`.
