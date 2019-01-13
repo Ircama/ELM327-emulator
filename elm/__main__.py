@@ -1,17 +1,23 @@
-import threading
-import logging
-from .elm import ELM, THREAD
-import time
 import sys
-from cmd import Cmd
-import rlcompleter
-import glob
-import os.path
-import argparse
 try:
-    import readline
-except ImportError:
-    readline = None
+    if sys.hexversion < 0x3050000:
+        raise ImportError("Python version must be >= 3.5")
+    import threading
+    import logging
+    from .elm import ELM, THREAD
+    import time
+    from cmd import Cmd
+    import rlcompleter
+    import glob
+    import os.path
+    import argparse
+    try:
+        import readline
+    except ImportError:
+        readline = None
+except ImportError as detail:
+    print("ELM327 OBDII adapter emulator error:\n " + str(detail))
+    sys.exit(1)
 
 class Interpreter(Cmd):
 
