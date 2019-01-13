@@ -1,15 +1,21 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
 
-import time
-import obd
 import sys
-import re
-import csv
-from obd import OBDCommand, Unit
-from obd.protocols import ECU
-from obd.utils import bytes_to_int
-import argparse
+try:
+    if sys.hexversion < 0x3050000:
+        raise ImportError("Python version must be >= 3.5")
+    import time
+    import obd
+    import re
+    import csv
+    from obd import OBDCommand, Unit
+    from obd.protocols import ECU
+    from obd.utils import bytes_to_int
+    import argparse
+except ImportError as detail:
+    print("ObdMessage Dictionary Generator error:\n " + str(detail))
+    sys.exit(1)
 
 ecu = {
     "7B0": 'ECU_ADDR_S',   # Skid Control address ECU

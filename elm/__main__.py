@@ -1,7 +1,10 @@
+#!/usr/bin/env python3
+# -*- coding: utf-8 -*-
+
 import sys
 try:
-    if sys.hexversion < 0x3060000:
-        raise ImportError("Python version must be >= 3.6")
+    if sys.hexversion < 0x3050000:
+        raise ImportError("Python version must be >= 3.5")
     import threading
     import logging
     from .elm import ELM, THREAD

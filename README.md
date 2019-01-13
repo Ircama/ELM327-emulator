@@ -13,7 +13,7 @@ An internal dictionary (named *ObdMessage*) allows configuring the emulation, wh
 # Installation
 
 ```shell
-# Checking Python version (should be 3.6 or higher)
+# Checking Python version (should be 3.5 or higher)
 python3 -V
 
 # Installing prerequisites
@@ -42,7 +42,7 @@ All subsequent information are not needed for a basic usage of the tool and allo
 
 # Compatibility
 
-ELM327-emulator has been tested with Python 3.6 and 3.7. Python 2 is not supported.
+ELM327-emulator has been tested with Python 3.5, 3.6 and 3.7. Python 2 is not supported.
 
 This code needs pseudo-terminal handling (pty support, `import pty`) which is platform dependent and runs on UNIX OSs. With Windows, [cygwin](http://www.cygwin.com/) is supported.
 
