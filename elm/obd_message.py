@@ -124,6 +124,13 @@ ObdMessage = {
             'Exec': 'self.reset(0.5)',
             'Response': "\r\rELM327 v1.5\r"
         },
+        'AT_SET_TIMEOUT': {
+            'Request': '^ATST[0-9A-F][0-9A-F]$',
+            'Descr': 'AT SET TIMEOUT',
+            'Exec': 'self.counters["cmd_timeout"] = int(cmd[4:], 16)',
+            'Log': '"Set timeout %s", cmd[4:]',
+            'Response': ELM_R_OK
+        },
     },
     # OBD Commands
     'engineoff' : {
