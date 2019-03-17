@@ -17,6 +17,8 @@ ECU_R_ADDR_S = "7B8"  # Responses sent by 7B0 Skid Control ECU 7B0/7B8
 ELM_R_OK = "OK\r"
 ELM_MAX_RESP = '[0123456]?$'
 
+# This dictionary uses the ISO 15765-4 CAN 11 bit ID 500 kbaud protocol
+
 # PID Dictionary
 ObdMessage = {
     # AT Commands
@@ -2366,9 +2368,9 @@ ObdMessage = {
                         ECU_R_ADDR_I + ' 03 61 29 06 \r'
                         ]
         },
-        'CUSTOM_FUEL_SUB': {
+        'CUSTOM_SUB_TANK': {
             'Request': '^212A' + ELM_MAX_RESP,
-            'Descr': 'Fuel level - sub tank',
+            'Descr': 'Sub tank level',
             'Response': ECU_R_ADDR_I + ' 03 7F 21 12 \r',
             'Header': ECU_ADDR_I
         },
@@ -2766,6 +2768,500 @@ ObdMessage = {
             'Unit': 'Off/On',
             'Header': ECU_ADDR_S,
             'Response': ECU_R_ADDR_S + ' 05 61 BE 00 00 00 \r'
-        }
+        },
+    # New custom OBD Commands
+        'CUSTOM_FSS1': {
+            'Request': '^2103' + ELM_MAX_RESP,
+            'Descr': 'Fuel System Status #1 (OL=1,CL=2,OLDrive=4,OLFault=8,CLFault=16)',
+            'Equation': 'A',
+            'Min': '1',
+            'Max': '16',
+            'Unit': '',
+            'Header': ECU_ADDR_E,
+            'Response': [
+                        ECU_R_ADDR_E + ' 10 0A 61 03 01 00 80 7C \r' +
+                        ECU_R_ADDR_E + ' 21 9F 00 00 01 00 00 00 \r',
+                        ECU_R_ADDR_E + ' 10 0A 61 03 00 00 80 7D \r' +
+                        ECU_R_ADDR_E + ' 21 8A 00 00 01 00 00 00 \r',
+                        ECU_R_ADDR_E + ' 10 0A 61 03 02 00 84 7C \r' +
+                        ECU_R_ADDR_E + ' 21 A2 00 00 01 00 00 00 \r'
+                        ]
+        },
+        'CUSTOM_TAFR': {
+            'Request': '^2104' + ELM_MAX_RESP,
+            'Descr': 'Target Air-Fuel Ratio',
+            'Equation': '(A * 256 + B) * 1.99 / 65535',
+            'Min': '0',
+            'Max': '1.99',
+            'Unit': '',
+            'Header': ECU_ADDR_E,
+            'Response': [
+                        ECU_R_ADDR_E + ' 10 0E 61 04 7F F2 7F 73 \r' +
+                        ECU_R_ADDR_E + ' 21 6A 11 7F 73 80 01 00 \r' +
+                        ECU_R_ADDR_E + ' 22 FF 00 00 00 00 00 00 \r',
+                        ECU_R_ADDR_E + ' 10 0E 61 04 7F F2 68 1C \r' +
+                        ECU_R_ADDR_E + ' 21 27 04 68 1C 7F 39 00 \r' +
+                        ECU_R_ADDR_E + ' 22 FF 00 00 00 00 00 00 \r',
+                        ECU_R_ADDR_E + ' 10 0E 61 04 60 17 7F FB \r' +
+                        ECU_R_ADDR_E + ' 21 6A D9 7F FB 80 03 00 \r' +
+                        ECU_R_ADDR_E + ' 22 FF 00 00 00 00 00 00 \r'
+                        ]
+        },
+        'CUSTOM_CAT_B1S1_SG': {
+            'Request': '^2105' + ELM_MAX_RESP,
+            'Descr': 'Catalyst Temp B1 S1 (Singapore)',
+            'Equation': '(A * 256 + B) / 10 - 40',
+            'Min': '-40',
+            'Max': '6513.5',
+            'Unit': 'C',
+            'Header': ECU_ADDR_E,
+            'Response': [
+                        ECU_R_ADDR_E + ' 06 61 05 0F 26 0B 79 \r',
+                        ECU_R_ADDR_E + ' 06 61 05 0F 54 0B A7 \r',
+                        ECU_R_ADDR_E + ' 06 61 05 0F 2D 0B 80 \r',
+                        ECU_R_ADDR_E + ' 06 61 05 0F 46 0B 99 \r',
+                        ECU_R_ADDR_E + ' 06 61 05 0F 3D 0B 90 \r',
+                        ECU_R_ADDR_E + ' 06 61 05 0F 4D 0B A0 \r',
+                        ECU_R_ADDR_E + ' 06 61 05 0F 28 0B 6D \r',
+                        ECU_R_ADDR_E + ' 06 61 05 0F 1E 0B 71 \r',
+                        ECU_R_ADDR_E + ' 06 61 05 0F 91 0B 95 \r',
+                        ECU_R_ADDR_E + ' 06 61 05 0F 35 0B 88 \r'
+                        ]
+        },
+        'CUSTOM_MIL': {
+            'Request': '^2106' + ELM_MAX_RESP,
+            'Descr': 'MIL',
+            'Equation': '{A:7}',
+            'Min': '0',
+            'Max': '1',
+            'Unit': 'Off/On',
+            'Header': ECU_ADDR_E,
+            'Response': ECU_R_ADDR_E + ' 10 0C 61 06 00 07 A1 00 \r' +
+                        ECU_R_ADDR_E + ' 21 03 06 00 00 00 00 00 \r'
+        },
+        'CUSTOM_HV_COMM': {
+            'Request': '^2124' + ELM_MAX_RESP,
+            'Descr': 'Communication with HV',
+            'Equation': '{A:5}',
+            'Min': '0',
+            'Max': '1',
+            'Unit': 'Off/On',
+            'Header': ECU_ADDR_E,
+            'Response': ECU_R_ADDR_E + ' 03 61 24 28 \r'
+        },
+        'CUSTOM_INIT_ECT': {
+            'Request': '^2137' + ELM_MAX_RESP,
+            'Descr': 'Initial Engine Coolant Temp',
+            'Equation': 'A * 159.3 / 255 - 40',
+            'Min': '-40',
+            'Max': '119.3',
+            'Unit': 'C',
+            'Header': ECU_ADDR_E,
+            'Response': [
+                        ECU_R_ADDR_E + ' 10 11 61 37 59 58 83 46 \r' +
+                        ECU_R_ADDR_E + ' 21 7F A0 80 00 00 00 00 \r' +
+                        ECU_R_ADDR_E + ' 22 00 1A DC 00 00 00 00 \r',
+                        ECU_R_ADDR_E + ' 10 11 61 37 59 58 83 46 \r' +
+                        ECU_R_ADDR_E + ' 21 7F A0 80 00 00 00 00 \r' +
+                        ECU_R_ADDR_E + ' 22 00 1A DC 04 00 00 00 \r',
+                        ECU_R_ADDR_E + ' 10 11 61 37 59 58 83 46 \r' +
+                        ECU_R_ADDR_E + ' 21 7F A0 80 00 00 00 00 \r' +
+                        ECU_R_ADDR_E + ' 22 00 1A DC 44 00 00 00 \r'
+                        ]
+        },
+        'CUSTOM_INJ_VOL': {
+            'Request': '^213C' + ELM_MAX_RESP,
+            'Descr': 'Injection volume (Cylinder 1) for 10 times',
+            'Equation': '(A * 256 + B) * 2.047 / 65535',
+            'Min': '0',
+            'Max': '2.047',
+            'Unit': 'ml',
+            'Header': ECU_ADDR_E,
+            'Response': [
+                        ECU_R_ADDR_E + ' 07 61 3C 09 82 09 43 80 \r',
+                        ECU_R_ADDR_E + ' 07 61 3C 15 8F 10 D1 80 \r',
+                        ECU_R_ADDR_E + ' 07 61 3C 08 65 07 B3 80 \r'
+                        ]
+        },
+        'CUSTOM_EGR_STEP': {
+            'Request': '^2147' + ELM_MAX_RESP,
+            'Descr': 'EGR Step Position',
+            'Equation': 'A',
+            'Min': '0',
+            'Max': '120',
+            'Unit': 'step',
+            'Header': ECU_ADDR_E,
+            'Response': ECU_R_ADDR_E + ' 03 61 47 00 \r'
+        },
+        'CUSTOM_REQENGTORQ': {
+            'Request': '^2149' + ELM_MAX_RESP,
+            'Descr': 'Requested Engine Torque',
+            'Equation': '(A * 256 + B) / 4',
+            'Min': '0',
+            'Max': '73',
+            'Unit': 'kW',
+            'Header': ECU_ADDR_E,
+            'Response': [
+                        ECU_R_ADDR_E + ' 10 0E 61 49 00 00 37 80 \r' +
+                        ECU_R_ADDR_E + ' 21 00 FF 77 1D 00 08 A9 \r' +
+                        ECU_R_ADDR_E + ' 22 62 00 00 00 00 00 00 \r',
+                        ECU_R_ADDR_E + ' 10 0E 61 49 00 14 34 80 \r' +
+                        ECU_R_ADDR_E + ' 21 32 FF 77 1D 00 08 A9 \r' +
+                        ECU_R_ADDR_E + ' 22 42 00 00 00 00 00 00 \r',
+                        ECU_R_ADDR_E + ' 10 0E 61 49 00 00 00 80 \r' +
+                        ECU_R_ADDR_E + ' 21 00 FF 77 1D 00 08 A9 \r' +
+                        ECU_R_ADDR_E + ' 22 0A 00 00 00 00 00 00 \r'
+                        ]
+        },
+        'CUSTOM_MCODE_7E0': {
+            'Request': '^21C1' + ELM_MAX_RESP,
+            'Descr': 'Model Code_7E0',
+            'Equation': 'ABCDEFG',
+            'Min': '0',
+            'Max': '0',
+            'Unit': '',
+            'Header': ECU_ADDR_E,
+            'Response': ECU_R_ADDR_E + ' 10 15 61 C1 5A 57 45 31 \r' +
+                        ECU_R_ADDR_E + ' 21 38 23 20 32 5A 52 46 \r' +
+                        ECU_R_ADDR_E + ' 22 58 45 04 00 57 74 21 \r' +
+                        ECU_R_ADDR_E + ' 23 00 00 00 00 00 00 00 \r'
+        },
+        'CUSTOM_CLOAD_7E2': {
+            'Request': '^2101' + ELM_MAX_RESP,
+            'Descr': 'Calculated Load_7E2',
+            'Equation': 'A * 20 / 51',
+            'Min': '0',
+            'Max': '100',
+            'Unit': '%',
+            'Header': ECU_ADDR_H,
+            'Response': [
+                        ECU_R_ADDR_H + ' 10 18 61 01 00 63 55 36 \r' +
+                        ECU_R_ADDR_H + ' 21 63 4B 00 00 00 05 BC \r' +
+                        ECU_R_ADDR_H + ' 22 2B 28 51 FF E2 FB FF \r' +
+                        ECU_R_ADDR_H + ' 23 FF 38 FD 9E 00 00 00 \r',
+                        ECU_R_ADDR_H + ' 10 18 61 01 00 63 55 36 \r' +
+                        ECU_R_ADDR_H + ' 21 63 4B 00 00 00 05 A0 \r' +
+                        ECU_R_ADDR_H + ' 22 2B 28 51 FF E2 FB FF \r' +
+                        ECU_R_ADDR_H + ' 23 FF 39 11 9E 00 00 00 \r',
+                        ECU_R_ADDR_H + ' 10 18 61 01 00 63 55 36 \r' +
+                        ECU_R_ADDR_H + ' 21 63 4B 00 00 00 05 8C \r' +
+                        ECU_R_ADDR_H + ' 22 2B 28 51 FF E2 FB FF \r' +
+                        ECU_R_ADDR_H + ' 23 FF 39 11 9F 00 00 00 \r',
+                        ECU_R_ADDR_H + ' 10 18 61 01 00 63 55 36 \r' +
+                        ECU_R_ADDR_H + ' 21 63 4B 00 00 00 05 92 \r' +
+                        ECU_R_ADDR_H + ' 22 2B 28 51 FF E2 FB FF \r' +
+                        ECU_R_ADDR_H + ' 23 FF 38 FD 9F 00 00 00 \r',
+                        ECU_R_ADDR_H + ' 10 18 61 01 00 63 55 36 \r' +
+                        ECU_R_ADDR_H + ' 21 63 4B 00 00 00 05 B5 \r' +
+                        ECU_R_ADDR_H + ' 22 2B 28 51 FF E2 FB FF \r' +
+                        ECU_R_ADDR_H + ' 23 FF 39 11 9E 00 00 00 \r',
+                        ECU_R_ADDR_H + ' 10 18 61 01 DA 26 55 36 \r' +
+                        ECU_R_ADDR_H + ' 21 63 4B 17 00 00 05 C3 \r' +
+                        ECU_R_ADDR_H + ' 22 2D 3F 68 FF E2 FB FF \r' +
+                        ECU_R_ADDR_H + ' 23 FF 38 FD 9D 00 00 00 \r',
+                        ECU_R_ADDR_H + ' 10 18 61 01 00 63 55 36 \r' +
+                        ECU_R_ADDR_H + ' 21 63 4B 00 00 00 05 99 \r' +
+                        ECU_R_ADDR_H + ' 22 2B 28 51 FF E2 FB FF \r' +
+                        ECU_R_ADDR_H + ' 23 FF 39 11 9F 00 00 00 \r',
+                        ECU_R_ADDR_H + ' 10 18 61 01 A1 37 4B 36 \r' +
+                        ECU_R_ADDR_H + ' 21 63 4B 14 80 00 05 CA \r' +
+                        ECU_R_ADDR_H + ' 22 32 28 51 FF E2 FB FF \r' +
+                        ECU_R_ADDR_H + ' 23 FF 39 11 9E 00 00 00 \r',
+                        ECU_R_ADDR_H + ' 10 18 61 01 00 63 55 36 \r' +
+                        ECU_R_ADDR_H + ' 21 63 4B 00 00 00 05 AE \r' +
+                        ECU_R_ADDR_H + ' 22 2B 28 51 FF E2 FB FF \r' +
+                        ECU_R_ADDR_H + ' 23 FF 39 11 9E 00 00 00 \r',
+                        ECU_R_ADDR_H + ' 10 18 61 01 00 63 55 36 \r' +
+                        ECU_R_ADDR_H + ' 21 63 4B 00 00 00 05 A7 \r' +
+                        ECU_R_ADDR_H + ' 22 2B 28 51 FF E2 FB FF \r' +
+                        ECU_R_ADDR_H + ' 23 FF 39 11 9E 00 00 00 \r'
+                        ]
+        },
+        'CUSTOM_CCS_SPD': {
+            'Request': '^2121' + ELM_MAX_RESP,
+            'Descr': 'CCS Vehicle Spd & Cruise & Park & Brakes',
+            'Header': ECU_ADDR_H,
+            'Response': [ # 07 61 21 = Header
+                          # A=speed 0-200 km/h
+                          # B=mem speed 0-200 km/h
+                          # {D:7}=Cruise Operation Status,0,1,Off/On
+                          # {D:6}=Cruise Control=0,1,Off/On
+                          # {E:7}=Stop Light Switch 1,0,1,Off/On
+                          # {E:6}=Stop Light Switch 2,0,1,Off/On
+                          # {E:4}=RES/ACC Switch,0,1,Off/On
+                          # {E:3}=SET/COAST Switch,0,1,Off/On
+                          # {E:2}=Cancel Switch,0,1,Off/On
+                          #                        A  B  C  D  E
+                        ECU_R_ADDR_H + ' 07 61 21 00 00 81 00 00 \r', # Park + No brakes
+                        ECU_R_ADDR_H + ' 07 61 21 00 00 81 3F 00 \r',
+                        ECU_R_ADDR_H + ' 07 61 21 00 00 81 03 00 \r',
+                        ECU_R_ADDR_H + ' 07 61 21 00 00 81 00 E0 \r', # Park + Brakes
+                        ECU_R_ADDR_H + ' 07 61 21 00 00 81 00 04 \r', # Cruise control Cancel
+                        ECU_R_ADDR_H + ' 07 61 21 00 00 81 00 10 \r', # Cruise control Up
+                        ECU_R_ADDR_H + ' 07 61 21 00 00 81 00 08 \r', # Cruise control Down
+                        ECU_R_ADDR_H + ' 07 61 21 00 00 81 3C 00 \r'  # Cruise
+                        ]
+        },
+        'CUSTOM_P': {
+            'Request': '^2125' + ELM_MAX_RESP,
+            'Descr': 'Shift Sensor SW - P',
+            'Equation': '{A:7}',
+            'Min': '0',
+            'Max': '1',
+            'Unit': 'Off/On',
+            'Header': ECU_ADDR_H,
+            'Response': [
+                        ECU_R_ADDR_H + ' 04 61 25 00 40 \r',
+                        ECU_R_ADDR_H + ' 04 61 25 02 00 \r',
+                        ECU_R_ADDR_H + ' 04 61 25 00 00 \r'
+                        ]
+        },
+        'CUSTOM_ODO': {
+            'Request': '^2128' + ELM_MAX_RESP,
+            'Descr': 'Total Distance Traveled',
+            'Equation': 'A * 256 * 256 + B * 256 + C',
+            'Min': '0',
+            'Max': '16777215',
+            'Unit': 'km',
+            'Header': ECU_ADDR_H,
+            'Response': ECU_R_ADDR_H + ' 05 61 28 00 EA 5C \r'
+        },
+        'CUSTOM_AUX._B_T': {
+            'Request': '^2141' + ELM_MAX_RESP,
+            'Descr': 'Auxiliary Battery Temperature',
+            'Equation': 'A - 40',
+            'Min': '-40',
+            'Max': '120',
+            'Unit': 'C',
+            'Header': ECU_ADDR_H,
+            'Response': ECU_R_ADDR_H + ' 10 08 61 41 6D 6D 4B 4A \r' +
+                        ECU_R_ADDR_H + ' 21 36 89 00 00 00 00 00 \r'
+        },
+        'CUSTOM_SMRP': {
+            'Request': '^2144' + ELM_MAX_RESP,
+            'Descr': 'SMRP Status',
+            'Equation': '{A:7}',
+            'Min': '0',
+            'Max': '1',
+            'Unit': 'Off/On',
+            'Header': ECU_ADDR_H,
+            'Response': ECU_R_ADDR_H + ' 05 61 44 60 00 60 \r'
+        },
+        'CUSTOM_MG2_TORQ': {
+            'Request': '^2168' + ELM_MAX_RESP,
+            'Descr': 'MG2 torque',
+            'Equation': '(A * 256 + B) / 8 - 4096',
+            'Min': '-4096',
+            'Max': '4095.875',
+            'Unit': 'Nm',
+            'Header': ECU_ADDR_H,
+            'Response': [
+                        ECU_R_ADDR_H + ' 07 61 68 80 00 80 00 00 \r',
+                        ECU_R_ADDR_H + ' 07 61 68 7F 9B 7F AA 00 \r',
+                        ECU_R_ADDR_H + ' 07 61 68 80 00 7F FC 00 \r',
+                        ECU_R_ADDR_H + ' 07 61 68 80 2F 80 34 00 \r'
+                        ]
+        },
+        'CUSTOM_KPH_7C0': {
+            'Request': '^2121' + ELM_MAX_RESP,
+            'Descr': 'Vehicle Speed Meter_7C0',
+            'Equation': 'A',
+            'Min': '0',
+            'Max': '199',
+            'Unit': 'km/h',
+            'Header': ECU_ADDR_I,
+            'Response': ECU_R_ADDR_I + ' 03 61 21 00 \r'
+        },
+        'CUSTOM_COOLANT_7C0': {
+            'Request': '^2123' + ELM_MAX_RESP,
+            'Descr': 'Coolant Temperature_7C0',
+            'Equation': 'A / 2',
+            'Min': '0',
+            'Max': '127.5',
+            'Unit': 'C',
+            'Header': ECU_ADDR_I,
+            'Response': ECU_R_ADDR_I + ' 03 61 23 47 \r'
+        },
+        'CUSTOM_H_S_I': {
+            'Request': '^212B' + ELM_MAX_RESP,
+            'Descr': 'HV System Indicator',
+            'Equation': '{A:0} * 256 + B - {A:1} * 512',
+            'Min': '-512',
+            'Max': '511',
+            'Unit': '%',
+            'Header': ECU_ADDR_I,
+            'Response': ECU_R_ADDR_I + ' 04 61 2B 02 00 \r'
+        },
+        'CUSTOM_KEYBUZ': {
+            'Request': '^21A1' + ELM_MAX_RESP,
+            'Descr': 'Key Remind Sound (buzzer/Normal, Fast, Slow)',
+            'Equation': 'A',
+            'Min': '0',
+            'Max': '255',
+            'Unit': '',
+            'Header': ECU_ADDR_I,
+            'Response': ECU_R_ADDR_I + ' 03 61 A1 18 \r'
+        },
+        'CUSTOM_A/M_STP_D': {
+            'Request': '^2141' + ELM_MAX_RESP,
+            'Descr': 'Air Mix Servo Targ Pulse (D)',
+            'Equation': 'A + 128',
+            'Min': '128',
+            'Max': '383',
+            'Unit': '',
+            'Header': ECU_ADDR_P,
+            'Response': ECU_R_ADDR_P + ' 06 61 41 1A 1A 00 00 \r'
+        },
+        'CUSTOM_STROKE': {
+            'Request': '^2104' + ELM_MAX_RESP,
+            'Descr': 'Stroke Sensor',
+            'Equation': 'A / 51',
+            'Min': '0',
+            'Max': '5',
+            'Unit': 'V',
+            'Header': ECU_ADDR_S,
+            'Response': [
+                        ECU_R_ADDR_S + ' 06 61 04 29 D6 BF 19 \r',
+                        ECU_R_ADDR_S + ' 06 61 04 29 D6 B8 19 \r',
+                        ECU_R_ADDR_S + ' 06 61 04 29 D6 BE 19 \r',
+                        ECU_R_ADDR_S + ' 06 61 04 3F BF B4 41 \r',
+                        ECU_R_ADDR_S + ' 06 61 04 29 D6 B9 19 \r'
+                        ]
+        },
+        'CUSTOM_DECELSEN': {
+            'Request': '^2105' + ELM_MAX_RESP,
+            'Descr': 'Deceleration Sensor',
+            'Equation': 'A * 36.912 / 255 - 18.525',
+            'Min': '-18.525',
+            'Max': '18.387',
+            'Unit': 'm/s2',
+            'Header': ECU_ADDR_S,
+            'Response': [
+                        ECU_R_ADDR_S + ' 05 61 05 7F 80 1F \r',
+                        ECU_R_ADDR_S + ' 05 61 05 7F 80 00 \r',
+                        ECU_R_ADDR_S + ' 05 61 05 7E 80 00 \r'
+                        ]
+        },
+        'CUSTOM_BRKFLUID': {
+            'Request': '^211D' + ELM_MAX_RESP,
+            'Descr': 'Reservoir Warning SW',
+            'Equation': '{A:6}',
+            'Min': '0',
+            'Max': '1',
+            'Unit': 'Off/On',
+            'Header': ECU_ADDR_S,
+            'Response': [
+                        ECU_R_ADDR_S + ' 03 61 1D 00 \r',
+                        ECU_R_ADDR_S + ' 03 61 1D 20 \r'
+                        ]
+        },
+        'CUSTOM_STPSW': {
+            'Request': '^211F' + ELM_MAX_RESP,
+            'Descr': 'Stop Light SW',
+            'Equation': '{A:7}',
+            'Min': '0',
+            'Max': '1',
+            'Unit': 'Off/On',
+            'Header': ECU_ADDR_S,
+            'Response': [
+                        ECU_R_ADDR_S + ' 03 61 1F 00 \r',
+                        ECU_R_ADDR_S + ' 03 61 1F 80 \r'
+                        ]
+        },
+        'CUSTOM_KPH_7B0': {
+            'Request': '^2121' + ELM_MAX_RESP,
+            'Descr': 'Vehicle Speed_7B0',
+            'Equation': 'A * 326.4 / 255',
+            'Min': '0',
+            'Max': '200',
+            'Unit': 'km/h',
+            'Header': ECU_ADDR_S,
+            'Response': ECU_R_ADDR_S + ' 03 61 21 00 \r'
+        },
+        'CUSTOM_STPRELAY': {
+            'Request': '^213C' + ELM_MAX_RESP,
+            'Descr': 'Stop Light Relay Output',
+            'Equation': '{A:7}',
+            'Min': '0',
+            'Max': '1',
+            'Unit': 'Off/On',
+            'Header': ECU_ADDR_S,
+            'Response': ECU_R_ADDR_S + ' 03 61 3C 00 \r'
+        },
+        'CUSTOM_ABS': {
+            'Request': '^213D' + ELM_MAX_RESP,
+            'Descr': 'ABS Warning Light',
+            'Equation': '{A:7}',
+            'Min': '0',
+            'Max': '1',
+            'Unit': 'Off/On',
+            'Header': ECU_ADDR_S,
+            'Response': ECU_R_ADDR_S + ' 04 61 3D 00 00 \r'
+        },
+        'CUSTOM_FR_WA': {
+            'Request': '^2142' + ELM_MAX_RESP,
+            'Descr': 'FR Wheel Acceleration',
+            'Equation': '( A - {A:7} * 256 ) * 199.27 / 127',
+            'Min': '-10',
+            'Max': '10',
+            'Unit': 'm/s2',
+            'Header': ECU_ADDR_S,
+            'Response': ECU_R_ADDR_S + ' 06 61 42 00 00 00 00 \r'
+        },
+        'CUSTOM_0DECEL': {
+            'Request': '^2146' + ELM_MAX_RESP,
+            'Descr': 'Zero Point of Decele',
+            'Equation': 'A * 50.02 / 255 - 25.11',
+            'Min': '-25.11',
+            'Max': '24.91',
+            'Unit': 'm/s2',
+            'Header': ECU_ADDR_S,
+            'Response': ECU_R_ADDR_S + ' 10 09 61 46 00 00 80 80 \r' +
+                        ECU_R_ADDR_S + ' 21 00 01 14 00 00 00 00 \r'
+        },
+        'CUSTOM_REGENREQ': {
+            'Request': '^2148' + ELM_MAX_RESP,
+            'Descr': 'FR Regenerative Request',
+            'Equation': '(A * 256 + B) * 16',
+            'Min': '0',
+            'Max': '400',
+            'Unit': 'Nm',
+            'Header': ECU_ADDR_S,
+            'Response': ECU_R_ADDR_S + ' 06 61 48 00 00 00 00 \r'
+        },
+        'CUSTOM_TRAC': {
+            'Request': '^215A' + ELM_MAX_RESP,
+            'Descr': 'TRC(TRAC) Ctrl Status',
+            'Equation': '{A:7}',
+            'Min': '0',
+            'Max': '1',
+            'Unit': 'Off/On',
+            'Header': ECU_ADDR_S,
+            'Response': [
+                        ECU_R_ADDR_S + ' 04 61 5A 00 00 \r',
+                        ECU_R_ADDR_S + ' 04 61 5A 18 00 \r',
+                        ECU_R_ADDR_S + ' 04 61 5A 10 00 \r'
+                        ]
+        },
+        'CUSTOM_FR_ABS': {
+            'Request': '^215F' + ELM_MAX_RESP,
+            'Descr': 'FR Wheel ABS Ctrl Status',
+            'Equation': '{A:7}',
+            'Min': '0',
+            'Max': '1',
+            'Unit': 'Off/On',
+            'Header': ECU_ADDR_S,
+            'Response': ECU_R_ADDR_S + ' 04 61 5F 00 00 \r'
+        },
+        'CUSTOM_0YAW2': {
+            'Request': '^21A1' + ELM_MAX_RESP,
+            'Descr': 'Zero Point of Yaw Rate2',
+            'Equation': 'A -128',
+            'Min': '-128',
+            'Max': '127',
+            'Unit': 'degrees/s',
+            'Header': ECU_ADDR_S,
+            'Response': ECU_R_ADDR_S + ' 03 61 A1 80 \r'
+        },
     }
 }

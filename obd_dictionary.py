@@ -166,6 +166,14 @@ def main():
         default=False,
         help='include blacklisted PIDs within probes')
     parser.add_argument(
+        '-x',
+        '--noautopid',
+        dest='noautopid',
+        action="store_true",
+        default=False,
+        help='do not autopopulate the pid list with the set of built-in'
+             ' commands supported by the vehicle; only use csv file.')
+    parser.add_argument(
         '-t',
         '--at',
         dest='at',
@@ -194,10 +202,14 @@ def main():
 
     # Connect to OBDII and fill 'connection.supported_commands'
     obd.logger.info("Connecting to" + args.elm327)
-    connection = obd.OBD(args.elm327)
+    connection = obd.OBD(args.elm327, fast=False)
     if not connection.is_connected():
         obd.logger.error("Connection to " + repr(args.elm327) + " failed")
         return
+
+    if args.noautopid:
+        for cmd in connection.supported_commands.copy():
+            connection.supported_commands.remove(cmd)
 
     # Enrich the dictionary with some predefined commands
     if args.at != 0:
