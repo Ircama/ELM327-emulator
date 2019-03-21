@@ -11,7 +11,7 @@ An internal dictionary (named *ObdMessage*) allows configuring the emulation, wh
 
 *ELM327-emulator* supports all protocols allowed by *python-OBD*; the included dictionary uses the *ISO 15765-4 CAN 11 bit ID 500 kbaud* protocol.
 
-*ELM327-emulator* also includes an auxiliary feature that builds the PID dictionary of a specific vehicle by automatically querying all standard PIDs one by one (as well as add queries of additional custom PIDs specified by the user via CSV file). The dictionary can then be used to emulate the specific car.
+*ELM327-emulator* also includes an auxiliary feature that builds the PID dictionary of a specific vehicle by automatically querying all standard PIDs one by one (as well as querying additional custom PIDs specified by the user via CSV file). The dictionary can then be used to emulate the specific car.
 
 # Installation
 
@@ -28,7 +28,7 @@ git clone https://github.com/ircama/ELM327-emulator.git
 cd ELM327-emulator
 ```
 
-Important note: use an updated version of *python-OBD* package (e.g., the one installed form GitHub). 
+Important note: use an updated version of *python-OBD* package (e.g., the one installed from GitHub). 
 
 # Usage
 
