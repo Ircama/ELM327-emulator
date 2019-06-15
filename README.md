@@ -209,10 +209,31 @@ In the above example, the first time *ResponseHeader* is executed, the produced 
 The ability to add dynamic differentiators and delays within responses enables testing specific use cases and exceptions that are difficult to be achieved through a real connection with a car. These not only apply to the `ObdMessage` dictionary (by editing *obd_message.py*), but also to `emulator.answer`, that can be configured through the command line. Consider for instance the following dynamic configuration via command line:
 
 ```python
-emulator.answer['SPEED'] = '\0 self.ECU_R_ADDR_E + " 03 41 0D 0A " if randint(0, 100) > 20 else "NO DATA" \0\r'
+emulator.answer['SPEED'] = '\0 ECU_R_ADDR_E + " 03 41 0D 0A " if randint(0, 100) > 20 else "NO DATA" \0\r'
 ```
 
 In the above example, which illustrates an in-line expression substitution, the configuration of the ‘SPEED’ PID is replaced with a dynamic answer and the ‘SPEED’ PID will return `7E8 03 41 0D 0A` + newline for most of the times. With 20% probability, `NO DATA` + newline is returned. Notice that the last `\r` is common to both options. (Notice also that ECU headers shall by referenced within the *self* namespace.)
+
+The following example shows how to dynamically generate an answer by converting decimal numbers to hex string in order to allow confortable testing of a PID by specifying decimal input values. Suppose that the PID needs to double the input. We use *CUSTOM_FUEL_LEVEL* PID in the example, testing the answer related to 15.5 liters.
+
+Preliminarily test number conversion with the command line:
+
+```
+"%.2X" % int(15.5*2)
+1F
+```
+
+Apply it to *CUSTOM_FUEL_LEVEL* PID so that it returns `7C0 03 61 29 1F \r'`:
+
+```
+emulator.answer['CUSTOM_FUEL_LEVEL'] = '7C0 03 61 29 \0 "%.2X" % int(15.5*2) \0 \r'
+```
+
+Or, alternatively, use the header variable instead of the header digits:
+
+```
+emulator.answer['CUSTOM_FUEL_LEVEL'] = '\0 ECU_R_ADDR_I + " 03 61 29 " + "%.2X" % int(15.5*2) \0 \r'
+```
 
 To list the configuration, type `emulator.answer`, or simply `counters`. To remove the dynamic answer and return to the default configuration of the ‘SPEED’ PID, type `del emulator.answer['SPEED']`.
 

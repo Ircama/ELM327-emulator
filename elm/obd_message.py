@@ -2982,24 +2982,37 @@ ObdMessage = {
             'Descr': 'CCS Vehicle Spd & Cruise & Park & Brakes',
             'Header': ECU_ADDR_H,
             'Response': [ # 07 61 21 = Header
-                          # A=speed 0-200 km/h
-                          # B=mem speed 0-200 km/h
-                          # {D:7}=Cruise Operation Status,0,1,Off/On
-                          # {D:6}=Cruise Control=0,1,Off/On
-                          # {E:7}=Stop Light Switch 1,0,1,Off/On
-                          # {E:6}=Stop Light Switch 2,0,1,Off/On
-                          # {E:4}=RES/ACC Switch,0,1,Off/On
-                          # {E:3}=SET/COAST Switch,0,1,Off/On
-                          # {E:2}=Cancel Switch,0,1,Off/On
+                          # A=Cruise Control System speed, 0-200 km/h
+                          # B=CCS memorized speed, 0-200 km/h
+                          # 81 = normal (10000001); 7D = "R" Shift (01111101); 7E = "R" Shift transitory (01111110)
+                          #
+                          # {D:7}=Cruise Operation Status; Shift level in "D": 0/1=No/Yes
+                          # {D:6}=Cruise Control, 0/1=Off/On
+                          # {D:5}=Cruise active, 0/1=Off/On [TBV]
+                          # {D:4}=Cruise active, 0/1=Off/On [TBV]
+                          # {D:3}=Cruise active, 0/1=Off/On [TBV]
+                          # {D:2}=Cruise active, 0/1=Off/On [TBV]
+                          # {D:1}=Cruise transitory state?, 0/1=Off/On [TBV]
+                          # {D:0}=Cruise transitory state?, 0/1=Off/On [TBV]
+                          #
+                          # {E:7}=Stop Light Switch 1, 0/1=Off/On (only full brake)
+                          # {E:6}=Stop Light Switch 2, 0/1=Off/On (light or full brake)
+                          # {E:5}=Brake, 0/1=Off/On (light or full brake)
+                          # {E:4}=RES/ACC Switch, 0/1=Off/On
+                          # {E:3}=SET/COAST Switch, 0/1=Off/On
+                          # {E:2}=Cancel Switch, 0/1=Off/On
                           #                        A  B  C  D  E
                         ECU_R_ADDR_H + ' 07 61 21 00 00 81 00 00 \r', # Park + No brakes
-                        ECU_R_ADDR_H + ' 07 61 21 00 00 81 3F 00 \r',
+                        ECU_R_ADDR_H + ' 07 61 21 00 00 81 3F 00 \r', # Cruise on (transitory)
+                        ECU_R_ADDR_H + ' 07 61 21 00 00 7D 00 00 \r', # "R" shift (reverse)
+                        ECU_R_ADDR_H + ' 07 61 21 00 00 81 80 00 \r', # "D" shift (ahead)
                         ECU_R_ADDR_H + ' 07 61 21 00 00 81 03 00 \r',
                         ECU_R_ADDR_H + ' 07 61 21 00 00 81 00 E0 \r', # Park + Brakes
+                        ECU_R_ADDR_H + ' 07 61 21 00 00 81 00 60 \r', # Park + Light brakes
                         ECU_R_ADDR_H + ' 07 61 21 00 00 81 00 04 \r', # Cruise control Cancel
                         ECU_R_ADDR_H + ' 07 61 21 00 00 81 00 10 \r', # Cruise control Up
                         ECU_R_ADDR_H + ' 07 61 21 00 00 81 00 08 \r', # Cruise control Down
-                        ECU_R_ADDR_H + ' 07 61 21 00 00 81 3C 00 \r'  # Cruise
+                        ECU_R_ADDR_H + ' 07 61 21 00 00 81 3C 00 \r'  # Cruise on
                         ]
         },
         'CUSTOM_P': {
@@ -3026,16 +3039,48 @@ ObdMessage = {
             'Header': ECU_ADDR_H,
             'Response': ECU_R_ADDR_H + ' 05 61 28 00 EA 5C \r'
         },
-        'CUSTOM_AUX._B_T': {
+        'CUSTOM_SHIFT_J': {
             'Request': '^2141' + ELM_MAX_RESP,
-            'Descr': 'Auxiliary Battery Temperature',
-            'Equation': 'A - 40',
-            'Min': '-40',
-            'Max': '120',
-            'Unit': 'C',
+            'Descr': 'Shift Joystick',
             'Header': ECU_ADDR_H,
-            'Response': ECU_R_ADDR_H + ' 10 08 61 41 6D 6D 4B 4A \r' +
-                        ECU_R_ADDR_H + ' 21 36 89 00 00 00 00 00 \r'
+            'Response': [
+                        # UD: 6x (6D, 6E), 7x = centre; Cx = down; 1x = up. LR: 4A = right, B5 = left)
+                        # LR1: 4a/49 (right), b3, b2, b5, b6 (left)
+                        # First group:               UD UD LR LR1 [UD=up-down-centre, LR=left-right]
+                        # Second group:     AA BB
+                        # AA = 36, 38, 3A
+                        # BB = (Park button pressed) 3A, 3B, 3C, 43, 75 (off), 88, 89, 90 (Park released)
+                        ECU_R_ADDR_H + ' 10 08 61 41 6D 6D 4A 4A \r' + # default position (center, right)
+                        ECU_R_ADDR_H + ' 21 38 89 00 00 00 00 00 \r',  # park button released
+                        ECU_R_ADDR_H + ' 10 08 61 41 6D 6D 4A 4A \r' + # default position
+                        ECU_R_ADDR_H + ' 21 38 3B 00 00 00 00 00 \r',  # park button pressed
+                        ECU_R_ADDR_H + ' 10 08 61 41 6D 6D 4A 49 \r' + # center, middle
+                        ECU_R_ADDR_H + ' 21 38 89 00 00 00 00 00 \r',
+                        ECU_R_ADDR_H + ' 10 08 61 41 6D 6D 4A B3 \r' + # center, middle
+                        ECU_R_ADDR_H + ' 21 38 89 00 00 00 00 00 \r',
+                        ECU_R_ADDR_H + ' 10 08 61 41 6D 6D B5 B2 \r' + # moved to "N" position (center, left)
+                        ECU_R_ADDR_H + ' 21 38 89 00 00 00 00 00 \r',
+                        ECU_R_ADDR_H + ' 10 08 61 41 BE BE 4A 4A \r' + # moved to "B" position (down, right)
+                        ECU_R_ADDR_H + ' 21 38 89 00 00 00 00 00 \r',
+                        ECU_R_ADDR_H + ' 10 08 61 41 C5 C6 B5 B2 \r' + # moved to "D" position (down, left)
+                        ECU_R_ADDR_H + ' 21 38 89 00 00 00 00 00 \r',
+                        ECU_R_ADDR_H + ' 10 08 61 41 1A 1B B5 B2 \r' + # moved to "R" position (up, left)
+                        ECU_R_ADDR_H + ' 21 38 89 00 00 00 00 00 \r',
+                        ECU_R_ADDR_H + ' 10 08 61 41 6D 6D 4B 4A \r' + # default (center, right)
+                        ECU_R_ADDR_H + ' 21 36 89 00 00 00 00 00 \r',
+                        ECU_R_ADDR_H + ' 10 08 61 41 C4 C4 4A 49 \r' + # moved to "B" position (down, right)
+                        ECU_R_ADDR_H + ' 21 38 89 00 00 00 00 00 \r',
+                        ECU_R_ADDR_H + ' 10 08 61 41 1B 1B B5 B2 \r' + # moved to "R" position (up, left)
+                        ECU_R_ADDR_H + ' 21 38 89 00 00 00 00 00 \r',
+                        ECU_R_ADDR_H + ' 10 08 61 41 C4 C4 B5 B2 \r' + # moved to "D" position (down, left)
+                        ECU_R_ADDR_H + ' 21 38 89 00 00 00 00 00 \r',
+                        ECU_R_ADDR_H + ' 10 08 61 41 70 70 B5 B2 \r' + # moved to "N" position (center, left)
+                        ECU_R_ADDR_H + ' 21 38 89 00 00 00 00 00 \r',
+                        ECU_R_ADDR_H + ' 10 08 61 41 6E 6E B5 B2 \r' + # moved to "N" position (center, left)
+                        ECU_R_ADDR_H + ' 21 38 89 00 00 00 00 00 \r',
+                        ECU_R_ADDR_H + ' 10 08 61 41 6E 6E 4A 4A \r' + # default (center, right)
+                        ECU_R_ADDR_H + ' 21 38 89 00 00 00 00 00 \r'
+                        ]
         },
         'CUSTOM_SMRP': {
             'Request': '^2144' + ELM_MAX_RESP,
