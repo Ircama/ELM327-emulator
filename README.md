@@ -214,7 +214,7 @@ emulator.answer['SPEED'] = '\0 ECU_R_ADDR_E + " 03 41 0D 0A " if randint(0, 100)
 
 In the above example, which illustrates an in-line expression substitution, the configuration of the ‘SPEED’ PID is replaced with a dynamic answer and the ‘SPEED’ PID will return `7E8 03 41 0D 0A` + newline for most of the times. With 20% probability, `NO DATA` + newline is returned. Notice that the last `\r` is common to both options. (Notice also that ECU headers shall by referenced within the *self* namespace.)
 
-The following example shows how to dynamically generate an answer by converting decimal numbers to hex string in order to allow confortable testing of a PID by specifying decimal input values. Suppose that the PID needs to double the input. We use *CUSTOM_FUEL_LEVEL* PID in the example, testing the answer related to 15.5 liters.
+The following example shows how to dynamically generate an answer via command line by converting decimal numbers to hex string in order to allow confortable testing of a PID by specifying decimal input values. Suppose that the PID needs to double the input. We use *CUSTOM_FUEL_LEVEL* PID in the example, testing the answer related to 15.5 liters.
 
 Preliminarily test number conversion with the command line:
 
@@ -233,6 +233,18 @@ Or, alternatively, use the header variable instead of the header digits:
 
 ```
 emulator.answer['CUSTOM_FUEL_LEVEL'] = '\0 ECU_R_ADDR_I + " 03 61 29 " + "%.2X" % int(15.5*2) \0 \r'
+```
+
+The following command sets SPEED to 60 km/h via command line (60 can be changed to any integer value between 0 and 255):
+
+```
+emulator.answer['SPEED'] = '\0 ECU_R_ADDR_E + " 03 41 0D %.2X" % 60 \0\r'
+```
+
+The following command sets RPM to 500 via command line:
+
+```
+emulator.answer['RPM'] = '\0 ECU_R_ADDR_E + " 04 41 0C %.4X" % int(4 * 500) \0\r'
 ```
 
 To list the configuration, type `emulator.answer`, or simply `counters`. To remove the dynamic answer and return to the default configuration of the ‘SPEED’ PID, type `del emulator.answer['SPEED']`.
