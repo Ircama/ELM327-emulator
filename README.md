@@ -249,6 +249,18 @@ emulator.answer['RPM'] = '\0 ECU_R_ADDR_E + " 04 41 0C %.4X" % int(4 * 500) \0\r
 
 To list the configuration, type `emulator.answer`, or simply `counters`. To remove the dynamic answer and return to the default configuration of the ‘SPEED’ PID, type `del emulator.answer['SPEED']`.
 
+Command to configure PID '0100' answer (*PIDS_A*) to `BUS INIT: OK` for its first query and to `48 6B 13 41 00 BE 1F B8 11 AD \r` for all the subsequent queries:
+
+```
+emulator.answer['ELM_PIDS_A'] = '\0 "BUS INIT: OK" if self.counters["ELM_PIDS_A"] < 2 else "48 6B 13 41 00 BE 1F B8 11 AD \\r" \0'
+```
+
+The *ELM_PIDS_A* counter (`emulator.counters["ELM_PIDS_A"]`) can be reset with:
+
+```
+emulator.counters["ELM_PIDS_A"] = 0
+```
+
 ## Logging and monitoring
 
 Logging is controlled through `elm.yaml` file (in the current directory by default). Its path can be set through the *ELM_LOG_CFG* environment variable.
