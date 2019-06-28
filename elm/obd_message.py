@@ -417,10 +417,10 @@ ObdMessage = {
             'Response': [
                         ECU_R_ADDR_E + ' 10 14 49 02 01 57 50 30 \r' +
                         ECU_R_ADDR_E + ' 21 5A 5A 5A 39 39 5A 54 \r' +
-                        ECU_R_ADDR_E + ' 22 53 33 39 32 31 32 34 \r', # https://www.autodna.com/vin/WP0ZZZ99ZTS392124, https://it.vin-info.com/libro-denuncia/WP0ZZZ99ZTS392124
+                        ECU_R_ADDR_E + ' 22 53 33 39 30 30 30 30 \r', # https://www.autodna.com/vin/WP0ZZZ99ZTS390000, https://it.vin-info.com/libro-denuncia/WP0ZZZ99ZTS390000
                         ECU_R_ADDR_E + ' 10 14 49 02 01 4D 41 54 \r' + # https://community.carloop.io/t/how-to-request-vin/153/11
                         ECU_R_ADDR_E + ' 21 34 30 33 30 39 36 42 \r' +
-                        ECU_R_ADDR_E + ' 22 4E 4C 30 30 30 31 35 \r'
+                        ECU_R_ADDR_E + ' 22 4E 4C 30 30 30 30 30 \r'
                         ]
         },
         'CALIBRATION_ID_MESSAGE_COUNT': {
