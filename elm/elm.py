@@ -4,13 +4,16 @@ from pathlib import Path
 import yaml
 import re
 import os
-import pty
+if os.name == 'nt':
+    import serial
+else:
+    import pty
 import threading
 import time
 import sys
 import traceback
 from random import randint
-from .obd_message import *
+from .obd_message import ObdMessage, ECU_ADDR_E, ELM_R_OK
 
 def setup_logging(
         default_path=Path(__file__).stem + '.yaml',
@@ -41,6 +44,7 @@ class ELM:
     ELM_DEFAULTS           = r"ATD$"
     ELM_SET_PROTO          = r"ATSPA?[0-9A-C]$"
     ELM_ERASE_PROTO        = r"ATSP00$"
+    ELM_R_OK               = ELM_R_OK
 
     def Sequence(self, pid, base, max, factor, n_bytes):
         c = self.counters[pid]
@@ -75,9 +79,14 @@ class ELM:
         self.reset(0)
 
     def __enter__(self):
-        # make a new pty
-        self.master_fd, self.slave_fd = pty.openpty()
-        self.slave_name = os.ttyname(self.slave_fd)
+        if os.name == 'nt':
+            self.master_fd = serial.Serial('COM3', 38400)
+            self.slave_fd = None
+            self.slave_name = 'com0com Serial Port Pair at CNCA0'
+        else:
+            # make a new pty
+            self.master_fd, self.slave_fd = pty.openpty()
+            self.slave_name = os.ttyname(self.slave_fd)
 
         # start the read thread
         self.threadState = THREAD.STARTING
@@ -90,8 +99,11 @@ class ELM:
     def __exit__(self, exc_type, exc_value, traceback):
         self.threadState = THREAD.STOPPED
         time.sleep(0.1)
-        os.close(self.slave_fd)
-        os.close(self.master_fd)
+        if os.name == 'nt':
+            self.master_fd.close()
+        else:
+            os.close(self.slave_fd)
+            os.close(self.master_fd)
         return False  # don't suppress any exceptions
 
     def run(self): # daemon thread
@@ -156,9 +168,14 @@ class ELM:
         while True:
             prev_time = time.time()
             try:
-                c = os.read(self.master_fd, 1).decode()
-                if 'cmd_echo' in self.counters and self.counters['cmd_echo'] == 1:
-                    os.write(self.master_fd, c.encode())
+                if os.name == 'nt':
+                    c = self.master_fd.read(1).decode()
+                    if 'cmd_echo' in self.counters and self.counters['cmd_echo'] == 1:
+                        self.master_fd.write(c.encode())
+                else:
+                    c = os.read(self.master_fd, 1).decode()
+                    if 'cmd_echo' in self.counters and self.counters['cmd_echo'] == 1:
+                        os.write(self.master_fd, c.encode())
             except UnicodeDecodeError as e:
                 logging.warning("Invalid character received: %s", e)
                 return('')
@@ -193,7 +210,10 @@ class ELM:
                     evalmsg = eval(msg)
                     if nospaces:
                         evalmsg = re.sub(r'[ \t]+', '', evalmsg)
-                    os.write(self.master_fd, evalmsg.encode())
+                    if os.name == 'nt':
+                        self.master_fd.write(evalmsg.encode())
+                    else:
+                        os.write(self.master_fd, evalmsg.encode())
                     logging.debug("Evaluated command: %s", msg)
                     logging.debug("Written evaluated command: %s", repr(evalmsg))
                 except Exception:
@@ -207,7 +227,10 @@ class ELM:
                 logging.debug("Write: %s", repr(i))
                 if nospaces:
                     i = re.sub(r'[ \t]+', '', i)
-                os.write(self.master_fd, i.encode())
+                if os.name == 'nt':
+                    self.master_fd.write(i.encode())
+                else:
+                    os.write(self.master_fd, i.encode())
             j += 1
 
     def validate(self, cmd):
