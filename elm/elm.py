@@ -224,12 +224,13 @@ class ELM:
                     evalmsg = eval(msg)
                     if nospaces:
                         evalmsg = re.sub(r'[ \t]+', '', evalmsg)
-                    if os.name == 'nt':
-                        self.master_fd.write(evalmsg.encode())
-                    else:
-                        os.write(self.master_fd, evalmsg.encode())
                     logging.debug("Evaluated command: %s", msg)
-                    logging.debug("Written evaluated command: %s", repr(evalmsg))
+                    if evalmsg != None:
+                        if os.name == 'nt':
+                            self.master_fd.write(evalmsg.encode())
+                        else:
+                            os.write(self.master_fd, evalmsg.encode())
+                        logging.debug("Written evaluated command: %s", repr(evalmsg))
                 except Exception:
                     try:
                         logging.debug("Executing command: %s", msg)

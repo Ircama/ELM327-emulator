@@ -28,7 +28,7 @@
             "name": "Python: Module",
             "type": "python",
             "request": "launch",
-            "module": "enter-your-module-name-here",
+            "module": "elm",
             "console": "integratedTerminal"
         },
         {

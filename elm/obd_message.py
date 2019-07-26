@@ -359,7 +359,7 @@ ObdMessage = {
             'Descr': 'PIDS_A',
             'ResponseHeader': \
             lambda self, cmd, pid, val: \
-                'SEARCHING...\0 time.sleep(2) \0\r' if self.counters[pid] == 1 else "",
+                'SEARCHING...\0 time.sleep(3) \0\r' if self.counters[pid] == 1 else "",
             'Response':
             ECU_R_ADDR_H + ' 06 41 00 98 3A 80 13 \r' +
             ECU_R_ADDR_E + ' 06 41 00 BE 3F A8 13 \r'
