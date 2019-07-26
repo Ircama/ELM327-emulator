@@ -12,7 +12,7 @@ handlers:
     file:
         class: logging.handlers.RotatingFileHandler
         formatter: spaced
-        filename: elm.log
+        filename: ./log/elm.log
         level: DEBUG
         encoding: utf8
         maxBytes: 1000000
