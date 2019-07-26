@@ -40,7 +40,6 @@ class ELM:
     ELM_VALID_CHARS = r"[a-zA-Z0-9 \n\r]*"
 
     # Other AT commands (still to be implemented...)
-    ELM_WARM_START         = r"ATWS$"
     ELM_DEFAULTS           = r"ATD$"
     ELM_SET_PROTO          = r"ATSPA?[0-9A-C]$"
     ELM_ERASE_PROTO        = r"ATSP00$"
@@ -72,17 +71,32 @@ class ELM:
         self.answer = {}
         self.counters = {}
 
-    def __init__(self, batch_mode):
+    def setSortedOBDMsg(self):
+        if 'default' in self.ObdMessage and 'AT' in self.ObdMessage:
+            # Perform a union of the three subdictionaries
+            self.sortedOBDMsg = {
+                **self.ObdMessage['default'], # highest priority
+                **self.ObdMessage['AT'],
+                **self.ObdMessage[self.scenario] # lowest priority ('Priority' to be checked)
+                }
+        else:
+            self.sortedOBDMsg = { **self.ObdMessage[self.scenario] }
+        # Add 'Priority' to all pids and sort basing on priority (highest = 1, lowest=10)
+        self.sortedOBDMsg = sorted(self.sortedOBDMsg.items(), key = lambda x: x[1]['Priority'] if 'Priority' in x[1] else 10 )
+
+    def __init__(self, batch_mode, serial_port):
         self.ObdMessage = ObdMessage
         self.set_defaults()
+        self.setSortedOBDMsg()
         self.batch_mode = batch_mode
+        self.serial_port = serial_port
         self.reset(0)
 
     def __enter__(self):
         if os.name == 'nt':
-            self.master_fd = serial.Serial('COM3', 38400)
+            self.master_fd = serial.Serial(self.serial_port, 38400)
             self.slave_fd = None
-            self.slave_name = 'com0com Serial Port Pair at CNCA0'
+            self.slave_name = 'com0com Serial Port Pair at ' + self.serial_port
         else:
             # make a new pty
             self.master_fd, self.slave_fd = pty.openpty()
@@ -110,7 +124,7 @@ class ELM:
         setup_logging()
         self.logger = logging.getLogger()
         if not self.batch_mode:
-            logging.info('\n\nELM327 OBD-II adapter simulator started\n')
+            logging.info('\n\nELM327 OBD-II adapter emulator started\n')
         """ the ELM's main IO loop """
         
         self.threadState = THREAD.ACTIVE
@@ -258,18 +272,8 @@ class ELM:
         if not self.scenario in self.ObdMessage:
             logging.error("Unknown scenario %s", repr(self.scenario))
             return ""
-        if 'default' in self.ObdMessage and 'AT' in self.ObdMessage:
-            # Perform a union of the three subdictionaries
-            s = {
-                **self.ObdMessage['default'], # highest priority
-                **self.ObdMessage['AT'],
-                **self.ObdMessage[self.scenario] # lowest priority ('Priority' to be checked)
-                }
-        else:
-            s = { **self.ObdMessage[self.scenario] }
-        # Add 'Priority' to all pids and sort basing on priority (highest = 1, lowest=10)
-        for i in sorted(
-                s.items(), key=lambda x: x[1]['Priority'] if 'Priority' in x[1] else 10 ):
+
+        for i in self.sortedOBDMsg:
             key = i[0]
             val = i[1]
             if 'Request' in val and re.match(val['Request'], cmd):
@@ -297,7 +301,7 @@ class ELM:
                         return(self.answer[pid])
                     except Exception as e:
                         logging.error(
-                        "Error while processing '%s' for PID %s (%s)", self.answer, pid, e)                     
+                        "Error while processing '%s' for PID %s (%s)", self.answer, pid, e)
                 if 'Exec' in val:
                     try:
                         exec(val['Exec'])

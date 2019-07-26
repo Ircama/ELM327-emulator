@@ -136,6 +136,10 @@ class Interpreter(Cmd):
             sys.stdout.flush()
         return Cmd.precmd(self, line)
 
+    def postcmd(self, stop, line):
+        self.emulator.setSortedOBDMsg()
+        return Cmd.postcmd(self, stop, line)
+
     def do_reset(self, arg):
         "Reset the emulator (counters and variables)"
         if arg:
@@ -339,6 +343,14 @@ if __name__ == '__main__':
         default=0,
         nargs=1,
         metavar='FILE')
+    parser.add_argument(
+        '-p', '--port',
+        dest = 'serial_port',
+        help = 'Set the virtual serial port ELM327-emulator listenning when running under windows OS',
+        default = 'COM3',
+        nargs = 1,
+        metavar = 'PORT'
+    )
     args = parser.parse_args()
 
     # Redirect stdout
@@ -346,7 +358,7 @@ if __name__ == '__main__':
         sys.stdout = args.batch_mode[0]
 
     try:
-        emulator = ELM(args.batch_mode)
+        emulator = ELM(args.batch_mode, args.serial_port)
         with emulator as pts_name:
             if args.batch_mode:
                 print(pts_name)

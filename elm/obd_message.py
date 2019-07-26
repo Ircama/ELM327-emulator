@@ -119,6 +119,13 @@ ObdMessage = {
             'Log': '"Try protocol %s", cmd[4:]',
             'Response': ELM_R_OK
         },
+        'AT_WARM_START': {
+            'Request': '^ATWS$',
+            'Descr': 'AT WARM START',
+            'Log': '"Sleep 0.1 seconds"',
+            'Exec': 'self.reset(0.1)',
+            'Response': "\r\rELM327 v1.5\r"
+        },
         'AT_RESET': {
             'Request': '^ATZ$',
             'Descr': 'AT RESET',
@@ -352,7 +359,7 @@ ObdMessage = {
             'Descr': 'PIDS_A',
             'ResponseHeader': \
             lambda self, cmd, pid, val: \
-                'SEARCHING...\0 time.sleep(3) \0\r' if self.counters[pid] == 1 else "",
+                'SEARCHING...\0 time.sleep(2) \0\r' if self.counters[pid] == 1 else "",
             'Response':
             ECU_R_ADDR_H + ' 06 41 00 98 3A 80 13 \r' +
             ECU_R_ADDR_E + ' 06 41 00 BE 3F A8 13 \r'
@@ -468,7 +475,7 @@ ObdMessage = {
             'Request': '^ATI' + ELM_MAX_RESP,
             'Descr': 'ELM327 version string',
             'Header': ECU_ADDR_E,
-            'Response': 'ELM327 v1.5 \r'
+            'Response': 'ELM327 v1.5a \r'
         },
         'ELM_VOLTAGE': {
             'Request': '^ATRV' + ELM_MAX_RESP,
