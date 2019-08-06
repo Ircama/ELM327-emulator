@@ -485,6 +485,7 @@ ObdMessage = {
             # 14.7 volt
         },
     # OBD Commands
+    # MODE 1 - returns values for sensors characterised by PID
         'PIDS_A': {
             'Request': '^0100' + ELM_MAX_RESP,
             'Descr': 'Supported PIDs [01-20]',
@@ -1278,120 +1279,125 @@ ObdMessage = {
             'Header': ECU_ADDR_E,
             'Response': ECU_R_ADDR_E + ' 03 41 51 01 \r'
         },
+    # MODE 2 - freeze frame (or instantaneous) data of a fault
         'DTC_STATUS': {
             'Request': '^0201' + ELM_MAX_RESP,
             'Descr': 'DTC Status since DTCs cleared',
             'Header': ECU_ADDR_E,
             'Response': ECU_R_ADDR_E + ' 03 7F 02 12 \r'
+            # invalid data returned by diagnostic request (mode 02)
         },
         'DTC_FUEL_STATUS': {
             'Request': '^0203' + ELM_MAX_RESP,
             'Descr': 'DTC Fuel System Status',
             'Header': ECU_ADDR_E,
             'Response': ECU_R_ADDR_E + ' 03 7F 02 12 \r'
+            # invalid data returned by diagnostic request (mode 02)
         },
         'DTC_ENGINE_LOAD': {
             'Request': '^0204' + ELM_MAX_RESP,
             'Descr': 'DTC Calculated Engine Load',
             'Header': ECU_ADDR_E,
             'Response': ECU_R_ADDR_E + ' 03 7F 02 12 \r'
-            # 7.0588235294117645 percent
+            # invalid data returned by diagnostic request (mode 02)
         },
         'DTC_COOLANT_TEMP': {
             'Request': '^0205' + ELM_MAX_RESP,
             'Descr': 'DTC Engine Coolant Temperature',
             'Header': ECU_ADDR_E,
             'Response': ECU_R_ADDR_E + ' 03 7F 02 12 \r'
-            # -22 degC
+            # invalid data returned by diagnostic request (mode 02)
         },
         'DTC_SHORT_FUEL_TRIM_1': {
             'Request': '^0206' + ELM_MAX_RESP,
             'Descr': 'DTC Short Term Fuel Trim - Bank 1',
             'Header': ECU_ADDR_E,
             'Response': ECU_R_ADDR_E + ' 03 7F 02 12 \r'
-            # -85.9375 percent
+            # invalid data returned by diagnostic request (mode 02)
         },
         'DTC_LONG_FUEL_TRIM_1': {
             'Request': '^0207' + ELM_MAX_RESP,
             'Descr': 'DTC Long Term Fuel Trim - Bank 1',
             'Header': ECU_ADDR_E,
             'Response': ECU_R_ADDR_E + ' 03 7F 02 12 \r'
-            # -85.9375 percent
+            # invalid data returned by diagnostic request (mode 02)
         },
         'DTC_INTAKE_PRESSURE': {
             'Request': '^020B' + ELM_MAX_RESP,
             'Descr': 'DTC Intake Manifold Pressure',
             'Header': ECU_ADDR_E,
             'Response': ECU_R_ADDR_E + ' 03 7F 02 12 \r'
-            # 18 kilopascal
+            # invalid data returned by diagnostic request (mode 02)
         },
         'DTC_RPM': {
             'Request': '^020C' + ELM_MAX_RESP,
             'Descr': 'DTC Engine RPM',
             'Header': ECU_ADDR_E,
             'Response': ECU_R_ADDR_E + ' 03 7F 02 12 \r'
-            # 1152.0 revolutions_per_minute
+            # invalid data returned by diagnostic request (mode 02)
         },
         'DTC_SPEED': {
             'Request': '^020D' + ELM_MAX_RESP,
             'Descr': 'DTC Vehicle Speed',
             'Header': ECU_ADDR_E,
             'Response': ECU_R_ADDR_E + ' 03 7F 02 12 \r'
-            # 18 kph
+            # invalid data returned by diagnostic request (mode 02)
         },
         'DTC_TIMING_ADVANCE': {
             'Request': '^020E' + ELM_MAX_RESP,
             'Descr': 'DTC Timing Advance',
             'Header': ECU_ADDR_E,
             'Response': ECU_R_ADDR_E + ' 03 7F 02 12 \r'
-            # -55.0 degree
+            # invalid data returned by diagnostic request (mode 02)
         },
         'DTC_INTAKE_TEMP': {
             'Request': '^020F' + ELM_MAX_RESP,
             'Descr': 'DTC Intake Air Temp',
             'Header': ECU_ADDR_E,
             'Response': ECU_R_ADDR_E + ' 03 7F 02 12 \r'
-            # -22 degC
+            # invalid data returned by diagnostic request (mode 02)
         },
         'DTC_MAF': {
             'Request': '^0210' + ELM_MAX_RESP,
             'Descr': 'DTC Air Flow Rate (MAF)',
             'Header': ECU_ADDR_E,
             'Response': ECU_R_ADDR_E + ' 03 7F 02 12 \r'
-            # 46.08 gps
+            # invalid data returned by diagnostic request (mode 02)
         },
         'DTC_THROTTLE_POS': {
             'Request': '^0211' + ELM_MAX_RESP,
             'Descr': 'DTC Throttle Position',
             'Header': ECU_ADDR_E,
             'Response': ECU_R_ADDR_E + ' 03 7F 02 12 \r'
-            # 7.0588235294117645 percent
+            # invalid data returned by diagnostic request (mode 02)
         },
         'DTC_O2_SENSORS': {
             'Request': '^0213' + ELM_MAX_RESP,
             'Descr': 'DTC O2 Sensors Present',
             'Header': ECU_ADDR_E,
             'Response': ECU_R_ADDR_E + ' 03 7F 02 12 \r'
+            # invalid data returned by diagnostic request (mode 02)
         },
         'DTC_O2_B1S2': {
             'Request': '^0215' + ELM_MAX_RESP,
             'Descr': 'DTC O2: Bank 1 - Sensor 2 Voltage',
             'Header': ECU_ADDR_E,
             'Response': ECU_R_ADDR_E + ' 03 7F 02 12 \r'
-            # 0.09 volt
+            # invalid data returned by diagnostic request (mode 02)
         },
         'DTC_OBD_COMPLIANCE': {
             'Request': '^021C' + ELM_MAX_RESP,
             'Descr': 'DTC OBD Standards Compliance',
             'Header': ECU_ADDR_E,
             'Response': ECU_R_ADDR_E + ' 03 7F 02 12 \r'
+            # invalid data returned by diagnostic request (mode 02)
         },
         'DTC_RUN_TIME': {
             'Request': '^021F' + ELM_MAX_RESP,
             'Descr': 'DTC Engine Run Time',
             'Header': ECU_ADDR_E,
             'Response': ECU_R_ADDR_E + ' 03 7F 02 12 \r'
-            # 4608 second
+            # invalid data returned by diagnostic request (mode 02)
         },
         'DTC_PIDS_B': {
             'Request': '^0220' + ELM_MAX_RESP,
@@ -1401,33 +1407,35 @@ ObdMessage = {
                         'NO DATA \r',
                         ECU_R_ADDR_E + ' 03 7F 02 12 \r'
                         ]
+            # invalid data returned by diagnostic request (mode 02)
         },
         'DTC_DISTANCE_W_MIL': {
             'Request': '^0221' + ELM_MAX_RESP,
             'Descr': 'DTC Distance Traveled with MIL on',
             'Header': ECU_ADDR_E,
             'Response': ECU_R_ADDR_E + ' 03 7F 02 12 \r'
-            # 4608 kilometer
+            # invalid data returned by diagnostic request (mode 02)
         },
         'DTC_O2_S1_WR_VOLTAGE': {
             'Request': '^0224' + ELM_MAX_RESP,
             'Descr': 'DTC 02 Sensor 1 WR Lambda Voltage',
             'Header': ECU_ADDR_E,
             'Response': ECU_R_ADDR_E + ' 03 7F 02 12 \r'
+            # invalid data returned by diagnostic request (mode 02)
         },
         'DTC_COMMANDED_EGR': {
             'Request': '^022C' + ELM_MAX_RESP,
             'Descr': 'DTC Commanded EGR',
             'Header': ECU_ADDR_E,
             'Response': ECU_R_ADDR_E + ' 03 7F 02 12 \r'
-            # 7.0588235294117645 percent
+            # invalid data returned by diagnostic request (mode 02)
         },
         'DTC_EVAPORATIVE_PURGE': {
             'Request': '^022E' + ELM_MAX_RESP,
             'Descr': 'DTC Commanded Evaporative Purge',
             'Header': ECU_ADDR_E,
             'Response': ECU_R_ADDR_E + ' 03 7F 02 12 \r'
-            # 7.0588235294117645 percent
+            # invalid data returned by diagnostic request (mode 02)
         },
         'DTC_WARMUPS_SINCE_DTC_CLEAR': {
             'Request': '^0230' + ELM_MAX_RESP,
@@ -1437,104 +1445,105 @@ ObdMessage = {
                         'NO DATA \r',
                         ECU_R_ADDR_E + ' 03 7F 02 12 \r'
                         ]
-            # 18 count
+            # invalid data returned by diagnostic request (mode 02)
         },
         'DTC_DISTANCE_SINCE_DTC_CLEAR': {
             'Request': '^0231' + ELM_MAX_RESP,
             'Descr': 'DTC Distance traveled since codes cleared',
             'Header': ECU_ADDR_E,
             'Response': ECU_R_ADDR_E + ' 03 7F 02 12 \r'
-            # 4608 kilometer
+            # invalid data returned by diagnostic request (mode 02)
         },
         'DTC_BAROMETRIC_PRESSURE': {
             'Request': '^0233' + ELM_MAX_RESP,
             'Descr': 'DTC Barometric Pressure',
             'Header': ECU_ADDR_E,
             'Response': ECU_R_ADDR_E + ' 03 7F 02 12 \r'
-            # 18 kilopascal
+            # invalid data returned by diagnostic request (mode 02)
         },
         'DTC_O2_S1_WR_CURRENT': {
             'Request': '^0234' + ELM_MAX_RESP,
             'Descr': 'DTC 02 Sensor 1 WR Lambda Current',
             'Header': ECU_ADDR_E,
             'Response': ECU_R_ADDR_E + ' 03 7F 02 12 \r'
-            # -128.0 milliampere
+            # invalid data returned by diagnostic request (mode 02)
         },
         'DTC_CATALYST_TEMP_B1S1': {
             'Request': '^023C' + ELM_MAX_RESP,
             'Descr': 'DTC Catalyst Temperature: Bank 1 - Sensor 1',
             'Header': ECU_ADDR_E,
             'Response': ECU_R_ADDR_E + ' 03 7F 02 12 \r'
-            # 420.8 degC
+            # invalid data returned by diagnostic request (mode 02)
         },
         'DTC_CATALYST_TEMP_B1S2': {
             'Request': '^023E' + ELM_MAX_RESP,
             'Descr': 'DTC Catalyst Temperature: Bank 1 - Sensor 2',
             'Header': ECU_ADDR_E,
             'Response': ECU_R_ADDR_E + ' 03 7F 02 12 \r'
-            # 420.8 degC
+            # invalid data returned by diagnostic request (mode 02)
         },
         'DTC_PIDS_C': {
             'Request': '^0240' + ELM_MAX_RESP,
             'Descr': 'DTC Supported PIDs [41-60]',
             'Header': ECU_ADDR_E,
             'Response': ECU_R_ADDR_E + ' 03 7F 02 12 \r'
+            # invalid data returned by diagnostic request (mode 02)
         },
         'DTC_CONTROL_MODULE_VOLTAGE': {
             'Request': '^0242' + ELM_MAX_RESP,
             'Descr': 'DTC Control module voltage',
             'Header': ECU_ADDR_E,
             'Response': ECU_R_ADDR_E + ' 03 7F 02 12 \r'
-            # 4.6080000000000005 volt
+            # invalid data returned by diagnostic request (mode 02)
         },
         'DTC_ABSOLUTE_LOAD': {
             'Request': '^0243' + ELM_MAX_RESP,
             'Descr': 'DTC Absolute load value',
             'Header': ECU_ADDR_E,
             'Response': ECU_R_ADDR_E + ' 03 7F 02 12 \r'
-            # 1807.0588235294117 percent
+            # invalid data returned by diagnostic request (mode 02)
         },
         'DTC_COMMANDED_EQUIV_RATIO': {
             'Request': '^0244' + ELM_MAX_RESP,
             'Descr': 'DTC Commanded equivalence ratio',
             'Header': ECU_ADDR_E,
             'Response': ECU_R_ADDR_E + ' 03 7F 02 12 \r'
-            # 0.140544 ratio
+            # invalid data returned by diagnostic request (mode 02)
         },
         'DTC_RELATIVE_THROTTLE_POS': {
             'Request': '^0245' + ELM_MAX_RESP,
             'Descr': 'DTC Relative throttle position',
             'Header': ECU_ADDR_E,
             'Response': ECU_R_ADDR_E + ' 03 7F 02 12 \r'
-            # 7.0588235294117645 percent
+            # invalid data returned by diagnostic request (mode 02)
         },
         'DTC_THROTTLE_POS_B': {
             'Request': '^0247' + ELM_MAX_RESP,
             'Descr': 'DTC Absolute throttle position B',
             'Header': ECU_ADDR_E,
             'Response': ECU_R_ADDR_E + ' 03 7F 02 12 \r'
-            # 7.0588235294117645 percent
+            # invalid data returned by diagnostic request (mode 02)
         },
         'DTC_THROTTLE_ACTUATOR': {
             'Request': '^024C' + ELM_MAX_RESP,
             'Descr': 'DTC Commanded throttle actuator',
             'Header': ECU_ADDR_E,
             'Response': ECU_R_ADDR_E + ' 03 7F 02 12 \r'
-            # 7.0588235294117645 percent
+            # invalid data returned by diagnostic request (mode 02)
         },
         'DTC_RUN_TIME_MIL': {
             'Request': '^024D' + ELM_MAX_RESP,
             'Descr': 'DTC Time run with MIL on',
             'Header': ECU_ADDR_E,
             'Response': ECU_R_ADDR_E + ' 03 7F 02 12 \r'
-            # 4608 minute
+            # invalid data returned by diagnostic request (mode 02)
         },
         'DTC_TIME_SINCE_DTC_CLEARED': {
             'Request': '^024E' + ELM_MAX_RESP,
             'Descr': 'DTC Time since trouble codes cleared',
             'Header': ECU_ADDR_E,
             'Response': ECU_R_ADDR_E + ' 03 7F 02 12 \r'
-            # 4608 minute
+            # invalid data returned by diagnostic request (mode 02)
         },
         'DTC_FUEL_TYPE': {
             'Request': '^0251' + ELM_MAX_RESP,
@@ -1544,13 +1553,16 @@ ObdMessage = {
                         'NO DATA \r',
                         ECU_R_ADDR_E + ' 03 7F 02 12 \r'
                         ]
+            # invalid data returned by diagnostic request (mode 02)
         },
+    # MODE 3 - diagnostic trouble codes
         'GET_DTC': {
             'Request': '^03' + ELM_MAX_RESP,
             'Descr': 'Get DTCs',
             'Header': ECU_ADDR_E,
             'Response': ECU_R_ADDR_E + ' 02 43 00 \r'
         },
+    # MODE 6 - results of self-diagnostics
         'MIDS_A': {
             'Request': '^0600' + ELM_MAX_RESP,
             'Descr': 'Supported MIDs [01-20]',
@@ -1665,6 +1677,7 @@ ObdMessage = {
                         ECU_R_ADDR_E + ' 21 00 00 FF FF A5 0C 24 \r' +
                         ECU_R_ADDR_E + ' 22 00 00 00 00 FF FF 00 \r'
         },
+    # MODE 7 - unconfirmed fault codes
         'GET_CURRENT_DTC': {
             'Request': '^07' + ELM_MAX_RESP,
             'Descr': 'Get DTCs from the current/last driving cycle',
