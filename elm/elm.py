@@ -4,13 +4,16 @@ from pathlib import Path
 import yaml
 import re
 import os
-import pty
+if os.name == 'nt':
+    import serial
+else:
+    import pty
 import threading
 import time
 import sys
 import traceback
 from random import randint
-from .obd_message import *
+from .obd_message import ObdMessage, ECU_ADDR_E, ELM_R_OK
 
 def setup_logging(
         default_path=Path(__file__).stem + '.yaml',
@@ -37,10 +40,10 @@ class ELM:
     ELM_VALID_CHARS = r"[a-zA-Z0-9 \n\r]*"
 
     # Other AT commands (still to be implemented...)
-    ELM_WARM_START         = r"ATWS$"
     ELM_DEFAULTS           = r"ATD$"
     ELM_SET_PROTO          = r"ATSPA?[0-9A-C]$"
     ELM_ERASE_PROTO        = r"ATSP00$"
+    ELM_R_OK               = ELM_R_OK
 
     def Sequence(self, pid, base, max, factor, n_bytes):
         c = self.counters[pid]
@@ -68,16 +71,36 @@ class ELM:
         self.answer = {}
         self.counters = {}
 
-    def __init__(self, batch_mode):
+    def setSortedOBDMsg(self):
+        if 'default' in self.ObdMessage and 'AT' in self.ObdMessage:
+            # Perform a union of the three subdictionaries
+            self.sortedOBDMsg = {
+                **self.ObdMessage['default'], # highest priority
+                **self.ObdMessage['AT'],
+                **self.ObdMessage[self.scenario] # lowest priority ('Priority' to be checked)
+                }
+        else:
+            self.sortedOBDMsg = { **self.ObdMessage[self.scenario] }
+        # Add 'Priority' to all pids and sort basing on priority (highest = 1, lowest=10)
+        self.sortedOBDMsg = sorted(self.sortedOBDMsg.items(), key = lambda x: x[1]['Priority'] if 'Priority' in x[1] else 10 )
+
+    def __init__(self, batch_mode, serial_port):
         self.ObdMessage = ObdMessage
         self.set_defaults()
+        self.setSortedOBDMsg()
         self.batch_mode = batch_mode
+        self.serial_port = serial_port
         self.reset(0)
 
     def __enter__(self):
-        # make a new pty
-        self.master_fd, self.slave_fd = pty.openpty()
-        self.slave_name = os.ttyname(self.slave_fd)
+        if os.name == 'nt':
+            self.master_fd = serial.Serial(self.serial_port, 38400)
+            self.slave_fd = None
+            self.slave_name = 'com0com Serial Port Pair at ' + self.serial_port
+        else:
+            # make a new pty
+            self.master_fd, self.slave_fd = pty.openpty()
+            self.slave_name = os.ttyname(self.slave_fd)
 
         # start the read thread
         self.threadState = THREAD.STARTING
@@ -90,15 +113,18 @@ class ELM:
     def __exit__(self, exc_type, exc_value, traceback):
         self.threadState = THREAD.STOPPED
         time.sleep(0.1)
-        os.close(self.slave_fd)
-        os.close(self.master_fd)
+        if os.name == 'nt':
+            self.master_fd.close()
+        else:
+            os.close(self.slave_fd)
+            os.close(self.master_fd)
         return False  # don't suppress any exceptions
 
     def run(self): # daemon thread
         setup_logging()
         self.logger = logging.getLogger()
         if not self.batch_mode:
-            logging.info('\n\nELM327 OBD-II adapter simulator started\n')
+            logging.info('\n\nELM327 OBD-II adapter emulator started\n')
         """ the ELM's main IO loop """
         
         self.threadState = THREAD.ACTIVE
@@ -156,9 +182,14 @@ class ELM:
         while True:
             prev_time = time.time()
             try:
-                c = os.read(self.master_fd, 1).decode()
-                if 'cmd_echo' in self.counters and self.counters['cmd_echo'] == 1:
-                    os.write(self.master_fd, c.encode())
+                if os.name == 'nt':
+                    c = self.master_fd.read(1).decode()
+                    if 'cmd_echo' in self.counters and self.counters['cmd_echo'] == 1:
+                        self.master_fd.write(c.encode())
+                else:
+                    c = os.read(self.master_fd, 1).decode()
+                    if 'cmd_echo' in self.counters and self.counters['cmd_echo'] == 1:
+                        os.write(self.master_fd, c.encode())
             except UnicodeDecodeError as e:
                 logging.warning("Invalid character received: %s", e)
                 return('')
@@ -193,9 +224,13 @@ class ELM:
                     evalmsg = eval(msg)
                     if nospaces:
                         evalmsg = re.sub(r'[ \t]+', '', evalmsg)
-                    os.write(self.master_fd, evalmsg.encode())
                     logging.debug("Evaluated command: %s", msg)
-                    logging.debug("Written evaluated command: %s", repr(evalmsg))
+                    if evalmsg != None:
+                        if os.name == 'nt':
+                            self.master_fd.write(evalmsg.encode())
+                        else:
+                            os.write(self.master_fd, evalmsg.encode())
+                        logging.debug("Written evaluated command: %s", repr(evalmsg))
                 except Exception:
                     try:
                         logging.debug("Executing command: %s", msg)
@@ -207,7 +242,10 @@ class ELM:
                 logging.debug("Write: %s", repr(i))
                 if nospaces:
                     i = re.sub(r'[ \t]+', '', i)
-                os.write(self.master_fd, i.encode())
+                if os.name == 'nt':
+                    self.master_fd.write(i.encode())
+                else:
+                    os.write(self.master_fd, i.encode())
             j += 1
 
     def validate(self, cmd):
@@ -235,18 +273,8 @@ class ELM:
         if not self.scenario in self.ObdMessage:
             logging.error("Unknown scenario %s", repr(self.scenario))
             return ""
-        if 'default' in self.ObdMessage and 'AT' in self.ObdMessage:
-            # Perform a union of the three subdictionaries
-            s = {
-                **self.ObdMessage['default'], # highest priority
-                **self.ObdMessage['AT'],
-                **self.ObdMessage[self.scenario] # lowest priority ('Priority' to be checked)
-                }
-        else:
-            s = { **self.ObdMessage[self.scenario] }
-        # Add 'Priority' to all pids and sort basing on priority (highest = 1, lowest=10)
-        for i in sorted(
-                s.items(), key=lambda x: x[1]['Priority'] if 'Priority' in x[1] else 10 ):
+
+        for i in self.sortedOBDMsg:
             key = i[0]
             val = i[1]
             if 'Request' in val and re.match(val['Request'], cmd):
@@ -274,7 +302,7 @@ class ELM:
                         return(self.answer[pid])
                     except Exception as e:
                         logging.error(
-                        "Error while processing '%s' for PID %s (%s)", self.answer, pid, e)                     
+                        "Error while processing '%s' for PID %s (%s)", self.answer, pid, e)
                 if 'Exec' in val:
                     try:
                         exec(val['Exec'])

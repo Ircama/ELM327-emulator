@@ -3,7 +3,7 @@ ELM327-emulator
 
 A Python emulator of the ELM327 OBD-II adapter connected to a vehicle.
 
-*ELM327-emulator* provides a virtual serial communication port to client applications (via [pseudo-terminal](https://en.wikipedia.org/wiki/Pseudoterminal) function) and simulates an [ELM327](https://en.wikipedia.org/wiki/ELM327) adapter connected to a vehicle through the [OBD-II](https://en.wikipedia.org/wiki/On-board_diagnostics) protocol. It includes a command-line interface for extensive monitoring and controlling.
+*ELM327-emulator* provides a virtual serial communication port to client applications (via [pseudo-terminal](https://en.wikipedia.org/wiki/Pseudoterminal) function on UNIX/Linux, or via [pyserial](https://pypi.org/project/pyserial/) library on Windows) and simulates an [ELM327](https://en.wikipedia.org/wiki/ELM327) adapter connected to a vehicle through the [OBD-II](https://en.wikipedia.org/wiki/On-board_diagnostics) protocol. It includes a command-line interface for extensive monitoring and controlling.
 
 *ELM327-emulator* is agnostic of the client application accessing the serial port and has been tested with [python-OBD](https://github.com/brendan-w/python-OBD).
 
@@ -21,6 +21,7 @@ python3 -V
 
 # Installing prerequisites
 python3 -m pip install pyyaml
+python3 -m pip install pyserial
 python3 -m pip install git+https://github.com/brendan-w/python-OBD.git # this is needed for obd_dictionary.py
 
 # Downloading ELM327-emulator
@@ -49,14 +50,22 @@ All subsequent information are not needed for a basic usage of the tool and allo
 
 ELM327-emulator has been tested with Python 3.5, 3.6 and 3.7. Python 2 is not supported.
 
-This code needs pseudo-terminal handling (pty support, `import pty`) which is platform dependent and runs on UNIX OSs. With Windows, [cygwin](http://www.cygwin.com/) and [Windows Subsystem for Linux](https://docs.microsoft.com/en-us/windows/wsl) (WSL) are supported.
+This code needs pseudo-terminal handling (pty support, `import pty`) which is platform dependent and runs on UNIX OSs. With Windows, [cygwin](http://www.cygwin.com/) and [Windows Subsystem for Linux](https://docs.microsoft.com/en-us/windows/wsl) (WSL) are supported, But you should install [com0com](http://com0com.sourceforge.net/)(or other virtual serial port software) first.
 
+# Running on Windows
+
+When runs on Windows, ELM327-emulator receive and send command/massage via virtual serial port pair. By default use `COM3` serial port, you can set other port by using `-p` argument.
+
+```shell
+python3 -m elm -p COM5
+```
 
 # Description
 
 The serial port to be used by the application interfacing the emulator is displayed when starting the program. E.g.:
 
     ELM327-emulator is running on /dev/pts/0
+
 
 ## Embedded dictionary of AT Commands and PIDs
 
