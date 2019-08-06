@@ -115,7 +115,7 @@ ObdMessage = {
         },
         'AT_TRY_PROTO': {
             'Request': '^ATTP[0-9A-C]+$',
-            'Descr': 'AT_TRY_PROTO',
+            'Descr': 'AT TRY PROTO',
             'Log': '"Try protocol %s", cmd[4:]',
             'Response': ELM_R_OK
         },
@@ -475,7 +475,7 @@ ObdMessage = {
             'Request': '^ATI' + ELM_MAX_RESP,
             'Descr': 'ELM327 version string',
             'Header': ECU_ADDR_E,
-            'Response': 'ELM327 v1.5a \r'
+            'Response': 'ELM327 v1.5 \r'
         },
         'ELM_VOLTAGE': {
             'Request': '^ATRV' + ELM_MAX_RESP,

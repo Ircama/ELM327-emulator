@@ -43,7 +43,6 @@ class ELM:
     ELM_DEFAULTS           = r"ATD$"
     ELM_SET_PROTO          = r"ATSPA?[0-9A-C]$"
     ELM_ERASE_PROTO        = r"ATSP00$"
-    ELM_R_OK               = ELM_R_OK
 
     def Sequence(self, pid, base, max, factor, n_bytes):
         c = self.counters[pid]
@@ -94,9 +93,17 @@ class ELM:
 
     def __enter__(self):
         if os.name == 'nt':
-            self.master_fd = serial.Serial(self.serial_port, 38400)
+            try:
+                self.master_fd = serial.Serial(
+                    port=self.serial_port,
+                    baudrate=38400)
+            except Exception as e:
+                logging.critical("Error while opening %s:\n%s",
+                              repr(self.serial_port), e)
+                return None
             self.slave_fd = None
-            self.slave_name = 'com0com Serial Port Pair at ' + self.serial_port
+            self.slave_name = 'com0com serial port pair reading from ' + \
+                self.serial_port
         else:
             # make a new pty
             self.master_fd, self.slave_fd = pty.openpty()
@@ -183,7 +190,11 @@ class ELM:
             prev_time = time.time()
             try:
                 if os.name == 'nt':
-                    c = self.master_fd.read(1).decode()
+                    try:
+                        c = self.master_fd.read(1).decode()
+                    except Exception:
+                        logging.debug("Error while reading from com0com serial port")
+                        return('')
                     if 'cmd_echo' in self.counters and self.counters['cmd_echo'] == 1:
                         self.master_fd.write(c.encode())
                 else:
@@ -335,6 +346,9 @@ class ELM:
         if "unknown_" + cmd not in self.counters:
             self.counters["unknown_" + cmd] = 0
         self.counters["unknown_" + cmd] += 1
+        if cmd == '':
+            logging.info("No ELM command")
+            return ""
         if "cmd_header" in self.counters:
             logging.info("Unknown ELM command: %s, header=%s", repr(cmd), self.counters["cmd_header"])
         else:

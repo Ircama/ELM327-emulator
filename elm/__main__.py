@@ -14,6 +14,8 @@ try:
     import glob
     import os.path
     import argparse
+    if os.name == 'nt':
+        import tendo.ansiterm
     try:
         import readline
     except ImportError:
@@ -43,6 +45,8 @@ class Interpreter(Cmd):
 
     def __set_ps_string(self, ps_string):
         self.ps_color = '\x01\033[01;32m\x02' + ps_string + '>\x01\033[00m\x02 '
+        if os.name == 'nt':
+            self.ps_color = '\033[01;32m' + ps_string + '>\033[00m '
         self.ps_nocolor = ps_string + '> '
         self.__set_ps()
 
@@ -82,7 +86,7 @@ class Interpreter(Cmd):
             print ("Invalid format")
             return
         sys.exit(0)
-
+    
     def do_delay(self, arg):
         "Delay each command of the seconds specified in the argument.\n"\
         "(Floating point number; default is 0.5 seconds.)"
@@ -132,7 +136,7 @@ class Interpreter(Cmd):
 
     def precmd(self, line):
         if self.color_active:
-            sys.stdout.write("\u001b[36m")
+            sys.stdout.write("\033[36m")
             sys.stdout.flush()
         return Cmd.precmd(self, line)
 
@@ -316,6 +320,9 @@ class Interpreter(Cmd):
         if readline and not args.batch_mode:
             readline.set_history_length(self.histfile_size)
             readline.write_history_file(self.histfile)
+        if self.color_active and not args.batch_mode:
+            sys.stdout.write("\033[00m")
+            sys.stdout.flush()
 
     # Execution of unrecognized commands
     def default(self, arg):
@@ -346,8 +353,9 @@ if __name__ == '__main__':
     parser.add_argument(
         '-p', '--port',
         dest = 'serial_port',
-        help = 'Set the virtual serial port ELM327-emulator listenning when running under windows OS',
-        default = 'COM3',
+        help = "Set the com0com serial port listened by ELM327-emulator "
+               "when running under windows OS. Default is COM3.",
+        default = ['COM3'],
         nargs = 1,
         metavar = 'PORT'
     )
@@ -357,9 +365,13 @@ if __name__ == '__main__':
     if args.batch_mode:
         sys.stdout = args.batch_mode[0]
 
+    p_elm = None
     try:
-        emulator = ELM(args.batch_mode, args.serial_port)
+        emulator = ELM(args.batch_mode, args.serial_port[0])
         with emulator as pts_name:
+            if pts_name == None:
+                print("\nCannot start ELM327-emulator.")
+                os._exit(1) # does not raise SystemExit
             if args.batch_mode:
                 print(pts_name)
             while emulator.threadState == THREAD.STARTING:
