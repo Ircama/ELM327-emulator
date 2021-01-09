@@ -82,7 +82,7 @@ def add_at(data):
         obd.logger.error("'AT' scenario not found in input file")
 
 
-def main():
+def obd_dictionary():
 
     SEP = '|'
 
@@ -404,10 +404,13 @@ Sample:
             },
 '''
 
-if __name__ == '__main__':
+def main():
     try:
-        main()
+        obd_dictionary()
     except KeyboardInterrupt:
         sys.exit("\n\n\nInterrupted.\n")
     except Exception as e:
         sys.exit("\n   Error. " + str(e) + "\n")
+
+if __name__ == '__main__':
+    main()

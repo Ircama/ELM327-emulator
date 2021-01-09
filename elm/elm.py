@@ -1,3 +1,12 @@
+#!/usr/bin/env python3
+# -*- coding: utf-8 -*-
+###########################################################################
+# ELM327-emulator
+# ELM327 Emulator for testing software interfacing OBDII via ELM327 adapter
+# https://github.com/Ircama/ELM327-emulator
+# (C) Ircama 2021 - CC-BY-NC-SA-4.0
+###########################################################################
+
 import logging
 import logging.config
 from pathlib import Path
@@ -12,14 +21,19 @@ import threading
 import time
 import sys
 import traceback
+import errno
 from random import randint
 from .obd_message import ObdMessage, ECU_ADDR_E, ELM_R_OK
+from .__version__ import __version__
 
 def setup_logging(
         default_path=Path(__file__).stem + '.yaml',
         default_level=logging.INFO,
         env_key=os.path.basename(Path(__file__).stem).upper() + '_LOG_CFG'):
     path = default_path
+    if not os.path.exists(path):
+        path = os.path.join(
+            os.path.dirname(Path(__file__)), 'elm.yaml')
     value = os.getenv(env_key, None)
     if value:
         path = value
@@ -30,19 +44,19 @@ def setup_logging(
     else:
         logging.basicConfig(level=default_level)
 
-class THREAD:
-    STOPPED = 0
-    STARTING = 1
-    ACTIVE = 2
-    PAUSED = 3
-
-class ELM:
+class Elm:
     ELM_VALID_CHARS = r"[a-zA-Z0-9 \n\r]*"
 
     # Other AT commands (still to be implemented...)
     ELM_DEFAULTS           = r"ATD$"
     ELM_SET_PROTO          = r"ATSPA?[0-9A-C]$"
     ELM_ERASE_PROTO        = r"ATSP00$"
+
+    class THREAD:
+        STOPPED = 0
+        STARTING = 1
+        ACTIVE = 2
+        PAUSED = 3
 
     def Sequence(self, pid, base, max, factor, n_bytes):
         c = self.counters[pid]
@@ -83,15 +97,54 @@ class ELM:
         # Add 'Priority' to all pids and sort basing on priority (highest = 1, lowest=10)
         self.sortedOBDMsg = sorted(self.sortedOBDMsg.items(), key = lambda x: x[1]['Priority'] if 'Priority' in x[1] else 10 )
 
-    def __init__(self, batch_mode, serial_port):
+    def __init__(self, batch_mode=False, serial_port=""):
         self.ObdMessage = ObdMessage
         self.set_defaults()
         self.setSortedOBDMsg()
         self.batch_mode = batch_mode
         self.serial_port = serial_port
         self.reset(0)
+        self.slave_name = None
+        self.thread = None
 
     def __enter__(self):
+        # start the read thread
+        self.threadState = self.THREAD.STARTING
+        self.thread = threading.Thread(target=self.run)
+        self.thread.daemon = True
+        self.thread.start()
+
+        return self
+
+    def __exit__(self, exc_type, exc_value, traceback):
+        self.terminate()
+        return False  # don't suppress any exceptions
+
+    def terminate(self):
+        """ termination procedure """
+        logging.debug("Start termination procedure.")
+        if self.thread and self.threadState != self.THREAD.STOPPED:
+            time.sleep(0.1)
+            try:
+                self.thread.join(1)
+            except:
+                logging.debug("Cannot join current thread.")
+            self.thread = None
+        self.threadState = self.THREAD.STOPPED
+        try:
+            if self.slave_fd:
+                os.close(self.slave_fd)
+            if self.master_fd:
+                os.close(self.master_fd)
+        except:
+            logging.debug("Cannot close file descriptors.")
+        self.set_defaults()
+        logging.debug("Terminated.")
+        return True
+
+    def get_pty(self):
+        if self.slave_name:
+            return self.slave_name
         if os.name == 'nt':
             try:
                 self.master_fd = serial.Serial(
@@ -108,42 +161,32 @@ class ELM:
             # make a new pty
             self.master_fd, self.slave_fd = pty.openpty()
             self.slave_name = os.ttyname(self.slave_fd)
-
-        # start the read thread
-        self.threadState = THREAD.STARTING
-        self.thread = threading.Thread(target=self.run)
-        self.thread.daemon = True
-        self.thread.start()
-
+        logging.debug("Pty name: %s", self.slave_name)
         return self.slave_name
-
-    def __exit__(self, exc_type, exc_value, traceback):
-        self.threadState = THREAD.STOPPED
-        time.sleep(0.1)
-        if os.name == 'nt':
-            self.master_fd.close()
-        else:
-            os.close(self.slave_fd)
-            os.close(self.master_fd)
-        return False  # don't suppress any exceptions
 
     def run(self): # daemon thread
         setup_logging()
         self.logger = logging.getLogger()
-        if not self.batch_mode:
-            logging.info('\n\nELM327 OBD-II adapter emulator started\n')
+        self.get_pty()
+
+        if self.batch_mode:
+            logging.debug(
+                f'ELM327 OBD-II adapter emulator v{__version__} started_______________')
+        else:
+            logging.info(
+                f'\n\nELM327 OBD-II adapter emulator v{__version__} started\n')
         """ the ELM's main IO loop """
         
-        self.threadState = THREAD.ACTIVE
-        while self.threadState != THREAD.STOPPED:
+        self.threadState = self.THREAD.ACTIVE
+        while self.threadState != self.THREAD.STOPPED:
 
-            if self.threadState == THREAD.PAUSED:
+            if self.threadState == self.THREAD.PAUSED:
                 time.sleep(0.1)
                 continue
 
                 # get the latest command
             self.cmd = self.read()
-            if self.threadState == THREAD.STOPPED:
+            if self.threadState == self.THREAD.STOPPED:
                 return
 
             # process 'fast' option
@@ -200,7 +243,16 @@ class ELM:
                 else:
                     c = os.read(self.master_fd, 1).decode()
                     if 'cmd_echo' in self.counters and self.counters['cmd_echo'] == 1:
-                        os.write(self.master_fd, c.encode())
+                        try:
+                            os.write(self.master_fd, c.encode())
+                        except OSError as e:
+                            if e.errno == errno.EBADF or e.errno == errno.EIO: # [Errno 9] Bad file descriptor/[Errno 5] Input/output error
+                                logging.debug("Read interrupted. Terminating.")
+                                self.terminate()
+                            else:
+                                logging.critical("PANIC - Internal OSError in read(): %s", e,
+                                    exc_info=True)                        
+                                self.terminate()
             except UnicodeDecodeError as e:
                 logging.warning("Invalid character received: %s", e)
                 return('')
@@ -240,7 +292,16 @@ class ELM:
                         if os.name == 'nt':
                             self.master_fd.write(evalmsg.encode())
                         else:
-                            os.write(self.master_fd, evalmsg.encode())
+                            try:
+                                os.write(self.master_fd, evalmsg.encode())
+                            except OSError as e:
+                                if e.errno == errno.EBADF or e.errno == errno.EIO: # [Errno 9] Bad file descriptor/[Errno 5] Input/output error
+                                    logging.debug("Read interrupted. Terminating.")
+                                    self.terminate()
+                                else:
+                                    logging.critical("PANIC - Internal OSError in write(): %s", e,
+                                        exc_info=True)                        
+                                    self.terminate()
                         logging.debug("Written evaluated command: %s", repr(evalmsg))
                 except Exception:
                     try:
@@ -256,16 +317,21 @@ class ELM:
                 if os.name == 'nt':
                     self.master_fd.write(i.encode())
                 else:
-                    os.write(self.master_fd, i.encode())
+                    try:
+                        os.write(self.master_fd, i.encode())
+                    except OSError as e:
+                        if e.errno == errno.EBADF or e.errno == errno.EIO: # [Errno 9] Bad file descriptor/[Errno 5] Input/output error
+                            logging.debug("Read interrupted. Terminating.")
+                            self.terminate()
+                        else:
+                            logging.critical("PANIC - Internal OSError in write(): %s", e,
+                                exc_info=True)                        
+                            self.terminate()
             j += 1
 
     def validate(self, cmd):
-
         if not re.match(self.ELM_VALID_CHARS, cmd):
             return False
-
-        # TODO: more tests
-
         return True
 
     def handle(self, cmd):
