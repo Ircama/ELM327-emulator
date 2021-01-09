@@ -42,7 +42,7 @@ jobs:
     - name: Install dependencies
       run: >-
         python -m
-        pip install pyyaml python-daemon tendo python-OBD setuptools wheel twine
+        pip install pyyaml python-daemon obd setuptools wheel twine
     - name: Install pypa/build
       run: >-
         python -m
