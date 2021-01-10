@@ -27,27 +27,27 @@ To install from GitHub:
 python3 -m pip install git+https://github.com/ircama/ELM327-emulator
 ```
 
-To uninstall:
-
-```shell
-python3 -m pip uninstall -y ELM327-emulator
-```
-
 Prerequisite components: *pyyaml*, *python-daemon*, *obd*, *tendo*. Apart from *tendo*, they are already included in the installation procedure.
 
 *obd* (*python-OBD*) is needed for *obd_dictionary*.
 
-*tendo* is only needed with Windows and it is not included in the installation procedure; idf needed, it has to be manually installed with:
+Important: *tendo* is only needed with Windows and it is not included in the installation procedure: it has to be manually installed with
 
 ```shell
 python3 -m pip install tendo # only needed with Windows
 ```
 
-Important note: it is better to use an updated version of *python-OBD* package (e.g., the one installed from GitHub):
+Other important note: it is better to use an updated version of *python-OBD* package (e.g., the one installed from GitHub):
 
 
 ```shell
 python3 -m pip install git+https://github.com/brendan-w/python-OBD.git
+```
+
+To uninstall:
+
+```shell
+python3 -m pip uninstall -y ELM327-emulator
 ```
 
 # Usage
@@ -470,19 +470,30 @@ optional arguments:
 ELM327-emulator v0.1.1 - ELM327 OBDII adapter emulator
 ```
 
+*elm* offers four operation modes:
+
+- interactive (providing a command line prompt). This is activated by default, when neither `-b` option nor `-d` is used;
+- batch mode with input commands, activated when the `-b` option (`-b file` or `-b -`e.g., `-b -` for standard log output, or `-b output_file_name`). This mode reads the standard input for the same commands that can be issued by the user in interactive mode;
+- batch mode light, only availble with UNIX, without input commands (no separate thread is created and the command interpreter is not used). This is activated when both `-b` and `-d` options are used;
+- daemon mode without input commands, only availble with UNIX, allowing to start and stop the process in UNIX daemon mode, with `-d` option (start) and `-t` (terminate).
+
+In daemon mode, a lock file is used to prevent multiple instances.
+
+Note: with Windows, options `-d` and `-t` are not available.
+
 The following script shows an example of batch mode usage. *obd_dictionary* is run after starting *ELM327-emulator* in background and is used here as example of external application interfacing the emulator. The output of the emulator is saved to $FILE and the background process id is saved to $EMUL_PID.
 
  ```bash
 FILE=/tmp/elm$$
-echo -e 'scenario car\ncounters\n"RUNNING"' | python3 -m elm -b $FILE &
+echo -e 'scenario car\ncounters' | elm -b $FILE &
 EMUL_PID=$!
 
-until grep "^RUNNING$" $FILE; do sleep 0.5; done
+until grep "End of batch commands." $FILE; do sleep 0.5; done # RUNNING
 read TTYNAME < $FILE
 
-../obd_dictionary -i /dev/pts/0 -o $TTYNAME -t -v -o /dev/null
+obd_dictionary -i $TTYNAME -t -v -o /dev/null
 
-kill -SIGINT $EMUL_PID
+kill -INT $EMUL_PID
 cat $FILE
 rm $FILE
 ```
@@ -532,9 +543,13 @@ emulator.terminate()
 
 # Software architecture
 
-When using the Context Manager, a thread is started: the current context is returned to the user. The created thread opens a bidirectional pty-type pipe and processes the related I/O.
+When using the Context Manager, a thread is started and the current context is returned to the user. The created thread opens a bidirectional pty-type pipe and processes the related I/O.
 
-When not using the Context Manager, no background thread is created.
+When not using the Context Manager, no background thread is created and the pipe is run in the current context.
+
+# License
+
+(C) Ircama 2021 - [CC BY-NC-SA 4.0](https://creativecommons.org/licenses/by-nc-sa/4.0/)
 
 ## Credits
 

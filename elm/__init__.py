@@ -503,7 +503,7 @@ def main():
         print("\nELM327-emulator service ENDED")
         sys.exit(0)
 
-    if args.daemon_mode:
+    if args.daemon_mode and not args.batch_mode:
         if pid:
             try:
                 pidfile.acquire()
