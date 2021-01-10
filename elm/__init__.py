@@ -22,9 +22,10 @@ try:
     import argparse
     if os.name == 'nt':
         import tendo.ansiterm
+    else:
+        import daemon
+        import daemon.pidfile
     import signal
-    import daemon
-    import daemon.pidfile
     from lockfile.pidlockfile import PIDLockFile
     from lockfile import AlreadyLocked, NotLocked, LockFailed
     from .__version__ import __version__
@@ -408,17 +409,18 @@ def main():
         dest='version',
         action='store_true',
         help="print ELM327-emulator version and exit")
-    parser.add_argument(
-        '-t',
-        "--terminate",
-        dest='terminate',
-        action='store_true',
-        help="terminate a daemon process sending SIGTERM")
-    parser.add_argument(
-        "-d", "--daemon",
-        dest = "daemon_mode",
-        action='store_true',
-        help = "Run ELM327-emulator in daemon mode. ")
+    if os.name != 'nt':
+        parser.add_argument(
+            '-t',
+            "--terminate",
+            dest='terminate',
+            action='store_true',
+            help="terminate the daemon process sending SIGTERM")
+        parser.add_argument(
+            "-d", "--daemon",
+            dest = "daemon_mode",
+            action='store_true',
+            help = "Run ELM327-emulator in daemon mode. ")
     parser.add_argument(
         "-b", "--batch",
         dest="batch_mode",
@@ -453,19 +455,24 @@ def main():
         sys.exit(0)
 
     # Redirect stdout
-    if args.batch_mode and args.batch_mode[0].name != '<stdout>':
+    if args.batch_mode and not args.batch_mode[0].isatty():
         sys.stdout = args.batch_mode[0]
 
     # Instantiate the class
+    if os.name == 'nt':
+        args.daemon_mode = False
+        args.terminate = False
+
     emulator = Elm(args.batch_mode or args.daemon_mode,
         args.serial_port[0])
 
-    if os.getuid() == 0:
-        daemon_pid_fname = DAEMON_PIDFILE_DIR_ROOT + DAEMON_PIDFILE
-    else:
-        daemon_pid_fname = DAEMON_PIDFILE_DIR_NON_ROOT + DAEMON_PIDFILE
-    pidfile = daemon.pidfile.PIDLockFile(daemon_pid_fname)
-    pid = pidfile.read_pid()
+    if os.name != 'nt':
+        if os.getuid() == 0:
+            daemon_pid_fname = DAEMON_PIDFILE_DIR_ROOT + DAEMON_PIDFILE
+        else:
+            daemon_pid_fname = DAEMON_PIDFILE_DIR_NON_ROOT + DAEMON_PIDFILE
+        pidfile = daemon.pidfile.PIDLockFile(daemon_pid_fname)
+        pid = pidfile.read_pid()
 
     if args.terminate:
         if pid:
@@ -537,7 +544,7 @@ def main():
             sys.exit(1)
         sys.exit(0)
 
-    if pid:
+    if os.name != 'nt' and pid:
         print(f'Warning: lockfile "{daemon_pid_fname}" reports pid {pid}.')
 
     p_elm = None
