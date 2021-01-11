@@ -72,13 +72,13 @@ All subsequent information are not needed for a basic usage of the tool and allo
 
 # Compatibility
 
-ELM327-emulator has been tested with Python 3.5, 3.6 and 3.7. Python 2 is not supported.
+*ELM327-emulator* has been tested with Python 3.5, 3.6 and 3.7. Python 2 is not supported.
 
 With UNIX OSs, this code uses pty pseudo-terminals. With Windows, you should first install [com0com](https://sourceforge.net/projects/com0com) (a kernel-mode virtual serial port driver), or [other virtual serial port software](http://com0com.sourceforge.net/); alterantively, [cygwin](http://www.cygwin.com/) and [Windows Subsystem for Linux](https://docs.microsoft.com/en-us/windows/wsl) (WSL) are supported.
 
 # Running on Windows
 
-When natively running on Windows, ELM327-emulator requires a virtual serial port driver providing a virtual COM port pair (like com0com), so that one COM port (e.g., COM4) can be used to connect the application and the other one (e.g., COM3) the ELM327-emulator. By default ELM327-emulator uses `COM3` serial port; any other port can be set through the `-p` argument. Example:
+When natively running on Windows (to be used when connecting a Windows application), *ELM327-emulator* requires a virtual serial port driver providing a virtual COM port pair (like *com0com*), so that one COM port (e.g., COM4) can be used to connect the application and the other one (e.g., COM3) the *ELM327-emulator*. By default *ELM327-emulator* uses `COM3` serial port; any other port can be set through the `-p` argument. Example:
 
 ```shell
 python3 -m elm -p COM5

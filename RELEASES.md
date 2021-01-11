@@ -47,8 +47,14 @@ It shall be even with the last commit.
 Check the GitHub Action: https://github.com/Ircama/ELM327-emulator/actions
 
 Check PyPI:
-https://test.pypi.org/manage/project/ELM327-emulator/releases/
-https://pypi.org/manage/project/ELM327-emulator/releases/
+
+- https://test.pypi.org/manage/project/ELM327-emulator/releases/
+- https://pypi.org/manage/project/ELM327-emulator/releases/
+
+End user publishing page:
+
+- https://test.pypi.org/project/ELM327-emulator
+- https://pypi.org/project/ELM327-emulator/
 
 Verify whether wrong builds need to be removed.
 
