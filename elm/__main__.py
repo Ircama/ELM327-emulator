@@ -7,7 +7,12 @@
 # (C) Ircama 2021 - CC-BY-NC-SA-4.0
 ###########################################################################
 
-from . import main
+import sys
+try:
+    from .interpreter import main
+except (ImportError, ValueError):
+    print("ELM327-emulator must be run as a module. E.g., python3 -m elm")
+    sys.exit(1)
 
 if __name__ == "__main__":
     main()
