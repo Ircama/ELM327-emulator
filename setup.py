@@ -30,6 +30,14 @@ PACKAGE_NAME = "ELM327-emulator"
 
 VERSIONFILE = "elm/__version__.py"
 
+INSTALL_REQUIRES = [
+    'python-daemon',
+    'pyyaml',
+    'obd'
+],
+if sys.platform.startswith('win'):
+    INSTALL_REQUIRES.append("tendo") # only with Windows O.S.
+
 ###########################################################################
 
 def versions(pkg_name, site):
@@ -109,9 +117,5 @@ setup(
     ]},
     include_package_data=True,
     zip_safe=False,
-    install_requires=[
-        'python-daemon',
-        'pyyaml',
-        'obd'
-    ],
+    install_requires=INSTALL_REQUIRES
 )

@@ -485,17 +485,19 @@ The following script shows an example of batch mode usage. *obd_dictionary* is r
 
  ```bash
 FILE=/tmp/elm$$
-echo -e 'scenario car\ncounters' | elm -b $FILE &
+echo -e 'scenario car\ncounters' | elm -b "${FILE}" &
 EMUL_PID=$!
 
-until grep "End of batch commands." $FILE; do sleep 0.5; done # RUNNING
-read TTYNAME < $FILE
+until [ ! -f "${FILE}" ] || grep -q "End of batch commands." "${FILE}"
+do sleep 0.5
+done
+read TTYNAME < "${FILE}"
 
-obd_dictionary -i $TTYNAME -t -v -o /dev/null
+obd_dictionary -i "${TTYNAME}" -t -v -o /dev/null
 
-kill -INT $EMUL_PID
-cat $FILE
-rm $FILE
+kill -INT "${EMUL_PID}"
+cat "${FILE}"
+rm "${FILE}"
 ```
 
 # Python API

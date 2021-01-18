@@ -93,10 +93,15 @@ class Interpreter(Cmd):
     def emptyline(self):
         return
 
+    def do_echo(self, arg):
+        'Print the message in the argument.'
+        print(arg)
+
     def do_EOF(self, arg):
         'Quit ELM327-emulator'
         if self.args.batch_mode:
             print("End of batch commands.")
+            sys.stdout.flush()
             while threading.active_count() == 2:
                 time.sleep(0.5)
         else:
