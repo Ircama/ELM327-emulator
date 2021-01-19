@@ -34,7 +34,7 @@ INSTALL_REQUIRES = [
     'python-daemon',
     'pyyaml',
     'obd'
-],
+]
 if sys.platform.startswith('win'):
     INSTALL_REQUIRES.append("tendo") # only with Windows O.S.
 
