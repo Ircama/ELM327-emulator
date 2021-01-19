@@ -95,7 +95,8 @@ class Elm:
         else:
             self.sortedOBDMsg = { **self.ObdMessage[self.scenario] }
         # Add 'Priority' to all pids and sort basing on priority (highest = 1, lowest=10)
-        self.sortedOBDMsg = sorted(self.sortedOBDMsg.items(), key = lambda x: x[1]['Priority'] if 'Priority' in x[1] else 10 )
+        self.sortedOBDMsg = sorted(
+            self.sortedOBDMsg.items(), key = lambda x: x[1]['Priority'] if 'Priority' in x[1] else 10 )
 
     def __init__(self, batch_mode=False, serial_port=""):
         self.ObdMessage = ObdMessage
@@ -171,10 +172,12 @@ class Elm:
 
         if self.batch_mode:
             logging.debug(
-                f'ELM327 OBD-II adapter emulator v{__version__} started_______________')
+                'ELM327 OBD-II adapter emulator v%s started '
+                'on pty "%s"_______________', __version__, self.slave_name)
         else:
             logging.info(
-                f'\n\nELM327 OBD-II adapter emulator v{__version__} started\n')
+                '\n\nELM327 OBD-II adapter emulator v%s started '
+                'on pty "%s".\n', __version__, self.slave_name)
         """ the ELM's main IO loop """
         
         self.threadState = self.THREAD.ACTIVE
@@ -225,8 +228,10 @@ class Elm:
         except Exception as e:
             if 'req_timeout' in self.counters:
                 logging.error("Improper configuration of\n\"self.counters"\
-                              "['req_timeout']\": '%s' (%s). Resetting it to %s",
-                              self.counters['req_timeout'], e, self.max_req_timeout
+                              "['req_timeout']\": '%s' (%s). "
+                              "Resetting it to %s",
+                              self.counters['req_timeout'], e,
+                              self.max_req_timeout
                              )
             self.counters['req_timeout'] = req_timeout
         while True:
@@ -236,7 +241,8 @@ class Elm:
                     try:
                         c = self.master_fd.read(1).decode()
                     except Exception:
-                        logging.debug("Error while reading from com0com serial port")
+                        logging.debug(
+                            "Error while reading from com0com serial port")
                         return('')
                     if 'cmd_echo' in self.counters and self.counters['cmd_echo'] == 1:
                         self.master_fd.write(c.encode())
@@ -296,13 +302,16 @@ class Elm:
                                 os.write(self.master_fd, evalmsg.encode())
                             except OSError as e:
                                 if e.errno == errno.EBADF or e.errno == errno.EIO: # [Errno 9] Bad file descriptor/[Errno 5] Input/output error
-                                    logging.debug("Read interrupted. Terminating.")
+                                    logging.debug(
+                                        "Read interrupted. Terminating.")
                                     self.terminate()
                                 else:
-                                    logging.critical("PANIC - Internal OSError in write(): %s", e,
-                                        exc_info=True)                        
+                                    logging.critical(
+                                        'PANIC - Internal OSError in write(): '
+                                        '%s', e, exc_info=True)                        
                                     self.terminate()
-                        logging.debug("Written evaluated command: %s", repr(evalmsg))
+                        logging.debug("Written evaluated command: %s",
+                            repr(evalmsg))
                 except Exception:
                     try:
                         logging.debug("Executing command: %s", msg)
@@ -373,25 +382,29 @@ class Elm:
                                   val['Descr'], pid, cmd)
                 else:
                     logging.error(
-                        "Internal error - Missing description for %s, PID %s", cmd, pid)
+                        "Internal error - Missing description for %s, PID %s",
+                        cmd, pid)
                 if pid in self.answer:
                     try:
                         return(self.answer[pid])
                     except Exception as e:
                         logging.error(
-                        "Error while processing '%s' for PID %s (%s)", self.answer, pid, e)
+                        "Error while processing '%s' for PID %s (%s)",
+                        self.answer, pid, e)
                 if 'Exec' in val:
                     try:
                         exec(val['Exec'])
                     except Exception as e:
                         logging.error(
-                        "Cannot execute '%s' for PID %s (%s)", val['Exec'], pid, e)
+                        "Cannot execute '%s' for PID %s (%s)",
+                        val['Exec'], pid, e)
                 if 'Log' in val:
                     try:
                         exec("logging.debug(" + val['Log'] + ")")
                     except Exception as e:
                         logging.error(
-                        "Error while logging '%s' for PID %s (%s)", val['Log'], pid, e)
+                        "Error while logging '%s' for PID %s (%s)",
+                        val['Log'], pid, e)
                 if 'Response' in val:
                     header = ''
                     if 'ResponseHeader' in val:
@@ -407,7 +420,8 @@ class Elm:
                     return (header + response + footer)
                 else:
                     logging.error(
-                        "Internal error - Missing response for %s, PID %s", cmd, pid)
+                        "Internal error - Missing response for %s, PID %s",
+                        cmd, pid)
                     return self.ELM_R_OK
         if "unknown_" + cmd not in self.counters:
             self.counters["unknown_" + cmd] = 0
@@ -416,7 +430,8 @@ class Elm:
             logging.info("No ELM command")
             return ""
         if "cmd_header" in self.counters:
-            logging.info("Unknown ELM command: %s, header=%s", repr(cmd), self.counters["cmd_header"])
+            logging.info("Unknown ELM command: %s, header=%s",
+                repr(cmd), self.counters["cmd_header"])
         else:
             logging.info("Unknown ELM command: %s", repr(cmd))
         return ""

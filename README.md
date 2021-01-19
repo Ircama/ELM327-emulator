@@ -537,12 +537,6 @@ emulator = Elm()
 emulator.run()
 ```
 
-To terminate the process:
-
-```
-emulator.terminate()
-```
-
 # Software architecture
 
 When using the Context Manager, a thread is started and the current context is returned to the user. The created thread opens a bidirectional pty-type pipe and processes the related I/O.
