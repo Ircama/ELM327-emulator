@@ -21,7 +21,7 @@ git commit -a
 git push
 ```
 
-Add a local tag (shall be added AFTER the commit that needs to be published):
+_After pushing the last commit_, add a local tag (shall be added AFTER the commit that needs to be published):
 
 ```shell
 git tag # list local tags
