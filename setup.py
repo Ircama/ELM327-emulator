@@ -10,9 +10,9 @@
 from setuptools import setup, find_packages
 import re
 import os
+import sys
 
 import json
-import sys
 from urllib import request
 from pkg_resources import parse_version
 
@@ -35,7 +35,9 @@ INSTALL_REQUIRES = [
     'pyyaml',
     'obd'
 ]
-if sys.platform.startswith('win'):
+print("os.name", os.name)
+print("sys.platform", sys.platform)
+if os.name == 'nt':
     INSTALL_REQUIRES.append("tendo") # only with Windows O.S.
 
 ###########################################################################
