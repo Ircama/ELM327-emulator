@@ -508,6 +508,8 @@ emulator = Elm(
     serial_port="")             # optional serial port used with Windows (ignored with non Windows O.S.)
 ```
 
+`get_pty()` returns the used port.
+
 ## Interactive mode
 
 Interactive mode uses the Context Manager:
@@ -517,17 +519,24 @@ from elm import Elm
 import time
 
 with Elm() as session:
-    # do interactive monitoring while the process run
+    # interactive monitoring while the process run
+    pty = session.get_pty()
+    print(f"Used port: {pty}")
     time.sleep(40) # example
 ```
 
 ## Batch/daemon mode
 
-Batch/daemon mode does not need the Context Manager:
+Batch mode without interaction does not need the Context Manager:
 
-```
+```python
 from elm import Elm
-emulator = Elm()
+
+emulator = Elm(batch_mode=True)
+
+pty = emulator.get_pty()
+print(f"Used port: {pty}")
+
 emulator.run()
 ```
 
