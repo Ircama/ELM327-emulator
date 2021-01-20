@@ -24,7 +24,8 @@ EPILOGUE = '''
 Full information and usage details at the [ELM327-emulator GitHub repository](https://github.com/Ircama/ELM327-emulator).
 '''
 
-DESCRIPTION = "ELM327 Emulator for testing software interfacing OBDII via ELM327 adapter"
+DESCRIPTION = ("ELM327 Emulator for testing software interfacing OBDII "
+                "via ELM327 adapter")
 
 PACKAGE_NAME = "ELM327-emulator"
 
@@ -99,7 +100,8 @@ setup(
         "Topic :: System :: Emulators",
         "Intended Audience :: Developers",
     ],
-    keywords="elm327 emulator obdii obd2 torque simulation simulator can-bus automotive",
+    keywords=("elm327 emulator obdii obd2 torque simulation simulator "
+                "can-bus automotive"),
     author="Ircama",
     url="https://github.com/Ircama/ELM327-emulator",
     license='CC-BY-NC-SA-4.0',
