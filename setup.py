@@ -66,10 +66,12 @@ if os.environ.get('GITHUB_RUN_NUMBER') is not None:
         print("Using build number " + os.environ['GITHUB_RUN_NUMBER'])
         if version_list_pypi:
             print(
-                "Version list available in pypi " + version_list_pypi)
+                "Version list available in pypi: " +
+                ', '.join(version_list_pypi))
         if version_list_testpypi:
             print(
-                "Version list available in testpypi " + version_list_testpypi)
+                "Version list available in testpypi: " +
+                ', '.join(version_list_testpypi))
         print('---------------------------------'
             '---------------------------------')
         verstr += '-' + os.environ['GITHUB_RUN_NUMBER']
