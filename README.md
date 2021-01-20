@@ -27,17 +27,11 @@ To install from GitHub:
 python3 -m pip install git+https://github.com/ircama/ELM327-emulator
 ```
 
-Prerequisite components: *pyyaml*, *python-daemon*, *obd*, *tendo*. Apart from *tendo*, they are already included in the installation procedure.
+Prerequisite components: *pyyaml*, *python-daemon*, *obd*; in addition, with Windows also *tendo*. All needed prerequisites are automatically installed with the package.
 
 *obd* (*python-OBD*) is needed for *obd_dictionary*.
 
-Important: *tendo* is only needed with Windows and it is not included in the installation procedure: it has to be manually installed with
-
-```shell
-python3 -m pip install tendo # only needed with Windows
-```
-
-Other important note: it is better to use an updated version of *python-OBD* package (e.g., the one installed from GitHub):
+Important note: it is better to use an updated version of *python-OBD* package (e.g., the one installed from GitHub):
 
 
 ```shell
