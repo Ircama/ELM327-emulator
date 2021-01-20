@@ -33,11 +33,11 @@ VERSIONFILE = "elm/__version__.py"
 ###########################################################################
 
 def versions(pkg_name, site):
-    url = 'https://' + site + f'.python.org/pypi/{pkg_name}/json'
+    url = 'https://' + site + '.python.org/pypi/' + pkg_name + '/json'
     try:
         releases = json.loads(request.urlopen(url).read())['releases']
     except Exception as e:
-        print(f"Error while getting data from URL '{url}': {e}")
+        print("Error while getting data from URL '" + url + "': " + e)
         return []
     return sorted(releases, key=parse_version, reverse=True)
 
@@ -63,13 +63,13 @@ if os.environ.get('GITHUB_RUN_NUMBER') is not None:
             os.environ.get('GITHUB_FORCE_RUN_NUMBER') is not None):
         print('---------------------------------'
             '---------------------------------')
-        print(f"Using build number {os.environ['GITHUB_RUN_NUMBER']}")
+        print("Using build number " + os.environ['GITHUB_RUN_NUMBER'])
         if version_list_pypi:
             print(
-                f"Version list available in pypi {version_list_pypi}")
+                "Version list available in pypi " + version_list_pypi)
         if version_list_testpypi:
             print(
-                f"Version list available in testpypi {version_list_testpypi}")
+                "Version list available in testpypi " + version_list_testpypi)
         print('---------------------------------'
             '---------------------------------')
         verstr += '-' + os.environ['GITHUB_RUN_NUMBER']
