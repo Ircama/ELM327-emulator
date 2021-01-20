@@ -519,7 +519,7 @@ from elm import Elm
 import time
 
 with Elm() as session:
-    # interactive monitoring while the process run
+    # interactive monitoring
     pty = session.get_pty()
     print(f"Used port: {pty}")
     time.sleep(40) # example
