@@ -552,4 +552,4 @@ When not using the Context Manager, no background thread is created and the pipe
 
 ## Credits
 
-Many thanks to [@qqj1228](https://github.com/qqj1228) for implemeting support to [com0com Windows driver](#running-on-windows) as well as for other enhancements.
+Many thanks to [@qqj1228](https://github.com/qqj1228) for implementing support to [com0com Windows driver](#running-on-windows) as well as for other enhancements.
