@@ -33,6 +33,7 @@ try:
         import readline
     except ImportError:
         readline = None
+    from .obd_message import ObdMessage, ECU_ADDR_E, ELM_R_OK
 except ImportError as detail:
     print("ELM327 OBDII adapter emulator error:\n " + str(detail))
     sys.exit(1)
@@ -249,11 +250,11 @@ class Interpreter(Cmd):
                 x[:-3] for x in glob.glob('*.py')]:
             try:
                 exec('from ' + arg + ' import ObdMessage', globals())
-                emulator.ObdMessage.update(ObdMessage)
+                self.emulator.ObdMessage.update(ObdMessage)
                 print("ObdMessage successfully imported and merged. "
                       "Available scenarios:")
                 print("%s" % ', '.join([
-                sc for sc in emulator.ObdMessage]))
+                sc for sc in self.emulator.ObdMessage]))
             except Exception as e:
                 print("Error merging '%s': %s." % (arg, e))
         else:
