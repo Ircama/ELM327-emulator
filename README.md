@@ -15,7 +15,7 @@ An internal dictionary (named *ObdMessage*) allows configuring the emulation, wh
 
 # Installation
 
-Check that the Python version is 3.5 or higher (`python3 -V`), then install *ELM327-emulator* with the following command:
+Check that the Python version is 3.6 or higher (`python3 -V`), then install *ELM327-emulator* with the following command:
 
 ```shell
 python3 -m pip install ELM327-emulator
