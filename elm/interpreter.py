@@ -376,10 +376,10 @@ class Interpreter(Cmd):
     def default(self, arg):
         emulator = self.emulator # ref. host_lib
         try:
-            print ( eval(arg) )
+            print(eval(arg, locals()))
         except Exception:
             try:
-                exec(arg, globals())
+                exec(arg, locals())
             except Exception as e:
                 print("Error executing command: %s" % e)
 
