@@ -129,9 +129,9 @@ At the `CMD> ` prompt, the emulator accepts the following commands:
 - `help` = List available commands (or detailed help with "help cmd").
 - `quit` (or end-of-file/Control-D, or break/Control-C) = quit the program
 - `counters` = print the number of each executed PIDs (upper case names), the values associated to some 'AT' PIDs (*cmd_...*), the unknown requests, the emulator response delay, the total number of executed commands (*commands*) and the current scenario (*scenario*). The related dictionary is `emulator.counters`.
-- `pause` = pause the execution. (Related attribute is `emulator.threadState = THREAD.PAUSED`.)
+- `pause` = pause the execution. (Related attribute is `emulator.threadState = emulator.THREAD.PAUSED`.)
 - `prompt` = toggle prompt off/on if no argument is used, or change the prompt if using an argument
-- `resume` = resume the execution after pausing; also prints the used device. (Related attribute is `emulator.threadState = THREAD.ACTIVE`)
+- `resume` = resume the execution after pausing; also prints the used device. (Related attribute is `emulator.threadState = emulator.THREAD.ACTIVE`)
 - `delay <n>` = delay each emulator response of `<n>` seconds (floating point number; default is 0.5 seconds)
 - `wait <n>` = delay the execution of the next command of `<n>` seconds (floating point number; default is 10 seconds)
 - `engineoff` = switch to *engineoff* scenario
@@ -195,7 +195,7 @@ This dictionary can be used to modify answers within a workflow. The front-end a
 Example of automation which suspends the emulator for 10 seconds:
 
 ```python
-emulator.threadState = THREAD.PAUSED; time.sleep(10); emulator.threadState = THREAD.ACTIVE
+emulator.threadState = emulator.THREAD.PAUSED; time.sleep(10); emulator.threadState = emulator.THREAD.ACTIVE
 ```
 
 Example of an automation that simulates the off/on ignition states:

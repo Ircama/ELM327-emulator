@@ -17,6 +17,9 @@ try:
     from cmd import Cmd
     import rlcompleter
     import glob
+    import logging
+    import re
+    from functools import reduce
     import os
     import os.path
     import argparse
@@ -376,10 +379,10 @@ class Interpreter(Cmd):
     def default(self, arg):
         emulator = self.emulator # ref. host_lib
         try:
-            print(eval(arg, locals()))
+            print(eval(arg, {**globals(), **locals()}))
         except Exception:
             try:
-                exec(arg, locals())
+                exec(arg, {**globals(), **locals()})
             except Exception as e:
                 print("Error executing command: %s" % e)
 
