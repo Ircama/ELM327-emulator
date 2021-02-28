@@ -62,17 +62,17 @@ After starting the program, the emulator is ready to use. To enable the preconfi
 
 The external application interfacing the emulator just needs to connect to the virtual device shown by the emulator and interact with the vehicle as if it was accessing a real ELM327 adapter.
 
-All subsequent information are not needed for a basic usage of the tool and allow to master *ELM327-emulator*, exploiting it to test specific features including the simulation of communication exceptions, which are not always easy to be reproduced with a real link.
+All subsequent information are not needed for a basic usage of the tool and allow mastering *ELM327-emulator*, exploiting it to test specific features including the simulation of communication exceptions, which are not always easy to be reproduced with a real link.
 
 # Compatibility
 
 *ELM327-emulator* has been tested with Python 3.5, 3.6 and 3.7. Python 2 is not supported.
 
-With UNIX OSs, this code uses pty pseudo-terminals. With Windows, you should first install [com0com](https://sourceforge.net/projects/com0com) (a kernel-mode virtual serial port driver), or [other virtual serial port software](http://com0com.sourceforge.net/); alterantively, [cygwin](http://www.cygwin.com/) and [Windows Subsystem for Linux](https://docs.microsoft.com/en-us/windows/wsl) (WSL) are supported.
+With UNIX OSs, this code uses pty pseudo-terminals. With Windows, you should first install [com0com](https://sourceforge.net/projects/com0com) (a kernel-mode virtual serial port driver), or [other virtual serial port software](http://com0com.sourceforge.net/); alternatively, [cygwin](http://www.cygwin.com/) and [Windows Subsystem for Linux](https://docs.microsoft.com/en-us/windows/wsl) (WSL) are supported.
 
 # Running on Windows
 
-When natively running on Windows (to be used when connecting a Windows application), *ELM327-emulator* requires a virtual serial port driver providing a virtual COM port pair (like *com0com*), so that one COM port (e.g., COM4) can be used to connect the application and the other one (e.g., COM3) the *ELM327-emulator*. By default *ELM327-emulator* uses `COM3` serial port; any other port can be set through the `-p` argument. Example:
+When natively running on Windows (to be used when connecting a Windows application), *ELM327-emulator* requires a virtual serial port driver providing a virtual COM port pair (like *com0com*), so that one COM port (e.g., COM4) can be used to connect the application and the other one (e.g., COM3) the *ELM327-emulator*. By default, *ELM327-emulator* uses `COM3` serial port; any other port can be set through the `-p` argument. Example:
 
 ```shell
 python3 -m elm -p COM5
@@ -115,7 +115,7 @@ The key used in the dictionary consists of a unique identifier for each PID. All
 - `'Log'`: *logging.debug* argument
 - `'ResponseFooter'`: run a function and returns a footer to the response (a [lambda function](https://docs.python.org/3/reference/expressions.html#lambda) can be used)
 - `'ResponseHeader'`: run a function and returns a header to the response (a [lambda function](https://docs.python.org/3/reference/expressions.html#lambda) can be used)
-- `'Response'`: returned data; can be a string or a list/tuple of strings; if more strings are included, the emulator randomly select one of them each time
+- `'Response'`: returned data; can be a string, or a list/tuple of strings; if more strings are included, the emulator randomly select one of them each time
 - `'Action'`: can be set to 'skip' in order to skip the processing of the PID
 - `'Header'`: if set, process the command only if the corresponding header matches
 - `'Priority'=number`: when set, the key has higher priority than the default (highest number = 1, lowest = 10 = default)
@@ -132,8 +132,8 @@ At the `CMD> ` prompt, the emulator accepts the following commands:
 - `pause` = pause the execution. (Related attribute is `emulator.threadState = emulator.THREAD.PAUSED`.)
 - `prompt` = toggle prompt off/on if no argument is used, or change the prompt if using an argument
 - `resume` = resume the execution after pausing; also prints the used device. (Related attribute is `emulator.threadState = emulator.THREAD.ACTIVE`)
-- `delay <n>` = delay each emulator response of `<n>` seconds (floating point number; default is 0.5 seconds)
-- `wait <n>` = delay the execution of the next command of `<n>` seconds (floating point number; default is 10 seconds)
+- `delay <n>` = delay each emulator response of `<n>` seconds (floating-point number; default is 0.5 seconds)
+- `wait <n>` = delay the execution of the next command of `<n>` seconds (floating-point number; default is 10 seconds)
 - `engineoff` = switch to *engineoff* scenario
 - `scenario <scenario>` = switch to `<scenario>` scenario; if the scenario is missing or invalid, defaults to `'car'`. The autocompletion (by pressing or double-pressing TAB with Unix systems) allows prompting all compatible scenarios defined in `emulator.ObdMessage`. (Related attribute is `emulator.scenario`.)
 - `default` = reset to *default* scenario
@@ -247,9 +247,9 @@ The ability to add dynamic differentiators and delays within responses enables t
 emulator.answer['SPEED'] = '\0 ECU_R_ADDR_E + " 03 41 0D 0A " if randint(0, 100) > 20 else "NO DATA" \0\r'
 ```
 
-In the above example, which illustrates an in-line expression substitution, the configuration of the ‘SPEED’ PID ([Vehicle speed](https://en.wikipedia.org/wiki/OBD-II_PIDs#Service_01) is replaced with a dynamic answer and the ‘SPEED’ PID will return `7E8 03 41 0D 0A` + newline for most of the times. With 20% probability, `NO DATA` + newline is returned. Notice that the last `\r` is common to both options.
+In the above example, which illustrates an in-line expression substitution, the configuration of the ‘SPEED’ PID ([Vehicle speed](https://en.wikipedia.org/wiki/OBD-II_PIDs#Service_01)) is replaced with a dynamic answer and the ‘SPEED’ PID will return `7E8 03 41 0D 0A` + newline for most of the time. With 20% probability, `NO DATA` + newline is returned. Notice that the last `\r` is common to both options.
 
-The following example shows how to dynamically generate an answer via command line by converting decimal numbers to hex string in order to allow confortable testing of a PID by specifying decimal input values. Suppose that the PID needs to double the input. We use *CUSTOM_FUEL_LEVEL* PID in the example, testing the answer related to 15.5 liters.
+The following example shows how to dynamically generate an answer via command line by converting decimal numbers to hex string in order to allow comfortable testing of a PID by specifying decimal input values. Suppose that the PID needs to double the input. We use *CUSTOM_FUEL_LEVEL* PID in the example, testing the answer related to 15.5 liters.
 
 Preliminarily, test number conversion with the command line:
 
@@ -270,13 +270,13 @@ Or, alternatively, use the header variable instead of the header digits:
 emulator.answer['CUSTOM_FUEL_LEVEL'] = '\0 ECU_R_ADDR_I + " 03 61 29 " + "%.2X" % int(15.5*2) \0 \r'
 ```
 
-The following command sets SPEED ([Vehicle speed](https://en.wikipedia.org/wiki/OBD-II_PIDs#Service_01) to 60 km/h via command line (60 can be changed to any integer value between 0 and 255):
+The following command sets SPEED ([Vehicle speed](https://en.wikipedia.org/wiki/OBD-II_PIDs#Service_01)) to 60 km/h via command line (60 can be changed to any integer value between 0 and 255):
 
 ```
 emulator.answer['SPEED'] = '\0 ECU_R_ADDR_E + " 03 41 0D %.2X" % 60 \0\r'
 ```
 
-The following command sets RPM ([Engine RPM](https://en.wikipedia.org/wiki/OBD-II_PIDs#Service_01) to 500 via command line:
+The following command sets RPM ([Engine RPM](https://en.wikipedia.org/wiki/OBD-II_PIDs#Service_01)) to 500 via command line:
 
 ```
 emulator.answer['RPM'] = '\0 ECU_R_ADDR_E + " 04 41 0C %.4X" % int(4 * 500) \0\r'
@@ -427,7 +427,7 @@ merge AurisOutput
 scenario Auris
 ```
 
-To help configuring the emulator, autocompletion is allowed (by pressing TAB) with UNIX systems when prompting the `merge` command, including the `merge` argument. Also variables and keywords like `scenario` accept autocompletion, including the `scenario` argument.
+To help to configure the emulator, autocompletion is allowed (by pressing TAB) with UNIX systems when prompting the `merge` command, including the `merge` argument. Also variables and keywords like `scenario` accept autocompletion, including the `scenario` argument.
 
 A merged scenario can be removed via `del emulator.ObdMessage['<name of the scenario to be removed>']`.
 
@@ -468,8 +468,8 @@ ELM327-emulator v0.1.1 - ELM327 OBDII adapter emulator
 
 - interactive (providing a command line prompt). This is activated by default, when neither `-b` option nor `-d` is used;
 - batch mode with input commands, activated when the `-b` option (`-b file` or `-b -`e.g., `-b -` for standard log output, or `-b output_file_name`). This mode reads the standard input for the same commands that can be issued by the user in interactive mode;
-- batch mode light, only availble with UNIX, without input commands (no separate thread is created and the command interpreter is not used). This is activated when both `-b` and `-d` options are used;
-- daemon mode without input commands, only availble with UNIX, allowing to start and stop the process in UNIX daemon mode, with `-d` option (start) and `-t` (terminate).
+- batch mode light, only available with UNIX, without input commands (no separate thread is created and the command interpreter is not used). This is activated when both `-b` and `-d` options are used;
+- daemon mode without input commands, only available with UNIX, allowing starting and stop the process in UNIX daemon mode, with `-d` option (start) and `-t` (terminate).
 
 In daemon mode, a lock file is used to prevent multiple instances.
 
