@@ -24,7 +24,7 @@ import sys
 import traceback
 import errno
 from random import randint
-from .obd_message import ObdMessage, ECU_ADDR_E, ELM_R_OK
+from .obd_message import ObdMessage, ECU_ADDR_E, ELM_R_OK, ELM_R_UNKNOWN
 from .__version__ import __version__
 
 
@@ -103,6 +103,7 @@ class Elm:
 
     def __init__(self, batch_mode=False, serial_port=""):
         self.ObdMessage = ObdMessage
+        self.ELM_R_UNKNOWN = ELM_R_UNKNOWN
         self.set_defaults()
         self.setSortedOBDMsg()
         self.batch_mode = batch_mode
@@ -323,9 +324,9 @@ class Elm:
                     except Exception as e:
                         logging.error("Cannot execute '%s': %s", i, e)
             else:
-                logging.debug("Write: %s", repr(i))
                 if nospaces:
                     i = re.sub(r'[ \t]+', '', i)
+                logging.debug("Write: %s", repr(i))
                 if os.name == 'nt':
                     self.master_fd.write(i.encode())
                 else:
@@ -425,7 +426,7 @@ class Elm:
                     logging.error(
                         "Internal error - Missing response for %s, PID %s",
                         cmd, pid)
-                    return self.ELM_R_OK
+                    return ELM_R_OK
         if "unknown_" + cmd not in self.counters:
             self.counters["unknown_" + cmd] = 0
         self.counters["unknown_" + cmd] += 1
@@ -437,7 +438,7 @@ class Elm:
                          repr(cmd), self.counters["cmd_header"])
         else:
             logging.info("Unknown ELM command: %s", repr(cmd))
-        return ""
+        return self.ELM_R_UNKNOWN
 
     def sanitize(self, cmd):
         cmd = cmd.replace(" ", "")

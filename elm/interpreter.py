@@ -190,6 +190,19 @@ class Interpreter(Cmd):
         self.emulator.set_defaults()
         print("Reset done.")
 
+    def do_loglevel(self, arg):
+        "If an argument is given, set the logging level,\n"\
+        "otherwise show the current one.\n"\
+        "CRITICAL=50, ERROR=40, WARNING=30, INFO=20, DEBUG=10."
+        if arg and arg.isnumeric():
+            logging.getLogger().handlers[0].setLevel(int(arg))
+            print("Logging level set to",
+                logging.getLogger().handlers[0].level)
+        else:
+            print(
+                "Current logging level:",
+                    logging.getLogger().handlers[0].level)
+
     def do_counters(self, arg):
         "Print the number of each executed PID (upper case names), the values\n"\
         "associated to some 'AT' PIDs, the unknown requests, the emulator response\n"\

@@ -127,6 +127,7 @@ The emulator provides a monitoring front-end, supporting commands and controllin
 At the `CMD> ` prompt, the emulator accepts the following commands:
 
 - `help` = List available commands (or detailed help with "help cmd").
+- `loglevel` = If an argument is given, set the logging level, otherwise show the current one. Valid numbers: CRITICAL=50, ERROR=40, WARNING=30, INFO=20, DEBUG=10.
 - `quit` (or end-of-file/Control-D, or break/Control-C) = quit the program
 - `counters` = print the number of each executed PIDs (upper case names), the values associated to some 'AT' PIDs (*cmd_...*), the unknown requests, the emulator response delay, the total number of executed commands (*commands*) and the current scenario (*scenario*). The related dictionary is `emulator.counters`.
 - `pause` = pause the execution. (Related attribute is `emulator.threadState = emulator.THREAD.PAUSED`.)
@@ -190,7 +191,13 @@ To simulate that the adapter is not connected to the vehicle:
 emulator.answer['AT_R_VOLT'] = '0.0V'
 ```
 
-This dictionary can be used to modify answers within a workflow. The front-end allows implementing basic Python workflows and, when used in batch mode, can also be controlled by a piped external supervisor. The following examples show some simple workflows in interactive mode.
+The `emulator.ELM_R_UNKNOWN` parameter allows customizing the message returned in case of unknown/invalid command. The default message is `?\r`, with an addition of a trailing `\r`. This message can be customized; for example, to just get `\r`, set the following:
+
+```python
+emulator.ELM_R_UNKNOWN = ''
+```
+
+The dictionary can be used to modify answers within a workflow. The front-end allows implementing basic Python workflows and, when used in batch mode, can also be controlled by a piped external supervisor. The following examples show some simple workflows in interactive mode.
 
 Example of automation which suspends the emulator for 10 seconds:
 
@@ -216,7 +223,7 @@ car
 
 ## Configuring response strings
 
-Response strings allow embedding Python statements and expressions. Specifically, `Response`, `ResponseHeader`, `ResponseFooter` and `emulator.answer` support single and multiple in-line Python commands (expressions or statements) when embraced between `\0` tags: this feature for instance can be used to embed real-time delays between strings or to differentiate answers. The return value of a statement is ignored. The evaluation of an expression is substituted. Spaces inside `\0` tags are allowed and can be used to improve readability. Example: `'Response' = 'SEARCHING...\0 time.sleep(1) \0\rUNABLE TO CONNECT\r'`. This returns `SEARCHING...`, then waits one second, then returns `\rUNABLE TO CONNECT\r`. Notice that, as `time.sleep` is a statement, the related return value is ignored.
+Response strings allow embedding Python statements and expressions. Specifically, `Response`, `ResponseHeader`, `ResponseFooter`, `emulator.answer` and `emulator.ELM_R_UNKNOWN` support single and multiple in-line Python commands (expressions or statements) when embraced between `\0` tags: this feature for instance can be used to embed real-time delays between strings or to differentiate answers. The return value of a statement is ignored. The evaluation of an expression is substituted. Spaces inside `\0` tags are allowed and can be used to improve readability. Example: `'Response' = 'SEARCHING...\0 time.sleep(1) \0\rUNABLE TO CONNECT\r'`. This returns `SEARCHING...`, then waits one second, then returns `\rUNABLE TO CONNECT\r`. Notice that, as `time.sleep` is a statement, the related return value is ignored.
 
 Further processing can be achieved through a *lambda function* applied to `ResponseHeader`, `ResponseFooter`. It has to manage the following parameters: *self*, *cmd*, *pid*, *val* (e.g., `lambda self, cmd, pid, val:`).
 
@@ -241,7 +248,7 @@ Example of PID definition within the `ObdMessage` dictionary:
 
 In the above example, the first time *ResponseHeader* is executed, the produced response is `SEARCHING...`, followed by a one-second delay and then `\rUNABLE TO CONNECT\r`. For all subsequent messages, the response will be different and produces `'NO DATA\r'`.
 
-The ability to add dynamic differentiators and delays within responses enables testing specific use cases and exceptions that are difficult to be achieved through a real connection with a car. These not only apply to the `ObdMessage` dictionary (by editing *obd_message.py*), but also to `emulator.answer`, that can be configured through the command line. Consider for instance the following dynamic configuration via command line:
+The ability to add dynamic differentiators and delays within responses enables testing specific use cases and exceptions that are difficult to be achieved through a real connection with a car. These not only apply to the `ObdMessage` dictionary (by editing *obd_message.py*), but also to `emulator.answer` and `emulator.ELM_R_UNKNOWN`, that can be configured through the command line. Consider for instance the following dynamic configuration via command line:
 
 ```python
 emulator.answer['SPEED'] = '\0 ECU_R_ADDR_E + " 03 41 0D 0A " if randint(0, 100) > 20 else "NO DATA" \0\r'
@@ -300,7 +307,21 @@ emulator.counters["ELM_PIDS_A"] = 0
 
 Logs are written to *elm.log*, file, rotated to *elm.log.1* and *elm.log.2* when its size reaches 1 MB. [Logging](https://docs.python.org/3/howto/logging.html) is controlled through the `elm.yaml` file (in the current directory by default). Its path can be set through the *ELM_LOG_CFG* environment variable. This file follows the [Python’s builtin logging module format](https://docs.djangoproject.com/en/2.2/topics/logging/#a-quick-logging-primer) and allows customizing the configuration of the logging process.
 
-The logging level can be dynamically changed through `logging.getLogger().handlers[n].setLevel()`. To check that *console* is the first handler (e.g., `handlers[0]`), run `for n, l in enumerate(logging.getLogger().handlers): print(n, l.name)`. For instance, if *console* refers to the first handler (default settings of the provided `elm.yaml` file), the following commands will change the logging level:
+The logging level can be dynamically changed through the `loglevel` command.
+
+To read the current log level:
+
+```shell
+loglevel
+```
+
+To set log level to debug:
+
+```shell
+loglevel 10
+```
+
+Alternatively, the logging level can be set through `logging.getLogger().handlers[n].setLevel()`. To check that *console* is the first handler (e.g., `handlers[0]`), run `for n, l in enumerate(logging.getLogger().handlers): print(n, l.name)`. For instance, if *console* refers to the first handler (default settings of the provided `elm.yaml` file), the following commands will change the logging level:
 
 ```python
 logging.getLogger().handlers[0].setLevel(logging.DEBUG)

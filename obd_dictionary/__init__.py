@@ -20,7 +20,7 @@ except ImportError as detail:
 ecu = {
     "7B0": 'ECU_ADDR_S',   # Skid Control address ECU
     "7B8": 'ECU_R_ADDR_S', # Responses sent by 7B0 Skid Control ECU 7B0/7B8
-    "7E2": 'ECU_ADDR_H',   # HVECU address (Hybrid contol module)
+    "7E2": 'ECU_ADDR_H',   # HVECU address (Hybrid control module)
     "7EA": 'ECU_R_ADDR_H', # Resp. sent by HVECU (Hybrid Ctrl module) 7E2/7EA
     "7E0": 'ECU_ADDR_E',   # Engine ECU address
     "7E8": 'ECU_R_ADDR_E', # Responses sent by ECM (engine Ctrl module) 7E0/7E8
@@ -181,7 +181,7 @@ def obd_dictionary():
         type=argparse.FileType('r'),
         nargs="?",
         help='include AT Commands within probes. '
-             'If a dictionary file is given, also extract AT Commnands'
+             'If a dictionary file is given, also extract AT Commands'
              ' from the input file and add them to the output',
         metavar='FILE')
     parser.add_argument(
@@ -296,7 +296,9 @@ def obd_dictionary():
 
     # Print header information
     print("\n".join([ecu[k] + ' = "' + k + '"' for k in ecu]))
-    print('ELM_R_OK = "OK\\r"\nELM_MAX_RESP = "[0123456]?$"\n')
+    print('ELM_R_OK = "OK\\r"\n'
+          'ELM_R_UNKNOWN = "?\r"\n'
+          'ELM_MAX_RESP = "[0123456]?$"\n')
     print("ObdMessage = {")
     print("    '" + args.car_name + "': {")
 

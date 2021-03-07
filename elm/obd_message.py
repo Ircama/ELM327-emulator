@@ -15,6 +15,7 @@ ECU_ADDR_S = "7B0"  # Skid Control address ECU
 ECU_R_ADDR_S = "7B8"  # Responses sent by 7B0 Skid Control ECU 7B0/7B8
 
 ELM_R_OK = "OK\r"
+ELM_R_UNKNOWN = "?\r"
 ELM_MAX_RESP = '[0123456]?$'
 
 # This dictionary uses the ISO 15765-4 CAN 11 bit ID 500 kbaud protocol
