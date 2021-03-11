@@ -1,6 +1,6 @@
 # List of known ECUs:
-ECU_ADDR_H = "7E2"  # HVECU address (Hybrid contol module)
-ECU_R_ADDR_H = "7EA"  # Responses sent by HVECU (Hybrid contol module) 7E2/7EA
+ECU_ADDR_H = "7E2"  # HVECU address (Hybrid control module)
+ECU_R_ADDR_H = "7EA"  # Responses sent by HVECU (Hybrid control module) 7E2/7EA
 ECU_ADDR_E = "7E0"  # Engine ECU address
 ECU_R_ADDR_E = "7E8"  # Responses sent by Engine ECU - ECM (engine control module) 7E0/7E8
 ECU_ADDR_T = "7E1"  # Transmission ECU address (transmission control module)
@@ -27,11 +27,16 @@ ObdMessage = {
         'AT_DESCR': {
             'Request': '^AT@1' + ELM_MAX_RESP,
             'Descr': 'Device description',
-            'Response': "OBDII to RS232 Interpreter\r"
+            'Response': "OBDII^to^RS232^Interpreter\r"
         },
         'AT_ID': {
             'Request': '^AT@2' + ELM_MAX_RESP,
             'Descr': 'Device identifier',
+            'Response': "?\r"
+        },
+        'AT_STORE_ID': {
+            'Request': '^AT@3' + ELM_MAX_RESP,
+            'Descr': 'Store the device identifier',
             'Response': "?\r"
         },
         'AT_CAF': {
@@ -45,7 +50,7 @@ ObdMessage = {
             'Request': '^ATDP' + ELM_MAX_RESP,
             'Descr': 'set DESCRIBE_PROTO',
             'Exec': 'time.sleep(0.5)',
-            'Response': "ISO 15765-4 (CAN 11/500)\r"
+            'Response': "ISO^15765-4^(CAN^11/500)\r"
         },
         'AT_DESCRIBE_PROTO_N': {
             'Request': '^ATDPN$',
@@ -70,7 +75,7 @@ ObdMessage = {
         'AT_I': {
             'Request': '^ATI$',
             'Descr': 'ELM327 version string',
-            'Response': "ELM327 v1.5\r"
+            'Response': "ELM327^v1.5\r"
         },
         'AT_IGN': {
             'Request': '^ATIGN' + ELM_MAX_RESP,
@@ -82,6 +87,17 @@ ObdMessage = {
             'Descr': 'AT LINEFEEDS',
             'Exec': 'self.counters["cmd_linefeeds"] = (cmd[3] == "1")',
             'Log': '"set LINEFEEDS ON/OFF : %s", self.counters["cmd_linefeeds"]',
+            'Response': ELM_R_OK
+        },
+        'AT_LP': {
+            'Request': '^ATLP$',
+            'Descr': 'Low Power mode',
+            'Response': ELM_R_OK
+        },
+        'AT_MEMORY': {
+            'Request': '^ATM[01]$',
+            'Descr': 'AT Memory off or on',
+            'Exec': 'self.counters["cmd_memory"] = (cmd[3] == "1")',
             'Response': ELM_R_OK
         },
         'AT_R_VOLT': {
@@ -125,14 +141,14 @@ ObdMessage = {
             'Descr': 'AT WARM START',
             'Log': '"Sleep 0.1 seconds"',
             'Exec': 'self.reset(0.1)',
-            'Response': "\r\rELM327 v1.5\r"
+            'Response': "\r\rELM327^v1.5\r"
         },
         'AT_RESET': {
             'Request': '^ATZ$',
             'Descr': 'AT RESET',
             'Log': '"Sleep 0.5 seconds"',
             'Exec': 'self.reset(0.5)',
-            'Response': "\r\rELM327 v1.5\r"
+            'Response': "\r\rELM327^v1.5\r"
         },
         'AT_SET_TIMEOUT': {
             'Request': '^ATST[0-9A-F][0-9A-F]$',
@@ -149,8 +165,9 @@ ObdMessage = {
             'Descr': 'PIDS_A',
             'ResponseHeader': \
             lambda self, cmd, pid, val: \
-                'SEARCHING...\0 time.sleep(4.5) \0\rUNABLE TO CONNECT\r' \
-                if self.counters[pid] == 1 else 'NO DATA\r',
+                'SEARCHING...\0 time.sleep(4.5) \0\rUNABLE^TO^CONNECT\r' \
+                if self.counters[pid] == 1 else \
+                self.choice(['NO^DATA\r', 'BUS^INIT:ERROR\r']),
             'Response': '',
             'Priority': 5
         },
@@ -159,8 +176,9 @@ ObdMessage = {
             'Descr': 'MIDS_A',
             'ResponseHeader': \
             lambda self, cmd, pid, val: \
-                'SEARCHING...\0 time.sleep(4.5) \0\rUNABLE TO CONNECT\r' \
-                if self.counters[pid] == 1 else 'NO DATA\r',
+                'SEARCHING...\0 time.sleep(4.5) \0\rUNABLE^TO^CONNECT\r' \
+                if self.counters[pid] == 1 else \
+                self.choice(['NO^DATA\r', 'BUS^INIT:ERROR\r']),
             'Response': '',
             'Priority': 5
         },
@@ -173,7 +191,7 @@ ObdMessage = {
         'NO_DATA': {
             'Request': '^[0-9][0-9][0-9A-F]+$',
             'Descr': 'NO_DATA',
-            'Response': 'NO DATA\r',
+            'Response': 'NO^DATA\r',
             'Priority': 6
         },
     },
@@ -444,8 +462,8 @@ ObdMessage = {
             'Descr': 'Current protocol',
             'Header': ECU_ADDR_E,
             'Response': [
-                        '? \r',
-                        'AUTO, ISO 15765-4 (CAN 11/500) \r'
+                        '?^\r',
+                        'AUTO,^ISO^15765-4^(CAN^11/500)^\r'
                         ]
         },
         'ELM_IGNITION': {
@@ -453,8 +471,8 @@ ObdMessage = {
             'Descr': 'IgnMon input level',
             'Header': ECU_ADDR_E,
             'Response': [
-                        'ON \r',
-                        '? \r'
+                        'ON^\r',
+                        '?^\r'
                         ]
         },
         'ELM_DESCR': {
@@ -462,27 +480,27 @@ ObdMessage = {
             'Descr': 'Device description',
             'Header': ECU_ADDR_E,
             'Response': [
-                        '? \r',
-                        'OBDII to RS232 Interpreter \r'
+                        '?^\r',
+                        'OBDII^to^RS232^Interpreter^\r'
                         ]
         },
         'ELM_ID': {
             'Request': '^AT@2' + ELM_MAX_RESP,
             'Descr': 'Device identifier',
             'Header': ECU_ADDR_E,
-            'Response': '? \r'
+            'Response': '?^\r'
         },
         'ELM_VERSION': {
             'Request': '^ATI' + ELM_MAX_RESP,
             'Descr': 'ELM327 version string',
             'Header': ECU_ADDR_E,
-            'Response': 'ELM327 v1.5 \r'
+            'Response': 'ELM327^v1.5^\r'
         },
         'ELM_VOLTAGE': {
             'Request': '^ATRV' + ELM_MAX_RESP,
             'Descr': 'Voltage detected by OBD-II adapter',
             'Header': ECU_ADDR_E,
-            'Response': '14.7V \r'
+            'Response': '14.7V^\r'
             # 14.7 volt
         },
     # OBD Commands
@@ -1405,7 +1423,7 @@ ObdMessage = {
             'Descr': 'DTC Supported PIDs [21-40]',
             'Header': ECU_ADDR_E,
             'Response': [
-                        'NO DATA \r',
+                        'NO^DATA^\r',
                         ECU_R_ADDR_E + ' 03 7F 02 12 \r'
                         ]
             # invalid data returned by diagnostic request (mode 02)
@@ -1443,7 +1461,7 @@ ObdMessage = {
             'Descr': 'DTC Number of warm-ups since codes cleared',
             'Header': ECU_ADDR_E,
             'Response': [
-                        'NO DATA \r',
+                        'NO^DATA^\r',
                         ECU_R_ADDR_E + ' 03 7F 02 12 \r'
                         ]
             # invalid data returned by diagnostic request (mode 02)
@@ -1551,7 +1569,7 @@ ObdMessage = {
             'Descr': 'DTC Fuel Type',
             'Header': ECU_ADDR_E,
             'Response': [
-                        'NO DATA \r',
+                        'NO^DATA^\r',
                         ECU_R_ADDR_E + ' 03 7F 02 12 \r'
                         ]
             # invalid data returned by diagnostic request (mode 02)

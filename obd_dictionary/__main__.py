@@ -12,7 +12,7 @@ try:
     from . import main
 except (ImportError, ValueError):
     print("obd_dictionary must be run as a module."
-        "E.g., python3 -m obd_dictionary")
+          "E.g., python3 -m obd_dictionary")
     sys.exit(1)
 
 if __name__ == "__main__":

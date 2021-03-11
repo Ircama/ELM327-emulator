@@ -23,7 +23,7 @@ import time
 import sys
 import traceback
 import errno
-from random import randint
+from random import randint, choice
 from .obd_message import ObdMessage, ECU_ADDR_E, ELM_R_OK, ELM_R_UNKNOWN
 from .__version__ import __version__
 
@@ -173,6 +173,7 @@ class Elm:
         setup_logging()
         self.logger = logging.getLogger()
         self.get_pty()
+        self.choice = choice
 
         if self.batch_mode:
             logging.debug(
@@ -325,7 +326,8 @@ class Elm:
                         logging.error("Cannot execute '%s': %s", i, e)
             else:
                 if nospaces:
-                    i = re.sub(r'[ \t]+', '', i)
+                    i = re.sub(r' +', '', i)
+                i = i.replace('^', ' ')
                 logging.debug("Write: %s", repr(i))
                 if os.name == 'nt':
                     self.master_fd.write(i.encode())

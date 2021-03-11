@@ -122,6 +122,8 @@ The key used in the dictionary consists of a unique identifier for each PID. All
 
 The emulator provides a monitoring front-end, supporting commands and controlling the backend thread which executes the actual process.
 
+In `'ResponseFooter'`, `'ResponseHeader'` and `'Response'`, spaces are stripped depending on configuration. Character `^` is substituted with space (and will not be stripped).
+
 ## Built-in keywords
 
 At the `CMD> ` prompt, the emulator accepts the following commands:
@@ -375,7 +377,7 @@ Its output is a Python *ObdMessage* dictionary that can either replace the *obd_
 
 Notice that querying the vehicle might be invasive and some commands can change the car configuration (enabling or disabling belts alarm, enabling or disabling reverse beeps, clearing diagnostic codes, controlling fans, etc.). In order to prevent dangerous PIDs to be used for building the dictionary, a PID blacklist (*blacklisted_pids*) can be edited in *elm.py*. To check all PIDs without performing actual OBDII queries (dry-run mode), use the `-p 0` option (the standard error output with default logging level shows the list of produced PIDs).
 
-can be run as:
+*obd_dictionary* can be run as:
 
 ```shell
 python3 -m obd_dictionary -?
@@ -434,7 +436,7 @@ ObdMessage Dictionary Generator for "ELM327-emulator".
 
 Sample usage: `obd_dictionary -i /dev/ttyUSB0 -c car.csv -o AurisOutput.py -v -p 10 -d 1 -n mycar`
 
-*obd_dictionary* exploits the command discovery feature of *python-OBD* which autopopulates the set of builtin commands supported by the vehicle through queries performed within the connection phase. Optionally, this set can be further enriched with a list of custom PIDs included in an input csv file in [Torque CSV Format](https://torque-bhp.com/wiki/PIDs). The autopopulation feature can be disabled with `-x` option.
+*obd_dictionary* exploits the [command discovery feature](https://python-obd.readthedocs.io/en/latest/Connections/#supported_commands) of *python-OBD* which autopopulates the set of builtin commands supported by the vehicle through [queries](https://github.com/brendan-w/python-OBD/blob/8f4a55cd04170d006eb7d1d774fb4bacb1c6282f/obd/obd.py#L102) performed within the [connection phase](https://github.com/brendan-w/python-OBD/blob/8f4a55cd04170d006eb7d1d774fb4bacb1c6282f/obd/obd.py#L65). Optionally, this set can be further enriched with a list of custom PIDs included in an input csv file in [Torque CSV Format](https://torque-bhp.com/wiki/PIDs). The autopopulation feature can be disabled with `-x` option.
 
 In general, *ELM327-emulator* should already manage all needed AT Commands within its default dictionary, so in most cases it is worthwhile removing them from the new scenario via `-t` option.
 
