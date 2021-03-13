@@ -397,7 +397,7 @@ usage: obd_dictionary [-h] -i DEVICE [-c CSV_FILE] [-o FILE] [-v] [-V] [-p PROBE
 
 optional arguments:
   -h, --help            show this help message and exit
-  -i DEVICE             interface: serial port connected to the ELM327 adapter (required argument)
+  -i DEVICE             python-OBD interface: serial port connected to the ELM327 adapter (required argument).
   -c CSV_FILE, --csv CSV_FILE
                         input csv file including custom PIDs (Torque CSV Format: https://torque-bhp.com/wiki/PIDs) '-'
                         reads data from the standard input
@@ -409,14 +409,14 @@ optional arguments:
   -p PROBES, --probes PROBES
                         number of probes (each probe includes querying all PIDs to the OBDII adapter)
   -B BAUDRATE, --baudrate BAUDRATE
-                        interface: the baudrate at which to set the serial connection
+                        python-OBD interface: baudrate at which to set the serial connection.
   -T TIMEOUT, --timeout TIMEOUT
-                        interface: specifies the connection timeout in seconds
+                        python-OBD interface: specifies the connection timeout in seconds.
   -C, --no_check_voltage
-                        interface: skip detection of the car supply voltage
-  -F, --fast            interface: allows command optimization (CR to repeat, response limit).
+                        python-OBD interface: skip detection of the car supply voltage.
+  -F, --fast            python-OBD interface: allows command optimization (CR to repeat, response limit).
   -P PROTOCOL, --protocol PROTOCOL
-                        interface: forces python-OBD to use the given protocol when communicating with the adapter.
+                        python-OBD interface: forces using the given protocol when communicating with the adapter.
   -d DELAY, --delay DELAY
                         delay (in seconds) between probes
   -D DELAY_COMMANDS, --delay_commands DELAY_COMMANDS

@@ -100,8 +100,8 @@ def obd_dictionary():
         "-i",
         dest="elm327",
         required=True,
-        help='interface: '
-             "serial port connected to the ELM327 adapter (required argument)",
+        help='python-OBD interface: '
+             "serial port connected to the ELM327 adapter (required argument).",
         metavar="DEVICE")
     parser.add_argument(
         '-c',
@@ -150,16 +150,16 @@ def obd_dictionary():
         '--baudrate',
         dest='baudrate',
         type=int,
-        help='interface: '
-             'the baudrate at which to set the serial connection',
+        help='python-OBD interface: '
+             'baudrate at which to set the serial connection.',
         default=None)
     parser.add_argument(
         '-T',
         '--timeout',
         dest='timeout',
         type=float,
-        help='interface: '
-             'specifies the connection timeout in seconds',
+        help='python-OBD interface: '
+             'specifies the connection timeout in seconds.',
         default=0.1)
     parser.add_argument(
         '-C',
@@ -167,23 +167,23 @@ def obd_dictionary():
         dest='no_check_voltage',
         action="store_false",
         default=True,
-        help='interface: '
-             'skip detection of the car supply voltage')
+        help='python-OBD interface: '
+             'skip detection of the car supply voltage.')
     parser.add_argument(
         '-F',
         '--fast',
         dest='fast',
         action="store_true",
         default=False,
-        help='interface: '
+        help='python-OBD interface: '
              'allows command optimization (CR to repeat, response limit).')
     parser.add_argument(
         '-P',
         '--protocol',
         dest='protocol',
         action="store",
-        help='interface: '
-             'forces python-OBD to use the given protocol '
+        help='python-OBD interface: '
+             'forces using the given protocol '
              'when communicating with the adapter.',
         default=None)
     parser.add_argument(
