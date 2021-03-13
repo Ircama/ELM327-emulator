@@ -1,5 +1,11 @@
-#!/usr/bin/env python
+#!/usr/bin/env python3
 # -*- coding: utf-8 -*-
+###########################################################################
+# ELM327-emulator obd_dictionary
+# ELM327 Emulator for testing software interfacing OBDII via ELM327 adapter
+# https://github.com/Ircama/ELM327-emulator
+# (C) Ircama 2021 - CC-BY-NC-SA-4.0
+###########################################################################
 
 import sys
 try:
@@ -89,11 +95,13 @@ def obd_dictionary():
     # Option handling
     parser = argparse.ArgumentParser(
         epilog='ObdMessage Dictionary Generator for "ELM327-emulator".')
+    parser.prog = "obd_dictionary"
     parser.add_argument(
         "-i",
         dest="elm327",
         required=True,
-        help="serial port connected to the ELM327 adapter (required argument)",
+        help='interface: '
+             "serial port connected to the ELM327 adapter (required argument)",
         metavar="DEVICE")
     parser.add_argument(
         '-c',
@@ -137,6 +145,47 @@ def obd_dictionary():
         help='number of probes (each probe includes querying '
              'all PIDs to the OBDII adapter)',
         default=1)
+    parser.add_argument(
+        '-B',
+        '--baudrate',
+        dest='baudrate',
+        type=int,
+        help='interface: '
+             'the baudrate at which to set the serial connection',
+        default=None)
+    parser.add_argument(
+        '-T',
+        '--timeout',
+        dest='timeout',
+        type=float,
+        help='interface: '
+             'specifies the connection timeout in seconds',
+        default=0.1)
+    parser.add_argument(
+        '-C',
+        '--no_check_voltage',
+        dest='no_check_voltage',
+        action="store_false",
+        default=True,
+        help='interface: '
+             'skip detection of the car supply voltage')
+    parser.add_argument(
+        '-F',
+        '--fast',
+        dest='fast',
+        action="store_true",
+        default=False,
+        help='interface: '
+             'allows command optimization (CR to repeat, response limit).')
+    parser.add_argument(
+        '-P',
+        '--protocol',
+        dest='protocol',
+        action="store",
+        help='interface: '
+             'forces python-OBD to use the given protocol '
+             'when communicating with the adapter.',
+        default=None)
     parser.add_argument(
         '-d',
         '--delay',
@@ -201,10 +250,17 @@ def obd_dictionary():
         obd.logger.setLevel(obd.logging.DEBUG)
 
     # Connect to OBDII and fill 'connection.supported_commands'
-    obd.logger.info("Connecting to" + args.elm327)
-    connection = obd.OBD(args.elm327, fast=False)
+    obd.logger.info(
+        "Connecting to %s, timeout=%s, check_voltage=%s, fast=%s",
+        args.elm327, args.timeout, args.no_check_voltage, args.fast)
+    connection = obd.OBD(portstr=args.elm327,
+                         baudrate=args.baudrate,
+                         timeout=args.timeout,
+                         protocol=args.protocol,
+                         check_voltage=args.no_check_voltage,
+                         fast=args.fast)
     if not connection.is_connected():
-        obd.logger.error("Connection to " + repr(args.elm327) + " failed")
+        obd.logger.error("Connection to " + repr(args.elm327) + " failed.")
         return
 
     if args.noautopid:

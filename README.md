@@ -380,56 +380,56 @@ Notice that querying the vehicle might be invasive and some commands can change 
 *obd_dictionary* can be run as:
 
 ```shell
-python3 -m obd_dictionary -?
+python3 -m obd_dictionary --help
 ```
 
 or simply:
 
 ```shell
-obd_dictionary -?
+obd_dictionary --help
 ```
 
 Command line arguments:
 
 ```
-usage: obd_dictionary [-h] -i DEVICE [-c CSV_FILE] [-o FILE] [-v] [-V]
-                      [-p PROBES] [-d DELAY] [-D DELAY_COMMANDS] [-n CAR_NAME]
-                      [-b] [-x] [-t [FILE]] [-m]
+usage: obd_dictionary [-h] -i DEVICE [-c CSV_FILE] [-o FILE] [-v] [-V] [-p PROBES] [-B BAUDRATE] [-T TIMEOUT] [-C]
+                      [-F] [-P PROTOCOL] [-d DELAY] [-D DELAY_COMMANDS] [-n CAR_NAME] [-b] [-x] [-t [FILE]] [-m]
 
 optional arguments:
   -h, --help            show this help message and exit
-  -i DEVICE             serial port connected to the ELM327 adapter (required
-                        argument)
+  -i DEVICE             interface: serial port connected to the ELM327 adapter (required argument)
   -c CSV_FILE, --csv CSV_FILE
-                        input csv file including custom PIDs (Torque CSV
-                        Format: https://torque-bhp.com/wiki/PIDs) '-' reads
-                        data from the standard input
-  -o FILE, --out FILE   output dictionary file generated after processing
-                        input data (replaced if existing). Default is to print
-                        data to the standard output
+                        input csv file including custom PIDs (Torque CSV Format: https://torque-bhp.com/wiki/PIDs) '-'
+                        reads data from the standard input
+  -o FILE, --out FILE   output dictionary file generated after processing input data (replaced if existing). Default
+                        is to print data to the standard output
   -v, --verbosity       print process information
   -V, --verbosity_debug
                         print debug information
   -p PROBES, --probes PROBES
-                        number of probes (each probe includes querying all
-                        PIDs to the OBDII adapter)
+                        number of probes (each probe includes querying all PIDs to the OBDII adapter)
+  -B BAUDRATE, --baudrate BAUDRATE
+                        interface: the baudrate at which to set the serial connection
+  -T TIMEOUT, --timeout TIMEOUT
+                        interface: specifies the connection timeout in seconds
+  -C, --no_check_voltage
+                        interface: skip detection of the car supply voltage
+  -F, --fast            interface: allows command optimization (CR to repeat, response limit).
+  -P PROTOCOL, --protocol PROTOCOL
+                        interface: forces python-OBD to use the given protocol when communicating with the adapter.
   -d DELAY, --delay DELAY
                         delay (in seconds) between probes
   -D DELAY_COMMANDS, --delay_commands DELAY_COMMANDS
-                        delay (in seconds) between each PID query within all
-                        probes
+                        delay (in seconds) between each PID query within all probes
   -n CAR_NAME, --name CAR_NAME
                         name of the car (dictionary label; default is "car")
   -b, --blacklist       include blacklisted PIDs within probes
-  -x, --noautopid       do not autopopulate the pid list with the set of
-                        built-in commands supported by the vehicle; only use
-                        csv file.
+  -x, --noautopid       do not autopopulate the pid list with the set of built-in commands supported by the vehicle;
+                        only use csv file.
   -t [FILE], --at [FILE]
-                        include AT Commands within probes. If a dictionary
-                        file is given, also extract AT Commnands from the
-                        input file and add them to the output
-  -m, --missing         add in-line comment to dictionary for PIDs with
-                        missing response
+                        include AT Commands within probes. If a dictionary file is given, also extract AT Commands
+                        from the input file and add them to the output
+  -m, --missing         add in-line comment to dictionary for PIDs with missing response
 
 ObdMessage Dictionary Generator for "ELM327-emulator".
 ```

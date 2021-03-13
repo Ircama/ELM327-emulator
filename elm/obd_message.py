@@ -1,3 +1,10 @@
+###########################################################################
+# ELM327-emulator
+# ELM327 Emulator for testing software interfacing OBDII via ELM327 adapter
+# https://github.com/Ircama/ELM327-emulator
+# (C) Ircama 2021 - CC-BY-NC-SA-4.0
+###########################################################################
+
 # List of known ECUs:
 ECU_ADDR_H = "7E2"  # HVECU address (Hybrid control module)
 ECU_R_ADDR_H = "7EA"  # Responses sent by HVECU (Hybrid control module) 7E2/7EA
@@ -196,6 +203,7 @@ ObdMessage = {
         },
     },
     'default' : {
+        # Mode 01 Sending diagnostic data (PID data monitor/on-board system readiness test)
         'FUEL_STATUS': {
             'Request': '^0103' + ELM_MAX_RESP,
             'Descr': 'Fuel System Status',
@@ -397,6 +405,7 @@ ObdMessage = {
             ECU_R_ADDR_H + ' 06 41 40 44 CC 00 21 \r' +
             ECU_R_ADDR_E + ' 06 41 40 7A 1C 80 00 \r'
         },
+        # Mode 06 Sending intermittent monitoring system test results (DMTR)
         'ELM_MIDS_A': {
             'Request': '^0600' + ELM_MAX_RESP,
             'Descr': 'MIDS_A',
@@ -427,6 +436,8 @@ ObdMessage = {
             'Descr': 'MIDS_F',
             'Response': ECU_R_ADDR_E + ' 06 46 A0 F8 00 00 00 \r'
         },
+        # Mode 07 Sending continuous monitoring system test results (pending code)
+        # Mode 09 Request vehicle information
         'ELM_PIDS_9A': {
             'Request': '^0900' + ELM_MAX_RESP,
             'Descr': 'PIDS_9A',
@@ -455,6 +466,7 @@ ObdMessage = {
             'Response': ECU_R_ADDR_E + ' 03 49 03 01 \r'
         }
     },
+# Pids of a Toyota Auris Hybrid car
     'car': {
     # AT Commands
         'ELM_DP': {
@@ -504,7 +516,7 @@ ObdMessage = {
             # 14.7 volt
         },
     # OBD Commands
-    # MODE 1 - returns values for sensors characterised by PID
+        # MODE 1 - returns values for sensors characterised by PID - Sending diagnostic data (PID data monitor/on-board system readiness test)
         'PIDS_A': {
             'Request': '^0100' + ELM_MAX_RESP,
             'Descr': 'Supported PIDs [01-20]',
@@ -1306,6 +1318,12 @@ ObdMessage = {
             'Response': ECU_R_ADDR_E + ' 03 7F 02 12 \r'
             # invalid data returned by diagnostic request (mode 02)
         },
+        'INJ_MF_2': {
+            'Request': '^020200' + ELM_MAX_RESP,
+            'Descr': 'Injector Malfunction 2',
+            'Header': ECU_ADDR_E,
+            'Response': ECU_R_ADDR_E + ' 05 42 02 00 00 00 \r'
+        },
         'DTC_FUEL_STATUS': {
             'Request': '^0203' + ELM_MAX_RESP,
             'Descr': 'DTC Fuel System Status',
@@ -1574,14 +1592,15 @@ ObdMessage = {
                         ]
             # invalid data returned by diagnostic request (mode 02)
         },
-    # MODE 3 - diagnostic trouble codes
+    # MODE 3 - diagnostic trouble codes - Sending emission related malfunction code (DTC)
         'GET_DTC': {
             'Request': '^03' + ELM_MAX_RESP,
             'Descr': 'Get DTCs',
             'Header': ECU_ADDR_E,
             'Response': ECU_R_ADDR_E + ' 02 43 00 \r'
         },
-    # MODE 6 - results of self-diagnostics
+    # Mode 04 Clearing/resetting emission-related malfunction information
+    # MODE 6 - results of self-diagnostics - Sending intermittent monitoring system test results (DMTR)
         'MIDS_A': {
             'Request': '^0600' + ELM_MAX_RESP,
             'Descr': 'Supported MIDs [01-20]',
@@ -1696,14 +1715,104 @@ ObdMessage = {
                         ECU_R_ADDR_E + ' 21 00 00 FF FF A5 0C 24 \r' +
                         ECU_R_ADDR_E + ' 22 00 00 00 00 FF FF 00 \r'
         },
-    # MODE 7 - unconfirmed fault codes
+    # MODE 7 - unconfirmed fault codes - Sending continuous monitoring system test results (pending code)
         'GET_CURRENT_DTC': {
             'Request': '^07' + ELM_MAX_RESP,
             'Descr': 'Get DTCs from the current/last driving cycle',
             'Header': ECU_ADDR_E,
             'Response': ECU_R_ADDR_E + ' 02 47 00 \r'
         },
-    # Custom OBD Commands
+    # Mode 08 On-board device control (simulation test, active command mode)
+        'PIDS_8': {
+            'Request': '^0800' + ELM_MAX_RESP,
+            'Descr': 'PIDS_08',
+            'Response': 'NO^DATA\r',
+        },
+    # Mode 09 Request vehicle information
+        'ELM_PIDS_9A': {
+            'Request': '^0900' + ELM_MAX_RESP,
+            'Descr': 'Supported PIDs [01-20]',
+            'Response': ECU_R_ADDR_E + ' 06 49 00 55 40 00 00 \r'
+        },
+        'VIN_MESSAGE_COUNT': {
+            'Request': '^0901' + ELM_MAX_RESP,
+            'Descr': 'VIN Message Count',
+            'Response': ECU_R_ADDR_E + ' 03 49 01 01 \r'
+        },
+        'VIN': {
+            # Check this also: https://stackoverflow.com/a/26752855/10598800, https://www.autocheck.com/vehiclehistory/autocheck/en/vinbasics
+            'Request': '^0902' + ELM_MAX_RESP,
+            'Descr': 'Get Vehicle Identification Number',
+            'Response': [
+                ECU_R_ADDR_E + ' 10 14 49 02 01 57 50 30 \r' +
+                ECU_R_ADDR_E + ' 21 5A 5A 5A 39 39 5A 54 \r' +
+                ECU_R_ADDR_E + ' 22 53 33 39 30 30 30 30 \r',
+                # https://www.autodna.com/vin/WP0ZZZ99ZTS390000, https://it.vin-info.com/libro-denuncia/WP0ZZZ99ZTS390000
+                ECU_R_ADDR_E + ' 10 14 49 02 01 4D 41 54 \r' +  # https://community.carloop.io/t/how-to-request-vin/153/11
+                ECU_R_ADDR_E + ' 21 34 30 33 30 39 36 42 \r' +
+                ECU_R_ADDR_E + ' 22 4E 4C 30 30 30 30 30 \r',
+                ECU_R_ADDR_E + ' 10 14 49 02 01 53 42 31 \r' +
+                ECU_R_ADDR_E + ' 21 5A 53 33 4A 45 36 30 \r' +
+                ECU_R_ADDR_E + ' 22 45 32 38 32 31 30 32 \r'
+            ]
+        },
+        'CALIBRATION_ID_MESSAGE_COUNT': {
+            'Request': '^0903' + ELM_MAX_RESP,
+            'Descr': 'Calibration ID message count for PID 04',
+            'Response': ECU_R_ADDR_E + ' 03 49 03 01 \r'
+        },
+        'CALIBRATION_ID': {
+            'Request': '^0904' + ELM_MAX_RESP,
+            'Descr': 'Calibration ID',
+            'Header': ECU_ADDR_E,
+            'Response': ECU_R_ADDR_E + ' 10 23 49 04 02 33 31 32 \r' +
+                        ECU_R_ADDR_E + ' 21 4A 36 30 30 30 00 00 \r' +
+                        ECU_R_ADDR_E + ' 22 00 00 00 00 00 00 41 \r' +
+                        ECU_R_ADDR_E + ' 23 34 37 30 31 30 30 30 \r' +
+                        ECU_R_ADDR_E + ' 24 00 00 00 00 00 00 00 \r' +
+                        ECU_R_ADDR_E + ' 25 00 00 00 00 00 00 00 \r'
+        },
+        '''
+        'CVN_MESSAGE_COUNT': {
+            'Request': '^0905' + ELM_MAX_RESP,
+            'Descr': 'CVN Message Count for PID 06',
+            ... (incomplete)
+        },
+        '''
+        'CVN': {
+            'Request': '^0906' + ELM_MAX_RESP,
+            'Descr': 'Calibration Verification Numbers',
+            'Header': ECU_ADDR_E,
+            'Response': ECU_R_ADDR_E + ' 10 0B 49 06 02 69 53 CD \r' +
+                        ECU_R_ADDR_E + ' 21 4B 61 1F 6E F2 00 00 \r'
+        },
+        'PERF_TRACKING_SPARK': {
+            'Request': '^0908' + ELM_MAX_RESP,
+            'Descr': 'In-use performance tracking (spark ignition)',
+            'Header': ECU_ADDR_E,
+            'Response': ECU_R_ADDR_E + ' 102B490814001800 \r' +
+                        ECU_R_ADDR_E + ' 219A001100180000 \r' +
+                        ECU_R_ADDR_E + ' 2200000014001800 \r' +
+                        ECU_R_ADDR_E + ' 23000000001C0018 \r' +
+                        ECU_R_ADDR_E + ' 2400000000000000 \r' +
+                        ECU_R_ADDR_E + ' 2500000C00180000 \r' +
+                        ECU_R_ADDR_E + ' 2600000000000000 \r'
+        },
+        'ECU_NAME': {
+            'Request': '^090A' + ELM_MAX_RESP,
+            'Descr': 'ECU name',
+            'Header': ECU_ADDR_E,
+            'Response': ECU_R_ADDR_E + ' 10 17 49 0A 01 45 43 4D \r' +
+                        ECU_R_ADDR_E + ' 21 00 2D 45 6E 67 69 6E \r' +
+                        ECU_R_ADDR_E + ' 22 65 43 6F 6E 74 72 6F \r' +
+                        ECU_R_ADDR_E + ' 23 6C 00 00 00 00 00 00 \r'
+        },
+        'UNKNOWN_0A': {
+            'Request': '^0A' + ELM_MAX_RESP,
+            'Descr': 'UNKNOWN_0A',
+            'Response': 'NO^DATA\r',
+        },
+        # Custom OBD Commands
         "CUSTOM_CAL'D_LOAD": {
             'Request': '^2101' + ELM_MAX_RESP,
             'Descr': 'Calculated Load',
