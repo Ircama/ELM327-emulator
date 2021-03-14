@@ -18,6 +18,7 @@ try:
     from obd import OBDCommand, Unit
     from obd.protocols import ECU
     from obd.utils import bytes_to_int
+    from obd import OBDStatus
     import argparse
 except ImportError as detail:
     print("ObdMessage Dictionary Generator error:\n " + str(detail))
@@ -276,8 +277,14 @@ def obd_dictionary():
         return
 
     if args.dryrun:
-        obd.logger.info("python-OBD interface status: %s.",
-                        connection.status())
+        if connection.status() == OBDStatus.CAR_CONNECTED:
+            if connection.query(obd.commands['PIDS_A']).is_null():
+                obd.logger.warning("Engine is possibly off.")
+            else:
+                obd.logger.info("Engine is ready. The interface is working.")
+        else:
+            obd.logger.error("python-OBD interface status: %s.",
+                             connection.status())
         obd.logger.info("Ending %s in dry-run mode.", parser.prog)
         return
 
