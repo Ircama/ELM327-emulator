@@ -392,17 +392,16 @@ obd_dictionary --help
 Command line arguments:
 
 ```
-usage: obd_dictionary [-h] -i DEVICE [-c CSV_FILE] [-o FILE] [-v] [-V] [-p PROBES] [-B BAUDRATE] [-T TIMEOUT] [-C]
-                      [-F] [-P PROTOCOL] [-d DELAY] [-D DELAY_COMMANDS] [-n CAR_NAME] [-b] [-x] [-t [FILE]] [-m]
+usage: obd_dictionary [-h] -i DEVICE [-c CSV_FILE] [-o FILE] [-v] [-V] [-p PROBES] [-B BAUDRATE] [-T TIMEOUT] [-C] [-F] [-P PROTOCOL] [-d DELAY]
+                      [-D DELAY_COMMANDS] [-n CAR_NAME] [-b] [-r] [-x] [-t [FILE]] [-m]
 
 optional arguments:
   -h, --help            show this help message and exit
   -i DEVICE             python-OBD interface: serial port connected to the ELM327 adapter (required argument).
   -c CSV_FILE, --csv CSV_FILE
-                        input csv file including custom PIDs (Torque CSV Format: https://torque-bhp.com/wiki/PIDs) '-'
-                        reads data from the standard input
-  -o FILE, --out FILE   output dictionary file generated after processing input data (replaced if existing). Default
-                        is to print data to the standard output
+                        input csv file including custom PIDs (Torque CSV Format: https://torque-bhp.com/wiki/PIDs) '-' reads data from the standard input
+  -o FILE, --out FILE   output dictionary file generated after processing input data (replaced if existing). Default is to print data to the standard
+                        output
   -v, --verbosity       print process information
   -V, --verbosity_debug
                         print debug information
@@ -424,11 +423,11 @@ optional arguments:
   -n CAR_NAME, --name CAR_NAME
                         name of the car (dictionary label; default is "car")
   -b, --blacklist       include blacklisted PIDs within probes
-  -x, --noautopid       do not autopopulate the pid list with the set of built-in commands supported by the vehicle;
-                        only use csv file.
+  -r, --dry-run         test the python-OBD interface in debug mode.
+  -x, --noautopid       do not autopopulate the pid list with the set of built-in commands supported by the vehicle; only use csv file.
   -t [FILE], --at [FILE]
-                        include AT Commands within probes. If a dictionary file is given, also extract AT Commands
-                        from the input file and add them to the output
+                        include AT Commands within probes. If a dictionary file is given, also extract AT Commands from the input file and add them to the
+                        output
   -m, --missing         add in-line comment to dictionary for PIDs with missing response
 
 ObdMessage Dictionary Generator for "ELM327-emulator".
@@ -437,6 +436,24 @@ ObdMessage Dictionary Generator for "ELM327-emulator".
 Sample usage: `obd_dictionary -i /dev/ttyUSB0 -c car.csv -o AurisOutput.py -v -p 10 -d 1 -n mycar`
 
 *obd_dictionary* exploits the [command discovery feature](https://python-obd.readthedocs.io/en/latest/Connections/#supported_commands) of *python-OBD* which autopopulates the set of builtin commands supported by the vehicle through [queries](https://github.com/brendan-w/python-OBD/blob/8f4a55cd04170d006eb7d1d774fb4bacb1c6282f/obd/obd.py#L102) performed within the [connection phase](https://github.com/brendan-w/python-OBD/blob/8f4a55cd04170d006eb7d1d774fb4bacb1c6282f/obd/obd.py#L65). Optionally, this set can be further enriched with a list of custom PIDs included in an input csv file in [Torque CSV Format](https://torque-bhp.com/wiki/PIDs). The autopopulation feature can be disabled with `-x` option.
+
+The command allows all the python-OBD interface settings (see `-B`, `-T`, `-C`, `-F`, `-P` command-line options) and a dry-run flag (`-r`), which is very useful to test the OBDII connection.
+
+For instance, the following command tests an OBDII connection via Bluetooth using the [related recommendations](https://github.com/brendan-w/python-OBD#bluetooth-obd-ii-adapters) described in the python-OBD repository.
+
+```shell
+python3 -m obd_dictionary -i /dev/rfcomm0 -B 38400 -T 30 -r
+```
+
+See also [this post](https://github.com/brendan-w/python-OBD/issues/93#issuecomment-327472934) for Bluetooth.
+
+For better analysis, the `-r` output can be piped to *lnav*:
+
+```shell
+python3 -m obd_dictionary -i /dev/ttyUSB0 -B 38400 -r 2>&1 | lnav
+```
+
+When the tests provide successful connection, the `-r` option can be removed and the additional *obd_dictionary* options can be added.
 
 In general, *ELM327-emulator* should already manage all needed AT Commands within its default dictionary, so in most cases it is worthwhile removing them from the new scenario via `-t` option.
 

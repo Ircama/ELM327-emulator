@@ -1310,7 +1310,22 @@ ObdMessage = {
             'Header': ECU_ADDR_E,
             'Response': ECU_R_ADDR_E + ' 03 41 51 01 \r'
         },
-    # MODE 2 - freeze frame (or instantaneous) data of a fault
+        'PIDS_D': {
+            'Request': '^0160' + ELM_MAX_RESP,
+            'Descr': 'Supported PIDs [61-80]',
+            'Response': 'NO^DATA\r',
+        },
+        'PIDS_E': {
+            'Request': '^0180' + ELM_MAX_RESP,
+            'Descr': 'Supported PIDs [81-A0]',
+            'Response': 'NO^DATA\r',
+        },
+        'PIDS_F': {
+            'Request': '^01A0' + ELM_MAX_RESP,
+            'Descr': 'Supported PIDs [A1-C0]',
+            'Response': 'NO^DATA\r',
+        },
+        # MODE 2 - freeze frame (or instantaneous) data of a fault
         'DTC_STATUS': {
             'Request': '^0201' + ELM_MAX_RESP,
             'Descr': 'DTC Status since DTCs cleared',
@@ -1790,13 +1805,13 @@ ObdMessage = {
             'Request': '^0908' + ELM_MAX_RESP,
             'Descr': 'In-use performance tracking (spark ignition)',
             'Header': ECU_ADDR_E,
-            'Response': ECU_R_ADDR_E + ' 102B490814001800 \r' +
-                        ECU_R_ADDR_E + ' 219A001100180000 \r' +
-                        ECU_R_ADDR_E + ' 2200000014001800 \r' +
-                        ECU_R_ADDR_E + ' 23000000001C0018 \r' +
-                        ECU_R_ADDR_E + ' 2400000000000000 \r' +
-                        ECU_R_ADDR_E + ' 2500000C00180000 \r' +
-                        ECU_R_ADDR_E + ' 2600000000000000 \r'
+            'Response': ECU_R_ADDR_E + ' 10 2B 49 08 14 00 18 00 \r' +
+                        ECU_R_ADDR_E + ' 21 9A 00 11 00 18 00 00 \r' +
+                        ECU_R_ADDR_E + ' 22 00 00 00 14 00 18 00 \r' +
+                        ECU_R_ADDR_E + ' 23 00 00 00 00 1C 00 18 \r' +
+                        ECU_R_ADDR_E + ' 24 00 00 00 00 00 00 00 \r' +
+                        ECU_R_ADDR_E + ' 25 00 00 0C 00 18 00 00 \r' +
+                        ECU_R_ADDR_E + ' 26 00 00 00 00 00 00 00 \r'
         },
         'ECU_NAME': {
             'Request': '^090A' + ELM_MAX_RESP,

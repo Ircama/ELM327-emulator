@@ -215,6 +215,13 @@ def obd_dictionary():
         default=False,
         help='include blacklisted PIDs within probes')
     parser.add_argument(
+        '-r',
+        '--dry-run',
+        dest='dryrun',
+        action="store_true",
+        default=False,
+        help='test the python-OBD interface in debug mode.')
+    parser.add_argument(
         '-x',
         '--noautopid',
         dest='noautopid',
@@ -246,8 +253,13 @@ def obd_dictionary():
     # Debug
     if args.verbosity:
         obd.logger.setLevel(obd.logging.INFO)
-    if args.debug:
+    if args.debug or args.dryrun:
         obd.logger.setLevel(obd.logging.DEBUG)
+    if args.dryrun:
+        FORMAT = '[%(asctime)-8s] %(levelname)-8s %(name)-22s - %(message)s'
+        for handlers in obd.logger.handlers:
+            handlers.setFormatter(obd.logging.Formatter(FORMAT))
+        obd.logger.info("Starting %s in dry-run mode.", parser.prog)
 
     # Connect to OBDII and fill 'connection.supported_commands'
     obd.logger.info(
@@ -261,6 +273,12 @@ def obd_dictionary():
                          fast=args.fast)
     if not connection.is_connected():
         obd.logger.error("Connection to " + repr(args.elm327) + " failed.")
+        return
+
+    if args.dryrun:
+        obd.logger.info("python-OBD interface status: %s.",
+                        connection.status())
+        obd.logger.info("Ending %s in dry-run mode.", parser.prog)
         return
 
     if args.noautopid:
