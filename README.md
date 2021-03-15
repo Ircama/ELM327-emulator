@@ -153,9 +153,22 @@ At the command prompt, cursors and [keyboard shortcuts](https://github.com/chzye
 ## Advanced usage
 
 *echo* and *linefeed* settings are both disabled by default. They can be configured via related AT commands (*ATL1* and *ATE1*). To enable them via command line:
+
 ```
 emulator.counters['cmd_linefeeds'] = True; emulator.counters['cmd_echo'] = True
 ```
+
+Possible values of `emulator.counters['cmd_linefeeds']`:
+
+Value|Behaviour|Reference
+:---:|---------|-----------------------------------------
+0    |(Default) Each line is closed by two CRs.|`\r\r`
+1    |Each line is closed by two CRs and a LF. |`\r\r\n`
+2    |Each line is closed by a CR and a LF.    |`\r\n`
+3    |Each line is closed by a LF.|`\n`
+4    |Each line is closed by a CR.|`\r`
+
+Each time the interface is reset, the counters are restored to their default settings and the `emulator.counters['...']` commands need to be issued again.
 
 Space characters are inserted by default in the ECU response as per specification. To remove them, use the AT command *ATS0* or `emulator.counters['cmd_spaces']=0`, Notice that an *ATZ* command resets all counters.
 
@@ -435,7 +448,7 @@ ObdMessage Dictionary Generator for "ELM327-emulator".
 
 Sample usage: `obd_dictionary -i /dev/ttyUSB0 -c car.csv -o AurisOutput.py -v -p 10 -d 1 -n mycar`
 
-*obd_dictionary* exploits the [command discovery feature](https://python-obd.readthedocs.io/en/latest/Connections/#supported_commands) of *python-OBD* which autopopulates the set of builtin commands supported by the vehicle through [queries](https://github.com/brendan-w/python-OBD/blob/8f4a55cd04170d006eb7d1d774fb4bacb1c6282f/obd/obd.py#L102) performed within the [connection phase](https://github.com/brendan-w/python-OBD/blob/8f4a55cd04170d006eb7d1d774fb4bacb1c6282f/obd/obd.py#L65). Optionally, this set can be further enriched with a list of custom PIDs included in an input csv file in [Torque CSV Format](https://torque-bhp.com/wiki/PIDs). The autopopulation feature can be disabled with `-x` option.
+*obd_dictionary* exploits the [command discovery feature](https://python-obd.readthedocs.io/en/latest/Connections/#supported_commands) of *python-OBD*, which autopopulates the set of builtin commands supported by the vehicle through [queries](https://github.com/brendan-w/python-OBD/blob/8f4a55cd04170d006eb7d1d774fb4bacb1c6282f/obd/obd.py#L102) performed within the [connection phase](https://github.com/brendan-w/python-OBD/blob/8f4a55cd04170d006eb7d1d774fb4bacb1c6282f/obd/obd.py#L65). Optionally, this set can be further enriched with a list of custom PIDs included in an input csv file in [Torque CSV Format](https://torque-bhp.com/wiki/PIDs). The autopopulation feature can be disabled with `-x` option.
 
 The command allows all the python-OBD interface settings (see `-B`, `-T`, `-C`, `-F`, `-P` command-line options) and a dry-run flag (`-r`), which is very useful to test the OBDII connection.
 
@@ -447,13 +460,21 @@ python3 -m obd_dictionary -i /dev/rfcomm0 -B 38400 -T 30 -r
 
 See also [this post](https://github.com/brendan-w/python-OBD/issues/93#issuecomment-327472934) for Bluetooth.
 
-For better analysis, the `-r` output can be piped to *lnav*:
+For better analysis, the `-r` output can be piped to *lnav* (the following command tests the UBB connection):
 
 ```shell
 python3 -m obd_dictionary -i /dev/ttyUSB0 -B 38400 -r 2>&1 | lnav
 ```
 
 When the tests provide successful connection, the `-r` option can be removed and the additional *obd_dictionary* options can be added.
+
+*obd_dictionary* can be also used to test *elm*. Run `python3 -m elm`; select `scenario car`. Read the pseudotty, say */dev/pts/2*. Run *obd_dictionary*:
+
+```shell
+python3 -m obd_dictionary -i /dev/pts/2 2>&1 | lnav
+```
+
+(The automation of this process is shown further on.)
 
 In general, *ELM327-emulator* should already manage all needed AT Commands within its default dictionary, so in most cases it is worthwhile removing them from the new scenario via `-t` option.
 

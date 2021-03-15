@@ -378,7 +378,7 @@ def obd_dictionary():
     # Print header information
     print("\n".join([ecu[k] + ' = "' + k + '"' for k in ecu]))
     print('ELM_R_OK = "OK\\r"\n'
-          'ELM_R_UNKNOWN = "?\r"\n'
+          'ELM_R_UNKNOWN = "?\\r"\n'
           'ELM_MAX_RESP = "[0123456]?$"\n')
     print("ObdMessage = {")
     print("    '" + args.car_name + "': {")

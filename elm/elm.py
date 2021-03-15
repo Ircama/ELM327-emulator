@@ -284,11 +284,22 @@ class Elm:
     def write(self, resp):
         """ write a response to the port """
 
-        n = "\r\n" if 'cmd_linefeeds' in self.counters and self.counters[
-            'cmd_linefeeds'] == 1 else "\r"
+        n = "\r"
+        if 'cmd_linefeeds' in self.counters:
+            if self.counters['cmd_linefeeds'] == 1:
+                n = "\r\n"
+            if self.counters['cmd_linefeeds'] == 2:
+                n = "\n"
+            if self.counters['cmd_linefeeds'] == 3:
+                n = ""
+                resp = resp.replace('\r', '\n')
+            if self.counters['cmd_linefeeds'] == 4:
+                n = ""
         resp += n + ">"
-        nospaces = 1 if 'cmd_spaces' in self.counters and self.counters[
-            'cmd_spaces'] == 0 else 0
+        nospaces = 0
+        if ('cmd_spaces' in self.counters
+                and self.counters['cmd_spaces'] == 0):
+            nospaces = 1
 
         j = 0
         for i in re.split(r'\0([^\0]+)\0', resp):
