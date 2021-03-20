@@ -129,6 +129,7 @@ In `'ResponseFooter'`, `'ResponseHeader'` and `'Response'`, spaces are stripped 
 At the `CMD> ` prompt, the emulator accepts the following commands:
 
 - `help` = List available commands (or detailed help with "help cmd").
+- `tty` = Print the used pseudo-tty.
 - `loglevel` = If an argument is given, set the logging level, otherwise show the current one. Valid numbers: CRITICAL=50, ERROR=40, WARNING=30, INFO=20, DEBUG=10.
 - `quit` (or end-of-file/Control-D, or break/Control-C) = quit the program
 - `counters` = print the number of each executed PIDs (upper case names), the values associated to some 'AT' PIDs (*cmd_...*), the unknown requests, the emulator response delay, the total number of executed commands (*commands*) and the current scenario (*scenario*). The related dictionary is `emulator.counters`.
@@ -150,9 +151,11 @@ In addition to the previously listed keywords, any Python command is allowed to 
 
 At the command prompt, cursors and [keyboard shortcuts](https://github.com/chzyer/readline/blob/master/doc/shortcut.md) are allowed. Autocompletion (via TAB key) is active with UNIX systems for all previously described commands and also allows Python keywords and namespaces (built-ins, self and global). If the autocompletion matches a single item, this is immediately expanded; Conversely, if more possibilities are matched, none of them is returned, but pressing TAB again a list of available options is displayed. Tab autocompletion is not supported on Windows.
 
-## Advanced usage
+## Special setters
 
-*echo* and *linefeed* settings are both disabled by default. They can be configured via related AT commands (*ATL1* and *ATE1*). To enable them via command line:
+The counters starting with *cmd_...* are special setters. They include `cmd_echo`, `cmd_linefeeds`, `cmd_spaces`, `cmd_header`, `cmd_use_header`.
+
+*echo* and *linefeed* settings are both disabled by default. They can be configured via related AT commands (*ATE1* and *ATL1*). The special setters `cmd_echo` and `cmd_linefeeds` allow enabling them via command line. Example:
 
 ```
 emulator.counters['cmd_linefeeds'] = True; emulator.counters['cmd_echo'] = True
@@ -168,9 +171,19 @@ Value|Behaviour|Reference
 3    |Each line is closed by a LF.|`\n`
 4    |Each line is closed by a CR.|`\r`
 
-Each time the interface is reset, the counters are restored to their default settings and the `emulator.counters['...']` commands need to be issued again.
+Space characters are inserted by default in the ECU response as per specification. To remove them, use the AT command *ATS0* or `emulator.counters['cmd_spaces'] = 0`.
 
-Space characters are inserted by default in the ECU response as per specification. To remove them, use the AT command *ATS0* or `emulator.counters['cmd_spaces']=0`, Notice that an *ATZ* command resets all counters.
+By default the header is not included in the ECU response. To add it, use the AT command *ATH1* or `emulator.counters['cmd_use_header'] = True`.
+
+The default ECU header is ECU_ADDR_E (e.g., "7E0", producing answer "7E8"; ref. *obd_message.py*). Use `cmd_header` to customize it.
+
+Each time the interface is reset by an *ATZ* command, the special setters are restored to their default settings and any specific customization needs to be issued again. Use `emulator.presets` in order to preset the special setters so that they are applied as default values each time the interface is opened by an application. Example:
+
+```python
+emulator.presets = { 'cmd_linefeeds': 4, 'cmd_spaces': 0 }
+```
+
+## Advanced usage
 
 The emulator includes a timeout management for each entered character, which by default is not active (e.g., set to 1440 seconds). This setting can be configured through `emulator.counters['req_timeout']`. Decimals are allowed. Some adapters provide a feature that discards characters if each of them is not entered within a short time limit (apart from the first one after a CR/Carriage Return). The appropriate emulation for this timeout is to set `emulator.counters['req_timeout']=0.015` (e.g., 15 milliseconds). Typing commands by hand via terminal emulator with such adapters is not possible as the allowed timing is too short. The same happens when setting *req_timeout* to 0.015.
 
@@ -460,7 +473,7 @@ python3 -m obd_dictionary -i /dev/rfcomm0 -B 38400 -T 30 -r
 
 See also [this post](https://github.com/brendan-w/python-OBD/issues/93#issuecomment-327472934) for Bluetooth.
 
-For better analysis, the `-r` output can be piped to *lnav* (the following command tests the UBB connection):
+For better analysis, the `-r` output can be piped to [lnav](http://lnav.org) (the following command tests the USB connection):
 
 ```shell
 python3 -m obd_dictionary -i /dev/ttyUSB0 -B 38400 -r 2>&1 | lnav
@@ -606,6 +619,76 @@ emulator.run()
 When using the Context Manager, a thread is started and the current context is returned to the user. The created thread opens a bidirectional pty-type pipe and processes the related I/O.
 
 When not using the Context Manager, no background thread is created and the pipe is run in the current context.
+
+# Testing OBD-II applications
+
+## OBD Auto Doctor
+
+One of the most useful applications which can be used to test *ELM327-emulator* is [OBD Auto Doctor](https://www.obdautodoctor.com/). It supports different operating systems, including Windows, Mac, Linux, Android, iOS and enables communicating with OBDII to get summary information, trouble codes, advanced diagnostics, real time graphical monitoring and many other in-depth data on the EQUs.
+
+This application allows a demo license which can be used for testing of *ELM327-emulator*. The following instructions explain how to do this with Ubuntu:
+
+Download the Linux application from the [Obdautodoctor site](https://www.obdautodoctor.com/download). Check prerequisites.
+
+Install with `sudo dpkg -i obd-auto-doctor....deb`.
+
+Run *ELM327-emulator* and select the *car* scenario:
+
+```shell
+python -m elm
+scenario car
+```
+
+Copy the pseudo-tty device reported by *ELM327-emulator*.
+
+Run OBD Auto Doctor with `obdautodoctor`. Then select File, Open connection, Use manual settings. Paste the pseudo-tty device in the COM port box. Press Connect.
+
+## scantool
+
+Scantool from [ScanTool.net](https://www.scantool.net/) is an old software which can also be used to test *ELM327-emulator*.
+
+Recent repository: https://github.com/kees/scantool
+
+Software ported to Ubuntu 20.04 LTS: https://github.com/ircama/scantool/tree/pts_support
+
+Installation:
+
+```shell
+git clone --branch pts_support https://github.com/Ircama/scantool.git
+sudo apt install liballegro4.4 liballegro4-dev allegro4-doc
+make clean
+make -e RELEASE=yes LOG=yes
+```
+
+To run the application: `./scantool`
+
+This version of *scantool* allows configuring a pseudo-tty support by editing *~/.scantoolrc*. See related *readme.txt*. With Ubuntu, this can be automated by *ELM327-emulator* via the following plugin:
+
+```python
+import fileinput
+import os
+import re
+
+def scantool(port):
+    numport = str(int(os.path.basename(port)) + 1000)
+    with fileinput.FileInput(os.path.expanduser("~/.scantoolrc"), inplace=True) as file:
+        for line in file:
+            match = re.sub(r"^comport_number *=.*", "comport_number = " + numport, line)
+            if match:
+                print(match, end='')
+            else:
+                print(line, end='')
+```
+
+Close *scantool*, save a file named *scantool.py* including the above reported plugin. Run *ELM327-emulator*:
+
+```shell
+python3 -m elm
+scenario car
+from scantool import scantool;scantool(emulator.slave_name) # load and run the plugin
+```
+
+To run the application integrated with *ELM327-emulator*: `./scantool`
 
 # License
 

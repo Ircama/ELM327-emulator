@@ -203,6 +203,13 @@ class Interpreter(Cmd):
                 "Current logging level:",
                     logging.getLogger().handlers[0].level)
 
+    def do_tty(self, arg):
+        "Print the used pseudo-tty."
+        if arg:
+            print ("Invalid format")
+            return
+        print(self.emulator.slave_name)
+
     def do_counters(self, arg):
         "Print the number of each executed PID (upper case names), the values\n"\
         "associated to some 'AT' PIDs, the unknown requests, the emulator response\n"\

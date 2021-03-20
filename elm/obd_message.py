@@ -25,6 +25,15 @@ ELM_R_OK = "OK\r"
 ELM_R_UNKNOWN = "?\r"
 ELM_MAX_RESP = '[0123456]?$'
 
+def SZ(size):
+    return ('<size>' + size + '</size>')
+
+def HD(header):
+    return ('<header>' + header + '</header>')
+
+def DT(data):
+    return ('<data>' + data + '</data>')
+
 # This dictionary uses the ISO 15765-4 CAN 11 bit ID 500 kbaud protocol
 
 # PID Dictionary
@@ -75,8 +84,8 @@ ObdMessage = {
         'AT_HEADERS': {
             'Request': '^ATH[01]$',
             'Descr': 'AT HEADERS',
-            'Exec': 'self.counters["cmd_headers"] = (cmd[3] == "1")',
-            'Log': '"set HEADERS ON/OFF : %s", self.counters["cmd_headers"]',
+            'Exec': 'self.counters["cmd_use_header"] = (cmd[3] == "1")',
+            'Log': '"set HEADERS ON/OFF : %s", self.counters["cmd_use_header"]',
             'Response': ELM_R_OK
         },
         'AT_I': {
@@ -208,25 +217,25 @@ ObdMessage = {
             'Request': '^0103' + ELM_MAX_RESP,
             'Descr': 'Fuel System Status',
             'Header': ECU_ADDR_E,
-            'Response': ECU_R_ADDR_E + ' 04 41 03 00 00 \r'
+            'Response': HD(ECU_R_ADDR_E) + SZ('04') + DT('41 03 00 00')
         },
         'ENGINE_LOAD': {
             'Request': '^0104' + ELM_MAX_RESP,
             'Descr': 'Calculated Engine Load',
             'Header': ECU_ADDR_E,
-            'Response': ECU_R_ADDR_E + ' 03 41 04 00 \r'
+            'Response': HD(ECU_R_ADDR_E) + SZ('03') + DT('41 04 00')
         },
         'COOLANT_TEMP': {
             'Request': '^0105' + ELM_MAX_RESP,
             'Descr': 'Engine Coolant Temperature',
             'Header': ECU_ADDR_E,
-            'Response': ECU_R_ADDR_E + ' 05 41 05 7B \r'
+            'Response': HD(ECU_R_ADDR_E) + SZ('03') + DT('41 05 7B')
         },
         'INTAKE_PRESSURE': {
             'Request': '^010B' + ELM_MAX_RESP,
             'Descr': 'Intake Manifold Pressure',
             'Header': ECU_ADDR_E,
-            'Response': ECU_R_ADDR_E + ' 03 41 0B 73 \r'
+            'Response': HD(ECU_R_ADDR_E) + SZ('03') + DT('41 0B 73')
         },
         'RPM': {
             'Request': '^010C' + ELM_MAX_RESP,
@@ -235,9 +244,9 @@ ObdMessage = {
             'Response': '',
             'ResponseFooter': \
             lambda self, cmd, pid, val: \
-                ECU_R_ADDR_E + ' 04 41 0C ' \
+                HD(ECU_R_ADDR_E) + SZ('04') + '41 0C ' \
                 + self.Sequence(pid, base=2400, max=200, factor=80, n_bytes=2) \
-                + ' \r' + ECU_R_ADDR_H + ' 04 41 0C ' \
+                + ' \r' + HD(ECU_R_ADDR_H) + SZ('04') + '41 0C ' \
                 + self.Sequence(pid, base=2400, max=200, factor=80, n_bytes=2) \
                 + ' \r'
         },
@@ -248,9 +257,9 @@ ObdMessage = {
             'Response': '',
             'ResponseFooter': \
             lambda self, cmd, pid, val: \
-                ECU_R_ADDR_E + ' 03 41 0D ' \
+                HD(ECU_R_ADDR_E) + SZ('03') + '41 0D ' \
                 + self.Sequence(pid, base=0, max=30, factor=4, n_bytes=1) \
-                + ' \r' + ECU_R_ADDR_H + ' 03 41 0D ' \
+                + ' \r' + HD(ECU_R_ADDR_H) + SZ('03') + '41 0D ' \
                 + self.Sequence(pid, base=0, max=30, factor=4, n_bytes=1) \
                 + ' \r'
         },
@@ -258,127 +267,127 @@ ObdMessage = {
             'Request': '^010F' + ELM_MAX_RESP,
             'Descr': 'Intake Air Temp',
             'Header': ECU_ADDR_E,
-            'Response': ECU_R_ADDR_E + ' 03 41 0F 44 \r'
+            'Response': HD(ECU_R_ADDR_E) + SZ('03') + DT('41 0F 44')
         },
         'MAF': {
             'Request': '^0110' + ELM_MAX_RESP,
             'Descr': 'Air Flow Rate (MAF)',
             'Header': ECU_ADDR_E,
-            'Response': ECU_R_ADDR_E + ' 04 41 10 05 1F \r'
+            'Response': HD(ECU_R_ADDR_E) + SZ('04') + DT('41 10 05 1F')
         },
         'THROTTLE_POS': {
             'Request': '^0111' + ELM_MAX_RESP,
             'Descr': 'Throttle Position',
             'Header': ECU_ADDR_E,
-            'Response': ECU_R_ADDR_E + ' 03 41 11 FF \r'
+            'Response': HD(ECU_R_ADDR_E) + SZ('03') + DT('41 11 FF')
         },
         'OBD_COMPLIANCE': {
             'Request': '^011C' + ELM_MAX_RESP,
             'Descr': 'OBD Standards Compliance',
             'Header': ECU_ADDR_E,
-            'Response': ECU_R_ADDR_E + ' 03 41 1C 06 \r'
+            'Response': HD(ECU_R_ADDR_E) + SZ('03') + DT('41 1C 06')
         },
         'RUN_TIME': {
             'Request': '^011F' + ELM_MAX_RESP,
             'Descr': 'Engine Run Time',
             'Header': ECU_ADDR_E,
-            'Response': ECU_R_ADDR_E + ' 04 41 1F 00 8C \r'
+            'Response': HD(ECU_R_ADDR_E) + SZ('04') + DT('41 1F 00 8C')
         },
         'DISTANCE_W_MIL': {
             'Request': '^0121' + ELM_MAX_RESP,
             'Descr': 'Distance Traveled with MIL on',
             'Header': ECU_ADDR_E,
-            'Response': ECU_R_ADDR_E + ' 04 41 21 00 00 \r00 \r'
+            'Response': HD(ECU_R_ADDR_E) + SZ('04') + DT('41 21 00 00 \r00')
         },
         'FUEL_RAIL_PRESSURE_DIRECT': {
             'Request': '^0123' + ELM_MAX_RESP,
             'Descr': 'Fuel Rail Pressure (direct inject)',
             'Header': ECU_ADDR_E,
-            'Response': ECU_R_ADDR_E + ' 04 41 23 1A 0E \r'
+            'Response': HD(ECU_R_ADDR_E) + SZ('04') + DT('41 23 1A 0E')
         },
         'COMMANDED_EGR': {
             'Request': '^012C' + ELM_MAX_RESP,
             'Descr': 'Commanded EGR',
             'Header': ECU_ADDR_E,
-            'Response': ECU_R_ADDR_E + ' 03 41 2C 0D \r'
+            'Response': HD(ECU_R_ADDR_E) + SZ('03') + DT('41 2C 0D')
         },
         'EGR_ERROR': {
             'Request': '^012D' + ELM_MAX_RESP,
             'Descr': 'EGR Error',
             'Header': ECU_ADDR_E,
-            'Response': ECU_R_ADDR_E + ' 03 41 2D 80 \r'
+            'Response': HD(ECU_R_ADDR_E) + SZ('03') + DT('41 2D 80')
         },
         'DISTANCE_SINCE_DTC_CLEAR': {
             'Request': '^0131' + ELM_MAX_RESP,
             'Descr': 'Distance traveled since codes cleared',
             'Header': ECU_ADDR_E,
-            'Response': ECU_R_ADDR_E + ' 04 41 31 C8 1F \r'
+            'Response': HD(ECU_R_ADDR_E) + SZ('04') + DT('41 31 C8 1F')
         },
         'BAROMETRIC_PRESSURE': {
             'Request': '^0133' + ELM_MAX_RESP,
             'Descr': 'Barometric Pressure',
             'Header': ECU_ADDR_E,
-            'Response': ECU_R_ADDR_E + ' 03 41 33 65 \r'
+            'Response': HD(ECU_R_ADDR_E) + SZ('03') + DT('41 33 65')
         },
         'CATALYST_TEMP_B1S1': {
             'Request': '^013C' + ELM_MAX_RESP,
             'Descr': 'Catalyst Temperature: Bank 1 - Sensor 1',
             'Header': ECU_ADDR_E,
-            'Response': ECU_R_ADDR_E + ' 04 41 3C 04 44 \r'
+            'Response': HD(ECU_R_ADDR_E) + SZ('04') + DT('41 3C 04 44')
         },
         'CONTROL_MODULE_VOLTAGE': {
             'Request': '^0142' + ELM_MAX_RESP,
             'Descr': 'Control module voltage',
             'Header': ECU_ADDR_E,
-            'Response': ECU_R_ADDR_E + ' 04 41 42 39 D6 \r00 \r'
+            'Response': HD(ECU_R_ADDR_E) + SZ('04') + DT('41 42 39 D6 \r00')
         },
         'AMBIANT_AIR_TEMP': {
             'Request': '^0146' + ELM_MAX_RESP,
             'Descr': 'Ambient air temperature',
             'Header': ECU_ADDR_E,
-            'Response': ECU_R_ADDR_E + ' 03 41 46 43 \r'
+            'Response': HD(ECU_R_ADDR_E) + SZ('03') + DT('41 46 43')
         },
         'ACCELERATOR_POS_D': {
             'Request': '^0149' + ELM_MAX_RESP,
             'Descr': 'Accelerator pedal position D',
             'Header': ECU_ADDR_E,
-            'Response': ECU_R_ADDR_E + ' 03 41 49 00 \r'
+            'Response': HD(ECU_R_ADDR_E) + SZ('03') + DT('41 49 00')
         },
         'ACCELERATOR_POS_E': {
             'Request': '^014A' + ELM_MAX_RESP,
             'Descr': 'Accelerator pedal position E',
             'Header': ECU_ADDR_E,
-            'Response': ECU_R_ADDR_E + ' 03 41 4A 45 \r'
+            'Response': HD(ECU_R_ADDR_E) + SZ('03') + DT('41 4A 45')
         },
         'THROTTLE_ACTUATOR': {
             'Request': '^014C' + ELM_MAX_RESP,
             'Descr': 'Commanded throttle actuator',
             'Header': ECU_ADDR_E,
-            'Response': ECU_R_ADDR_E + ' 03 41 4C 00 \r'
+            'Response': HD(ECU_R_ADDR_E) + SZ('03') + DT('41 4C 00')
         },
         'RUN_TIME_MIL': {
             'Request': '^014D' + ELM_MAX_RESP,
             'Descr': 'Time run with MIL on',
             'Header': ECU_ADDR_E,
-            'Response': ECU_R_ADDR_E + ' 04 41 4D 00 00 \r00 \r'
+            'Response': HD(ECU_R_ADDR_E) + SZ('04') + DT('41 4D 00 00 \r00')
         },
         'TIME_SINCE_DTC_CLEARED': {
             'Request': '^014E' + ELM_MAX_RESP,
             'Descr': 'Time since trouble codes cleared',
             'Header': ECU_ADDR_E,
-            'Response': ECU_R_ADDR_E + ' 04 41 4E 4C 69 \r00 \r'
+            'Response': HD(ECU_R_ADDR_E) + SZ('04') + DT('41 4E 4C 69 \r00')
         },
         'FUEL_TYPE': {
             'Request': '^0151' + ELM_MAX_RESP,
             'Descr': 'Fuel Type',
             'Header': ECU_ADDR_E,
-            'Response': ECU_R_ADDR_E + ' 03 41 51 01 \r'
+            'Response': HD(ECU_R_ADDR_E) + SZ('03') + DT('41 51 01')
         },
         'FUEL_INJECT_TIMING': {
             'Request': '^015D' + ELM_MAX_RESP,
             'Descr': 'Fuel injection timing',
             'Header': ECU_ADDR_E,
-            'Response': ECU_R_ADDR_E + ' 04 41 5D 66 00 \r'
+            'Response': HD(ECU_R_ADDR_E) + SZ('04') + DT('41 5D 66 00')
         },
         # Supported PIDs for protocols
         'ELM_PIDS_A': {
@@ -388,82 +397,82 @@ ObdMessage = {
             lambda self, cmd, pid, val: \
                 'SEARCHING...\0 time.sleep(3) \0\r' if self.counters[pid] == 1 else "",
             'Response':
-            ECU_R_ADDR_H + ' 06 41 00 98 3A 80 13 \r' +
-            ECU_R_ADDR_E + ' 06 41 00 BE 3F A8 13 \r'
+            HD(ECU_R_ADDR_H) + SZ('06') + DT('41 00 98 3A 80 13') +
+            HD(ECU_R_ADDR_E) + SZ('06') + DT('41 00 BE 3F A8 13')
         },
         'ELM_PIDS_B': {
             'Request': '^0120' + ELM_MAX_RESP,
             'Descr': 'PIDS_B',
             'Response':
-            ECU_R_ADDR_H + ' 06 41 20 80 01 A0 01 \r' +
-            ECU_R_ADDR_E + ' 06 41 20 90 15 B0 15 \r'
+            HD(ECU_R_ADDR_H) + SZ('06') + DT('41 20 80 01 A0 01') +
+            HD(ECU_R_ADDR_E) + SZ('06') + DT('41 20 90 15 B0 15')
         },
         'ELM_PIDS_C': {
             'Request': '^0140' + ELM_MAX_RESP,
             'Descr': 'PIDS_C',
             'Response':
-            ECU_R_ADDR_H + ' 06 41 40 44 CC 00 21 \r' +
-            ECU_R_ADDR_E + ' 06 41 40 7A 1C 80 00 \r'
+            HD(ECU_R_ADDR_H) + SZ('06') + DT('41 40 44 CC 00 21') +
+            HD(ECU_R_ADDR_E) + SZ('06') + DT('41 40 7A 1C 80 00')
         },
         # Mode 06 Sending intermittent monitoring system test results (DMTR)
         'ELM_MIDS_A': {
             'Request': '^0600' + ELM_MAX_RESP,
             'Descr': 'MIDS_A',
-            'Response': ECU_R_ADDR_E + ' 06 46 00 C0 00 00 01 \r'
+            'Response': HD(ECU_R_ADDR_E) + SZ('06') + DT('46 00 C0 00 00 01')
         },
         'ELM_MIDS_B': {
             'Request': '^0620' + ELM_MAX_RESP,
             'Descr': 'MIDS_B',
-            'Response': ECU_R_ADDR_E + ' 06 46 20 80 00 80 01 \r'
+            'Response': HD(ECU_R_ADDR_E) + SZ('06') + DT('46 20 80 00 80 01')
         },
         'ELM_MIDS_C': {
             'Request': '^0640' + ELM_MAX_RESP,
             'Descr': 'MIDS_C',
-            'Response': ECU_R_ADDR_E + ' 06 46 40 00 00 00 01 \r'
+            'Response': HD(ECU_R_ADDR_E) + SZ('06') + DT('46 40 00 00 00 01')
         },
         'ELM_MIDS_D': {
             'Request': '^0660' + ELM_MAX_RESP,
             'Descr': 'MIDS_D',
-            'Response': ECU_R_ADDR_E + ' 06 46 60 00 00 00 01 \r'
+            'Response': HD(ECU_R_ADDR_E) + SZ('06') + DT('46 60 00 00 00 01')
         },
         'ELM_MIDS_E': {
             'Request': '^0680' + ELM_MAX_RESP,
             'Descr': 'MIDS_E',
-            'Response': ECU_R_ADDR_E + ' 06 46 80 00 00 00 01 \r'
+            'Response': HD(ECU_R_ADDR_E) + SZ('06') + DT('46 80 00 00 00 01')
         },
         'ELM_MIDS_F': {
             'Request': '^06A0' + ELM_MAX_RESP,
             'Descr': 'MIDS_F',
-            'Response': ECU_R_ADDR_E + ' 06 46 A0 F8 00 00 00 \r'
+            'Response': HD(ECU_R_ADDR_E) + SZ('06') + DT('46 A0 F8 00 00 00')
         },
         # Mode 07 Sending continuous monitoring system test results (pending code)
         # Mode 09 Request vehicle information
         'ELM_PIDS_9A': {
             'Request': '^0900' + ELM_MAX_RESP,
             'Descr': 'PIDS_9A',
-            'Response': ECU_R_ADDR_E + ' 06 49 00 FF FF FF FF \r'
+            'Response': HD(ECU_R_ADDR_E) + SZ('06') + DT('49 00 FF FF FF FF')
         },
         'VIN_MESSAGE_COUNT': {
             'Request': '^0901' + ELM_MAX_RESP,
             'Descr': 'VIN Message Count',
-            'Response': ECU_R_ADDR_E + ' 03 49 01 01 \r'
+            'Response': HD(ECU_R_ADDR_E) + SZ('03') + DT('49 01 01')
         },
         'VIN': { # Check this also: https://stackoverflow.com/a/26752855/10598800, https://www.autocheck.com/vehiclehistory/autocheck/en/vinbasics
             'Request': '^0902' + ELM_MAX_RESP,
             'Descr': 'Get Vehicle Identification Number',
             'Response': [
-                        ECU_R_ADDR_E + ' 10 14 49 02 01 57 50 30 \r' +
-                        ECU_R_ADDR_E + ' 21 5A 5A 5A 39 39 5A 54 \r' +
-                        ECU_R_ADDR_E + ' 22 53 33 39 30 30 30 30 \r', # https://www.autodna.com/vin/WP0ZZZ99ZTS390000, https://it.vin-info.com/libro-denuncia/WP0ZZZ99ZTS390000
-                        ECU_R_ADDR_E + ' 10 14 49 02 01 4D 41 54 \r' + # https://community.carloop.io/t/how-to-request-vin/153/11
-                        ECU_R_ADDR_E + ' 21 34 30 33 30 39 36 42 \r' +
-                        ECU_R_ADDR_E + ' 22 4E 4C 30 30 30 30 30 \r'
+                        HD(ECU_R_ADDR_E) + SZ('10') + DT('14 49 02 01 57 50 30') +
+                        HD(ECU_R_ADDR_E) + SZ('21') + DT('5A 5A 5A 39 39 5A 54') +
+                        HD(ECU_R_ADDR_E) + SZ('22') + DT('53 33 39 30 30 30 30'), # https://www.autodna.com/vin/WP0ZZZ99ZTS390000, https://it.vin-info.com/libro-denuncia/WP0ZZZ99ZTS390000
+                        HD(ECU_R_ADDR_E) + SZ('10') + DT('14 49 02 01 4D 41 54') + # https://community.carloop.io/t/how-to-request-vin/153/11
+                        HD(ECU_R_ADDR_E) + SZ('21') + DT('34 30 33 30 39 36 42') +
+                        HD(ECU_R_ADDR_E) + SZ('22') + DT('4E 4C 30 30 30 30 30')
                         ]
         },
         'CALIBRATION_ID_MESSAGE_COUNT': {
             'Request': '^0903' + ELM_MAX_RESP,
             'Descr': 'Calibration ID message count for PID 04',
-            'Response': ECU_R_ADDR_E + ' 03 49 03 01 \r'
+            'Response': HD(ECU_R_ADDR_E) + SZ('03') + DT('49 03 01')
         }
     },
 # Pids of a Toyota Auris Hybrid car
@@ -521,22 +530,22 @@ ObdMessage = {
             'Request': '^0100' + ELM_MAX_RESP,
             'Descr': 'Supported PIDs [01-20]',
             'Header': ECU_ADDR_E,
-            'Response': ECU_R_ADDR_E + ' 06 41 00 BE 3F A8 13 \r'
+            'Response': HD(ECU_R_ADDR_E) + SZ('06') + DT('41 00 BE 3F A8 13')
         },
         'STATUS': {
             'Request': '^0101' + ELM_MAX_RESP,
             'Descr': 'Status since DTCs cleared',
             'Header': ECU_ADDR_E,
-            'Response': ECU_R_ADDR_E + ' 06 41 01 00 07 A1 00 \r'
+            'Response': HD(ECU_R_ADDR_E) + SZ('06') + DT('41 01 00 07 A1 00')
         },
         'FUEL_STATUS': {
             'Request': '^0103' + ELM_MAX_RESP,
             'Descr': 'Fuel System Status',
             'Header': ECU_ADDR_E,
             'Response': [
-                        ECU_R_ADDR_E + ' 04 41 03 00 00 \r',
-                        ECU_R_ADDR_E + ' 04 41 03 04 00 \r',
-                        ECU_R_ADDR_E + ' 04 41 03 02 00 \r'
+                        HD(ECU_R_ADDR_E) + SZ('04') + DT('41 03 00 00'),
+                        HD(ECU_R_ADDR_E) + SZ('04') + DT('41 03 04 00'),
+                        HD(ECU_R_ADDR_E) + SZ('04') + DT('41 03 02 00')
                         ]
         },
         'ENGINE_LOAD': {
@@ -544,21 +553,21 @@ ObdMessage = {
             'Descr': 'Calculated Engine Load',
             'Header': ECU_ADDR_E,
             'Response': [
-                        ECU_R_ADDR_E + ' 03 41 04 FF \r',
-                        ECU_R_ADDR_E + ' 03 41 04 57 \r',
-                        ECU_R_ADDR_E + ' 03 41 04 96 \r',
-                        ECU_R_ADDR_E + ' 03 41 04 00 \r' +
-                        ECU_R_ADDR_H + ' 03 41 04 00 \r',
-                        ECU_R_ADDR_E + ' 03 41 04 56 \r',
-                        ECU_R_ADDR_E + ' 03 41 04 64 \r',
-                        ECU_R_ADDR_E + ' 03 41 04 67 \r',
-                        ECU_R_ADDR_E + ' 03 41 04 9F \r',
-                        ECU_R_ADDR_E + ' 03 41 04 00 \r',
-                        ECU_R_ADDR_E + ' 03 41 04 98 \r',
-                        ECU_R_ADDR_E + ' 03 41 04 73 \r',
-                        ECU_R_ADDR_E + ' 03 41 04 69 \r',
-                        ECU_R_ADDR_E + ' 03 41 04 D6 \r',
-                        ECU_R_ADDR_E + ' 03 41 04 41 \r'
+                        HD(ECU_R_ADDR_E) + SZ('03') + DT('41 04 FF'),
+                        HD(ECU_R_ADDR_E) + SZ('03') + DT('41 04 57'),
+                        HD(ECU_R_ADDR_E) + SZ('03') + DT('41 04 96'),
+                        HD(ECU_R_ADDR_E) + SZ('03') + DT('41 04 00') +
+                        HD(ECU_R_ADDR_H) + SZ('03') + DT('41 04 00'),
+                        HD(ECU_R_ADDR_E) + SZ('03') + DT('41 04 56'),
+                        HD(ECU_R_ADDR_E) + SZ('03') + DT('41 04 64'),
+                        HD(ECU_R_ADDR_E) + SZ('03') + DT('41 04 67'),
+                        HD(ECU_R_ADDR_E) + SZ('03') + DT('41 04 9F'),
+                        HD(ECU_R_ADDR_E) + SZ('03') + DT('41 04 00'),
+                        HD(ECU_R_ADDR_E) + SZ('03') + DT('41 04 98'),
+                        HD(ECU_R_ADDR_E) + SZ('03') + DT('41 04 73'),
+                        HD(ECU_R_ADDR_E) + SZ('03') + DT('41 04 69'),
+                        HD(ECU_R_ADDR_E) + SZ('03') + DT('41 04 D6'),
+                        HD(ECU_R_ADDR_E) + SZ('03') + DT('41 04 41')
                         ]
             # 100.0 percent
             # 34.11764705882353 percent
@@ -578,19 +587,19 @@ ObdMessage = {
             'Descr': 'Engine Coolant Temperature',
             'Header': ECU_ADDR_E,
             'Response': [
-                        ECU_R_ADDR_E + ' 03 41 05 5F \r',
-                        ECU_R_ADDR_E + ' 03 41 05 44 \r',
-                        ECU_R_ADDR_E + ' 03 41 05 4C \r',
-                        ECU_R_ADDR_E + ' 03 41 05 64 \r',
-                        ECU_R_ADDR_E + ' 03 41 05 55 \r',
-                        ECU_R_ADDR_E + ' 03 41 05 5B \r',
-                        ECU_R_ADDR_E + ' 03 41 05 48 \r',
-                        ECU_R_ADDR_E + ' 03 41 05 45 \r',
-                        ECU_R_ADDR_E + ' 03 41 05 56 \r',
-                        ECU_R_ADDR_E + ' 03 41 05 50 \r',
-                        ECU_R_ADDR_E + ' 03 41 05 54 \r',
-                        ECU_R_ADDR_E + ' 03 41 05 42 \r',
-                        ECU_R_ADDR_E + ' 03 41 05 66 \r'
+                        HD(ECU_R_ADDR_E) + SZ('03') + DT('41 05 5F'),
+                        HD(ECU_R_ADDR_E) + SZ('03') + DT('41 05 44'),
+                        HD(ECU_R_ADDR_E) + SZ('03') + DT('41 05 4C'),
+                        HD(ECU_R_ADDR_E) + SZ('03') + DT('41 05 64'),
+                        HD(ECU_R_ADDR_E) + SZ('03') + DT('41 05 55'),
+                        HD(ECU_R_ADDR_E) + SZ('03') + DT('41 05 5B'),
+                        HD(ECU_R_ADDR_E) + SZ('03') + DT('41 05 48'),
+                        HD(ECU_R_ADDR_E) + SZ('03') + DT('41 05 45'),
+                        HD(ECU_R_ADDR_E) + SZ('03') + DT('41 05 56'),
+                        HD(ECU_R_ADDR_E) + SZ('03') + DT('41 05 50'),
+                        HD(ECU_R_ADDR_E) + SZ('03') + DT('41 05 54'),
+                        HD(ECU_R_ADDR_E) + SZ('03') + DT('41 05 42'),
+                        HD(ECU_R_ADDR_E) + SZ('03') + DT('41 05 66')
                         ]
             # 55 degC
             # 28 degC
@@ -611,14 +620,14 @@ ObdMessage = {
             'Descr': 'Short Term Fuel Trim - Bank 1',
             'Header': ECU_ADDR_E,
             'Response': [
-                        ECU_R_ADDR_E + ' 03 41 06 80 \r',
-                        ECU_R_ADDR_E + ' 03 41 06 78 \r',
-                        ECU_R_ADDR_E + ' 03 41 06 84 \r',
-                        ECU_R_ADDR_E + ' 03 41 06 88 \r',
-                        ECU_R_ADDR_E + ' 03 41 06 79 \r',
-                        ECU_R_ADDR_E + ' 03 41 06 8B \r',
-                        ECU_R_ADDR_E + ' 03 41 06 7F \r',
-                        ECU_R_ADDR_E + ' 03 41 06 7D \r'
+                        HD(ECU_R_ADDR_E) + SZ('03') + DT('41 06 80'),
+                        HD(ECU_R_ADDR_E) + SZ('03') + DT('41 06 78'),
+                        HD(ECU_R_ADDR_E) + SZ('03') + DT('41 06 84'),
+                        HD(ECU_R_ADDR_E) + SZ('03') + DT('41 06 88'),
+                        HD(ECU_R_ADDR_E) + SZ('03') + DT('41 06 79'),
+                        HD(ECU_R_ADDR_E) + SZ('03') + DT('41 06 8B'),
+                        HD(ECU_R_ADDR_E) + SZ('03') + DT('41 06 7F'),
+                        HD(ECU_R_ADDR_E) + SZ('03') + DT('41 06 7D')
                         ]
             # -6.25 percent
             # 3.125 percent
@@ -633,11 +642,11 @@ ObdMessage = {
             'Descr': 'Long Term Fuel Trim - Bank 1',
             'Header': ECU_ADDR_E,
             'Response': [
-                        ECU_R_ADDR_E + ' 03 41 07 79 \r',
-                        ECU_R_ADDR_E + ' 03 41 07 7E \r',
-                        ECU_R_ADDR_E + ' 03 41 07 7C \r',
-                        ECU_R_ADDR_E + ' 03 41 07 7F \r',
-                        ECU_R_ADDR_E + ' 03 41 07 78 \r'
+                        HD(ECU_R_ADDR_E) + SZ('03') + DT('41 07 79'),
+                        HD(ECU_R_ADDR_E) + SZ('03') + DT('41 07 7E'),
+                        HD(ECU_R_ADDR_E) + SZ('03') + DT('41 07 7C'),
+                        HD(ECU_R_ADDR_E) + SZ('03') + DT('41 07 7F'),
+                        HD(ECU_R_ADDR_E) + SZ('03') + DT('41 07 78')
                         ]
             # -5.46875 percent
             # -1.5625 percent
@@ -650,19 +659,19 @@ ObdMessage = {
             'Descr': 'Intake Manifold Pressure',
             'Header': ECU_ADDR_E,
             'Response': [
-                        ECU_R_ADDR_E + ' 03 41 0B 26 \r',
-                        ECU_R_ADDR_E + ' 03 41 0B 35 \r',
-                        ECU_R_ADDR_E + ' 03 41 0B 1E \r',
-                        ECU_R_ADDR_E + ' 03 41 0B 63 \r',
-                        ECU_R_ADDR_E + ' 03 41 0B 28 \r',
-                        ECU_R_ADDR_E + ' 03 41 0B 52 \r',
-                        ECU_R_ADDR_E + ' 03 41 0B 61 \r',
-                        ECU_R_ADDR_E + ' 03 41 0B 60 \r',
-                        ECU_R_ADDR_E + ' 03 41 0B 63 \r' +
-                        ECU_R_ADDR_H + ' 03 41 0B 63 \r',
-                        ECU_R_ADDR_E + ' 03 41 0B 36 \r',
-                        ECU_R_ADDR_E + ' 03 41 0B 25 \r',
-                        ECU_R_ADDR_E + ' 03 41 0B 14 \r'
+                        HD(ECU_R_ADDR_E) + SZ('03') + DT('41 0B 26'),
+                        HD(ECU_R_ADDR_E) + SZ('03') + DT('41 0B 35'),
+                        HD(ECU_R_ADDR_E) + SZ('03') + DT('41 0B 1E'),
+                        HD(ECU_R_ADDR_E) + SZ('03') + DT('41 0B 63'),
+                        HD(ECU_R_ADDR_E) + SZ('03') + DT('41 0B 28'),
+                        HD(ECU_R_ADDR_E) + SZ('03') + DT('41 0B 52'),
+                        HD(ECU_R_ADDR_E) + SZ('03') + DT('41 0B 61'),
+                        HD(ECU_R_ADDR_E) + SZ('03') + DT('41 0B 60'),
+                        HD(ECU_R_ADDR_E) + SZ('03') + DT('41 0B 63') +
+                        HD(ECU_R_ADDR_H) + SZ('03') + DT('41 0B 63'),
+                        HD(ECU_R_ADDR_E) + SZ('03') + DT('41 0B 36'),
+                        HD(ECU_R_ADDR_E) + SZ('03') + DT('41 0B 25'),
+                        HD(ECU_R_ADDR_E) + SZ('03') + DT('41 0B 14')
                         ]
             # 38 kilopascal
             # 53 kilopascal
@@ -682,20 +691,20 @@ ObdMessage = {
             'Descr': 'Engine RPM',
             'Header': ECU_ADDR_E,
             'Response': [
-                        ECU_R_ADDR_E + ' 04 41 0C 14 5F \r',
-                        ECU_R_ADDR_E + ' 04 41 0C 00 00 \r',
-                        ECU_R_ADDR_E + ' 04 41 0C 41 C2 \r',
-                        ECU_R_ADDR_E + ' 04 41 0C 35 CB \r',
-                        ECU_R_ADDR_E + ' 04 41 0C 14 46 \r',
-                        ECU_R_ADDR_E + ' 04 41 0C 12 87 \r',
-                        ECU_R_ADDR_E + ' 04 41 0C 3B 2E \r',
-                        ECU_R_ADDR_E + ' 04 41 0C 15 2A \r',
-                        ECU_R_ADDR_E + ' 04 41 0C 09 F6 \r',
-                        ECU_R_ADDR_E + ' 04 41 0C 23 82 \r',
-                        ECU_R_ADDR_E + ' 04 41 0C 26 25 \r',
-                        ECU_R_ADDR_E + ' 04 41 0C 18 9F \r',
-                        ECU_R_ADDR_E + ' 04 41 0C 13 FB \r',
-                        ECU_R_ADDR_E + ' 04 41 0C 3F 7A \r'
+                        HD(ECU_R_ADDR_E) + SZ('04') + DT('41 0C 14 5F'),
+                        HD(ECU_R_ADDR_E) + SZ('04') + DT('41 0C 00 00'),
+                        HD(ECU_R_ADDR_E) + SZ('04') + DT('41 0C 41 C2'),
+                        HD(ECU_R_ADDR_E) + SZ('04') + DT('41 0C 35 CB'),
+                        HD(ECU_R_ADDR_E) + SZ('04') + DT('41 0C 14 46'),
+                        HD(ECU_R_ADDR_E) + SZ('04') + DT('41 0C 12 87'),
+                        HD(ECU_R_ADDR_E) + SZ('04') + DT('41 0C 3B 2E'),
+                        HD(ECU_R_ADDR_E) + SZ('04') + DT('41 0C 15 2A'),
+                        HD(ECU_R_ADDR_E) + SZ('04') + DT('41 0C 09 F6'),
+                        HD(ECU_R_ADDR_E) + SZ('04') + DT('41 0C 23 82'),
+                        HD(ECU_R_ADDR_E) + SZ('04') + DT('41 0C 26 25'),
+                        HD(ECU_R_ADDR_E) + SZ('04') + DT('41 0C 18 9F'),
+                        HD(ECU_R_ADDR_E) + SZ('04') + DT('41 0C 13 FB'),
+                        HD(ECU_R_ADDR_E) + SZ('04') + DT('41 0C 3F 7A')
                         ]
             # 1303.75 revolutions_per_minute
             # 4208.5 revolutions_per_minute
@@ -716,19 +725,19 @@ ObdMessage = {
             'Descr': 'Vehicle Speed',
             'Header': ECU_ADDR_E,
             'Response': [
-                        ECU_R_ADDR_E + ' 03 41 0D 0A \r',
-                        ECU_R_ADDR_E + ' 03 41 0D 37 \r',
-                        ECU_R_ADDR_E + ' 03 41 0D 27 \r',
-                        ECU_R_ADDR_E + ' 03 41 0D 33 \r',
-                        ECU_R_ADDR_E + ' 03 41 0D 00 \r',
-                        ECU_R_ADDR_E + ' 03 41 0D 44 \r',
-                        ECU_R_ADDR_E + ' 03 41 0D 5C \r',
-                        ECU_R_ADDR_E + ' 03 41 0D 1D \r',
-                        ECU_R_ADDR_E + ' 03 41 0D 72 \r',
-                        ECU_R_ADDR_E + ' 03 41 0D 48 \r',
-                        ECU_R_ADDR_E + ' 03 41 0D 20 \r',
-                        ECU_R_ADDR_E + ' 03 41 0D 29 \r',
-                        ECU_R_ADDR_E + ' 03 41 0D 0E \r'
+                        HD(ECU_R_ADDR_E) + SZ('03') + DT('41 0D 0A'),
+                        HD(ECU_R_ADDR_E) + SZ('03') + DT('41 0D 37'),
+                        HD(ECU_R_ADDR_E) + SZ('03') + DT('41 0D 27'),
+                        HD(ECU_R_ADDR_E) + SZ('03') + DT('41 0D 33'),
+                        HD(ECU_R_ADDR_E) + SZ('03') + DT('41 0D 00'),
+                        HD(ECU_R_ADDR_E) + SZ('03') + DT('41 0D 44'),
+                        HD(ECU_R_ADDR_E) + SZ('03') + DT('41 0D 5C'),
+                        HD(ECU_R_ADDR_E) + SZ('03') + DT('41 0D 1D'),
+                        HD(ECU_R_ADDR_E) + SZ('03') + DT('41 0D 72'),
+                        HD(ECU_R_ADDR_E) + SZ('03') + DT('41 0D 48'),
+                        HD(ECU_R_ADDR_E) + SZ('03') + DT('41 0D 20'),
+                        HD(ECU_R_ADDR_E) + SZ('03') + DT('41 0D 29'),
+                        HD(ECU_R_ADDR_E) + SZ('03') + DT('41 0D 0E')
                         ]
             # 10 kph
             # 55 kph
@@ -748,18 +757,18 @@ ObdMessage = {
             'Descr': 'Timing Advance',
             'Header': ECU_ADDR_E,
             'Response': [
-                        ECU_R_ADDR_E + ' 03 41 0E 75 \r',
-                        ECU_R_ADDR_E + ' 03 41 0E 76 \r',
-                        ECU_R_ADDR_E + ' 03 41 0E 8E \r',
-                        ECU_R_ADDR_E + ' 03 41 0E A2 \r',
-                        ECU_R_ADDR_E + ' 03 41 0E 8F \r',
-                        ECU_R_ADDR_E + ' 03 41 0E 99 \r',
-                        ECU_R_ADDR_E + ' 03 41 0E 8A \r',
-                        ECU_R_ADDR_E + ' 03 41 0E A6 \r',
-                        ECU_R_ADDR_E + ' 03 41 0E 95 \r',
-                        ECU_R_ADDR_E + ' 03 41 0E 9A \r',
-                        ECU_R_ADDR_E + ' 03 41 0E A8 \r',
-                        ECU_R_ADDR_E + ' 03 41 0E AB \r'
+                        HD(ECU_R_ADDR_E) + SZ('03') + DT('41 0E 75'),
+                        HD(ECU_R_ADDR_E) + SZ('03') + DT('41 0E 76'),
+                        HD(ECU_R_ADDR_E) + SZ('03') + DT('41 0E 8E'),
+                        HD(ECU_R_ADDR_E) + SZ('03') + DT('41 0E A2'),
+                        HD(ECU_R_ADDR_E) + SZ('03') + DT('41 0E 8F'),
+                        HD(ECU_R_ADDR_E) + SZ('03') + DT('41 0E 99'),
+                        HD(ECU_R_ADDR_E) + SZ('03') + DT('41 0E 8A'),
+                        HD(ECU_R_ADDR_E) + SZ('03') + DT('41 0E A6'),
+                        HD(ECU_R_ADDR_E) + SZ('03') + DT('41 0E 95'),
+                        HD(ECU_R_ADDR_E) + SZ('03') + DT('41 0E 9A'),
+                        HD(ECU_R_ADDR_E) + SZ('03') + DT('41 0E A8'),
+                        HD(ECU_R_ADDR_E) + SZ('03') + DT('41 0E AB')
                         ]
             # -5.5 degree
             # -5.0 degree
@@ -779,14 +788,14 @@ ObdMessage = {
             'Descr': 'Intake Air Temp',
             'Header': ECU_ADDR_E,
             'Response': [
-                        ECU_R_ADDR_E + ' 03 41 0F 39 \r',
-                        ECU_R_ADDR_E + ' 03 41 0F 3C \r',
-                        ECU_R_ADDR_E + ' 03 41 0F 36 \r',
-                        ECU_R_ADDR_E + ' 03 41 0F 37 \r',
-                        ECU_R_ADDR_E + ' 03 41 0F 34 \r',
-                        ECU_R_ADDR_E + ' 03 41 0F 3A \r',
-                        ECU_R_ADDR_E + ' 03 41 0F 38 \r',
-                        ECU_R_ADDR_E + ' 03 41 0F 35 \r'
+                        HD(ECU_R_ADDR_E) + SZ('03') + DT('41 0F 39'),
+                        HD(ECU_R_ADDR_E) + SZ('03') + DT('41 0F 3C'),
+                        HD(ECU_R_ADDR_E) + SZ('03') + DT('41 0F 36'),
+                        HD(ECU_R_ADDR_E) + SZ('03') + DT('41 0F 37'),
+                        HD(ECU_R_ADDR_E) + SZ('03') + DT('41 0F 34'),
+                        HD(ECU_R_ADDR_E) + SZ('03') + DT('41 0F 3A'),
+                        HD(ECU_R_ADDR_E) + SZ('03') + DT('41 0F 38'),
+                        HD(ECU_R_ADDR_E) + SZ('03') + DT('41 0F 35')
                         ]
             # 17 degC
             # 20 degC
@@ -802,20 +811,20 @@ ObdMessage = {
             'Descr': 'Air Flow Rate (MAF)',
             'Header': ECU_ADDR_E,
             'Response': [
-                        ECU_R_ADDR_E + ' 04 41 10 18 1F \r',
-                        ECU_R_ADDR_E + ' 04 41 10 01 46 \r',
-                        ECU_R_ADDR_E + ' 04 41 10 03 0A \r',
-                        ECU_R_ADDR_E + ' 04 41 10 11 5B \r',
-                        ECU_R_ADDR_E + ' 04 41 10 00 14 \r',
-                        ECU_R_ADDR_E + ' 04 41 10 02 86 \r',
-                        ECU_R_ADDR_E + ' 04 41 10 03 05 \r',
-                        ECU_R_ADDR_E + ' 04 41 10 10 16 \r',
-                        ECU_R_ADDR_E + ' 04 41 10 00 12 \r',
-                        ECU_R_ADDR_E + ' 04 41 10 10 05 \r',
-                        ECU_R_ADDR_E + ' 04 41 10 01 3B \r',
-                        ECU_R_ADDR_E + ' 04 41 10 00 51 \r',
-                        ECU_R_ADDR_E + ' 04 41 10 10 20 \r',
-                        ECU_R_ADDR_E + ' 04 41 10 04 93 \r'
+                        HD(ECU_R_ADDR_E) + SZ('04') + DT('41 10 18 1F'),
+                        HD(ECU_R_ADDR_E) + SZ('04') + DT('41 10 01 46'),
+                        HD(ECU_R_ADDR_E) + SZ('04') + DT('41 10 03 0A'),
+                        HD(ECU_R_ADDR_E) + SZ('04') + DT('41 10 11 5B'),
+                        HD(ECU_R_ADDR_E) + SZ('04') + DT('41 10 00 14'),
+                        HD(ECU_R_ADDR_E) + SZ('04') + DT('41 10 02 86'),
+                        HD(ECU_R_ADDR_E) + SZ('04') + DT('41 10 03 05'),
+                        HD(ECU_R_ADDR_E) + SZ('04') + DT('41 10 10 16'),
+                        HD(ECU_R_ADDR_E) + SZ('04') + DT('41 10 00 12'),
+                        HD(ECU_R_ADDR_E) + SZ('04') + DT('41 10 10 05'),
+                        HD(ECU_R_ADDR_E) + SZ('04') + DT('41 10 01 3B'),
+                        HD(ECU_R_ADDR_E) + SZ('04') + DT('41 10 00 51'),
+                        HD(ECU_R_ADDR_E) + SZ('04') + DT('41 10 10 20'),
+                        HD(ECU_R_ADDR_E) + SZ('04') + DT('41 10 04 93')
                         ]
             # 61.75 gps
             # 3.2600000000000002 gps
@@ -837,16 +846,16 @@ ObdMessage = {
             'Descr': 'Throttle Position',
             'Header': ECU_ADDR_E,
             'Response': [
-                        ECU_R_ADDR_E + ' 03 41 11 2B \r',
-                        ECU_R_ADDR_E + ' 03 41 11 70 \r',
-                        ECU_R_ADDR_E + ' 03 41 11 44 \r',
-                        ECU_R_ADDR_E + ' 03 41 11 50 \r',
-                        ECU_R_ADDR_E + ' 03 41 11 32 \r',
-                        ECU_R_ADDR_E + ' 03 41 11 72 \r',
-                        ECU_R_ADDR_E + ' 03 41 11 2E \r',
-                        ECU_R_ADDR_E + ' 03 41 11 36 \r',
-                        ECU_R_ADDR_E + ' 03 41 11 2A \r',
-                        ECU_R_ADDR_E + ' 03 41 11 2F \r'
+                        HD(ECU_R_ADDR_E) + SZ('03') + DT('41 11 2B'),
+                        HD(ECU_R_ADDR_E) + SZ('03') + DT('41 11 70'),
+                        HD(ECU_R_ADDR_E) + SZ('03') + DT('41 11 44'),
+                        HD(ECU_R_ADDR_E) + SZ('03') + DT('41 11 50'),
+                        HD(ECU_R_ADDR_E) + SZ('03') + DT('41 11 32'),
+                        HD(ECU_R_ADDR_E) + SZ('03') + DT('41 11 72'),
+                        HD(ECU_R_ADDR_E) + SZ('03') + DT('41 11 2E'),
+                        HD(ECU_R_ADDR_E) + SZ('03') + DT('41 11 36'),
+                        HD(ECU_R_ADDR_E) + SZ('03') + DT('41 11 2A'),
+                        HD(ECU_R_ADDR_E) + SZ('03') + DT('41 11 2F')
                         ]
             # 16.862745098039216 percent
             # 43.92156862745098 percent
@@ -863,20 +872,20 @@ ObdMessage = {
             'Request': '^0113' + ELM_MAX_RESP,
             'Descr': 'O2 Sensors Present',
             'Header': ECU_ADDR_E,
-            'Response': ECU_R_ADDR_E + ' 03 41 13 03 \r'
+            'Response': HD(ECU_R_ADDR_E) + SZ('03') + DT('41 13 03')
         },
         'O2_B1S2': {
             'Request': '^0115' + ELM_MAX_RESP,
             'Descr': 'O2: Bank 1 - Sensor 2 Voltage',
             'Header': ECU_ADDR_E,
             'Response': [
-                        ECU_R_ADDR_E + ' 04 41 15 07 FF \r',
-                        ECU_R_ADDR_E + ' 04 41 15 00 FF \r',
-                        ECU_R_ADDR_E + ' 04 41 15 84 FF \r',
-                        ECU_R_ADDR_E + ' 04 41 15 03 FF \r',
-                        ECU_R_ADDR_E + ' 04 41 15 94 FF \r',
-                        ECU_R_ADDR_E + ' 04 41 15 2A FF \r',
-                        ECU_R_ADDR_E + ' 04 41 15 46 FF \r'
+                        HD(ECU_R_ADDR_E) + SZ('04') + DT('41 15 07 FF'),
+                        HD(ECU_R_ADDR_E) + SZ('04') + DT('41 15 00 FF'),
+                        HD(ECU_R_ADDR_E) + SZ('04') + DT('41 15 84 FF'),
+                        HD(ECU_R_ADDR_E) + SZ('04') + DT('41 15 03 FF'),
+                        HD(ECU_R_ADDR_E) + SZ('04') + DT('41 15 94 FF'),
+                        HD(ECU_R_ADDR_E) + SZ('04') + DT('41 15 2A FF'),
+                        HD(ECU_R_ADDR_E) + SZ('04') + DT('41 15 46 FF')
                         ]
             # 0.035 volt
             # 0.66 volt
@@ -889,28 +898,28 @@ ObdMessage = {
             'Request': '^011C' + ELM_MAX_RESP,
             'Descr': 'OBD Standards Compliance',
             'Header': ECU_ADDR_E,
-            'Response': ECU_R_ADDR_E + ' 03 41 1C 06 \r'
+            'Response': HD(ECU_R_ADDR_E) + SZ('03') + DT('41 1C 06')
         },
         'RUN_TIME': {
             'Request': '^011F' + ELM_MAX_RESP,
             'Descr': 'Engine Run Time',
             'Header': ECU_ADDR_E,
             'Response': [
-                        ECU_R_ADDR_E + ' 04 41 1F 00 75 \r',
-                        ECU_R_ADDR_E + ' 04 41 1F 00 26 \r',
-                        ECU_R_ADDR_E + ' 04 41 1F 00 1A \r',
-                        ECU_R_ADDR_E + ' 04 41 1F 00 5F \r',
-                        ECU_R_ADDR_E + ' 04 41 1F 00 A1 \r',
-                        ECU_R_ADDR_E + ' 04 41 1F 00 96 \r',
-                        ECU_R_ADDR_E + ' 04 41 1F 00 80 \r',
-                        ECU_R_ADDR_E + ' 04 41 1F 00 3D \r',
-                        ECU_R_ADDR_E + ' 04 41 1F 00 0E \r',
-                        ECU_R_ADDR_E + ' 04 41 1F 00 00 \r',
-                        ECU_R_ADDR_E + ' 04 41 1F 00 53 \r',
-                        ECU_R_ADDR_E + ' 04 41 1F 00 8B \r',
-                        ECU_R_ADDR_E + ' 04 41 1F 00 32 \r',
-                        ECU_R_ADDR_E + ' 04 41 1F 00 48 \r',
-                        ECU_R_ADDR_E + ' 04 41 1F 00 6A \r'
+                        HD(ECU_R_ADDR_E) + SZ('04') + DT('41 1F 00 75'),
+                        HD(ECU_R_ADDR_E) + SZ('04') + DT('41 1F 00 26'),
+                        HD(ECU_R_ADDR_E) + SZ('04') + DT('41 1F 00 1A'),
+                        HD(ECU_R_ADDR_E) + SZ('04') + DT('41 1F 00 5F'),
+                        HD(ECU_R_ADDR_E) + SZ('04') + DT('41 1F 00 A1'),
+                        HD(ECU_R_ADDR_E) + SZ('04') + DT('41 1F 00 96'),
+                        HD(ECU_R_ADDR_E) + SZ('04') + DT('41 1F 00 80'),
+                        HD(ECU_R_ADDR_E) + SZ('04') + DT('41 1F 00 3D'),
+                        HD(ECU_R_ADDR_E) + SZ('04') + DT('41 1F 00 0E'),
+                        HD(ECU_R_ADDR_E) + SZ('04') + DT('41 1F 00 00'),
+                        HD(ECU_R_ADDR_E) + SZ('04') + DT('41 1F 00 53'),
+                        HD(ECU_R_ADDR_E) + SZ('04') + DT('41 1F 00 8B'),
+                        HD(ECU_R_ADDR_E) + SZ('04') + DT('41 1F 00 32'),
+                        HD(ECU_R_ADDR_E) + SZ('04') + DT('41 1F 00 48'),
+                        HD(ECU_R_ADDR_E) + SZ('04') + DT('41 1F 00 6A')
                         ]
             # 117 second
             # 38 second
@@ -931,33 +940,33 @@ ObdMessage = {
             'Request': '^0120' + ELM_MAX_RESP,
             'Descr': 'Supported PIDs [21-40]',
             'Header': ECU_ADDR_E,
-            'Response': ECU_R_ADDR_E + ' 06 41 20 90 15 B0 15 \r'
+            'Response': HD(ECU_R_ADDR_E) + SZ('06') + DT('41 20 90 15 B0 15')
         },
         'DISTANCE_W_MIL': {
             'Request': '^0121' + ELM_MAX_RESP,
             'Descr': 'Distance Traveled with MIL on',
             'Header': ECU_ADDR_E,
-            'Response': ECU_R_ADDR_E + ' 04 41 21 00 00 \r'
+            'Response': HD(ECU_R_ADDR_E) + SZ('04') + DT('41 21 00 00')
         },
         'O2_S1_WR_VOLTAGE': {
             'Request': '^0124' + ELM_MAX_RESP,
             'Descr': '02 Sensor 1 WR Lambda Voltage',
             'Header': ECU_ADDR_E,
             'Response': [
-                        ECU_R_ADDR_E + ' 06 41 24 7B A8 65 D9 \r',
-                        ECU_R_ADDR_E + ' 06 41 24 81 BA 6D 81 \r',
-                        ECU_R_ADDR_E + ' 06 41 24 80 4A 6B F1 \r',
-                        ECU_R_ADDR_E + ' 06 41 24 80 71 6B F1 \r',
-                        ECU_R_ADDR_E + ' 06 41 24 7E 87 69 71 \r',
-                        ECU_R_ADDR_E + ' 06 41 24 7F F5 6B 29 \r',
-                        ECU_R_ADDR_E + ' 06 41 24 91 2A 7C 31 \r',
-                        ECU_R_ADDR_E + ' 06 41 24 7E 28 68 A9 \r',
-                        ECU_R_ADDR_E + ' 06 41 24 7E DC 69 99 \r',
-                        ECU_R_ADDR_E + ' 06 41 24 82 B4 6E E9 \r',
-                        ECU_R_ADDR_E + ' 06 41 24 9D CF 9F FF \r',
-                        ECU_R_ADDR_E + ' 06 41 24 84 32 70 29 \r',
-                        ECU_R_ADDR_E + ' 06 41 24 7F B5 69 49 \r',
-                        ECU_R_ADDR_E + ' 06 41 24 81 46 6C E1 \r'
+                        HD(ECU_R_ADDR_E) + SZ('06') + DT('41 24 7B A8 65 D9'),
+                        HD(ECU_R_ADDR_E) + SZ('06') + DT('41 24 81 BA 6D 81'),
+                        HD(ECU_R_ADDR_E) + SZ('06') + DT('41 24 80 4A 6B F1'),
+                        HD(ECU_R_ADDR_E) + SZ('06') + DT('41 24 80 71 6B F1'),
+                        HD(ECU_R_ADDR_E) + SZ('06') + DT('41 24 7E 87 69 71'),
+                        HD(ECU_R_ADDR_E) + SZ('06') + DT('41 24 7F F5 6B 29'),
+                        HD(ECU_R_ADDR_E) + SZ('06') + DT('41 24 91 2A 7C 31'),
+                        HD(ECU_R_ADDR_E) + SZ('06') + DT('41 24 7E 28 68 A9'),
+                        HD(ECU_R_ADDR_E) + SZ('06') + DT('41 24 7E DC 69 99'),
+                        HD(ECU_R_ADDR_E) + SZ('06') + DT('41 24 82 B4 6E E9'),
+                        HD(ECU_R_ADDR_E) + SZ('06') + DT('41 24 9D CF 9F FF'),
+                        HD(ECU_R_ADDR_E) + SZ('06') + DT('41 24 84 32 70 29'),
+                        HD(ECU_R_ADDR_E) + SZ('06') + DT('41 24 7F B5 69 49'),
+                        HD(ECU_R_ADDR_E) + SZ('06') + DT('41 24 81 46 6C E1')
                         ]
             # 3.1827878233005262 volt
             # 3.422049286640726 volt
@@ -978,19 +987,19 @@ ObdMessage = {
             'Request': '^012C' + ELM_MAX_RESP,
             'Descr': 'Commanded EGR',
             'Header': ECU_ADDR_E,
-            'Response': ECU_R_ADDR_E + ' 03 41 2C 00 \r'
+            'Response': HD(ECU_R_ADDR_E) + SZ('03') + DT('41 2C 00')
         },
         'EVAPORATIVE_PURGE': {
             'Request': '^012E' + ELM_MAX_RESP,
             'Descr': 'Commanded Evaporative Purge',
             'Header': ECU_ADDR_E,
-            'Response': ECU_R_ADDR_E + ' 03 41 2E 00 \r'
+            'Response': HD(ECU_R_ADDR_E) + SZ('03') + DT('41 2E 00')
         },
         'WARMUPS_SINCE_DTC_CLEAR': {
             'Request': '^0130' + ELM_MAX_RESP,
             'Descr': 'Number of warm-ups since codes cleared',
             'Header': ECU_ADDR_E,
-            'Response': ECU_R_ADDR_E + ' 03 41 30 04 \r'
+            'Response': HD(ECU_R_ADDR_E) + SZ('03') + DT('41 30 04')
             # 4 count
         },
         'DISTANCE_SINCE_DTC_CLEAR': {
@@ -998,9 +1007,9 @@ ObdMessage = {
             'Descr': 'Distance traveled since codes cleared',
             'Header': ECU_ADDR_E,
             'Response': [
-                        ECU_R_ADDR_E + ' 04 41 31 00 32 \r',
-                        ECU_R_ADDR_E + ' 04 41 31 00 31 \r',
-                        ECU_R_ADDR_E + ' 04 41 31 00 33 \r'
+                        HD(ECU_R_ADDR_E) + SZ('04') + DT('41 31 00 32'),
+                        HD(ECU_R_ADDR_E) + SZ('04') + DT('41 31 00 31'),
+                        HD(ECU_R_ADDR_E) + SZ('04') + DT('41 31 00 33')
                         ]
             # 50 kilometer
             # 49 kilometer
@@ -1010,7 +1019,7 @@ ObdMessage = {
             'Request': '^0133' + ELM_MAX_RESP,
             'Descr': 'Barometric Pressure',
             'Header': ECU_ADDR_E,
-            'Response': ECU_R_ADDR_E + ' 03 41 33 61 \r'
+            'Response': HD(ECU_R_ADDR_E) + SZ('03') + DT('41 33 61')
             # 97 kilopascal
         },
         'O2_S1_WR_CURRENT': {
@@ -1018,21 +1027,21 @@ ObdMessage = {
             'Descr': '02 Sensor 1 WR Lambda Current',
             'Header': ECU_ADDR_E,
             'Response': [
-                        ECU_R_ADDR_E + ' 06 41 34 7A F9 7F F1 \r',
-                        ECU_R_ADDR_E + ' 06 41 34 69 9E 7F 9F \r',
-                        ECU_R_ADDR_E + ' 06 41 34 7E EB 80 01 \r',
-                        ECU_R_ADDR_E + ' 06 41 34 7E 84 80 00 \r',
-                        ECU_R_ADDR_E + ' 06 41 34 80 9D 80 07 \r',
-                        ECU_R_ADDR_E + ' 06 41 34 7E 17 7F FE \r',
-                        ECU_R_ADDR_E + ' 06 41 34 9D CF 81 6D \r',
-                        ECU_R_ADDR_E + ' 06 41 34 81 81 80 0B \r',
-                        ECU_R_ADDR_E + ' 06 41 34 7A AC 7F EF \r',
-                        ECU_R_ADDR_E + ' 06 41 34 99 CC 80 47 \r',
-                        ECU_R_ADDR_E + ' 06 41 34 7E 9C 80 00 \r',
-                        ECU_R_ADDR_E + ' 06 41 34 7E A1 80 00 \r',
-                        ECU_R_ADDR_E + ' 06 41 34 9D CF 81 96 \r',
-                        ECU_R_ADDR_E + ' 06 41 34 83 FD 80 14 \r',
-                        ECU_R_ADDR_E + ' 06 41 34 74 77 7F CD \r'
+                        HD(ECU_R_ADDR_E) + SZ('06') + DT('41 34 7A F9 7F F1'),
+                        HD(ECU_R_ADDR_E) + SZ('06') + DT('41 34 69 9E 7F 9F'),
+                        HD(ECU_R_ADDR_E) + SZ('06') + DT('41 34 7E EB 80 01'),
+                        HD(ECU_R_ADDR_E) + SZ('06') + DT('41 34 7E 84 80 00'),
+                        HD(ECU_R_ADDR_E) + SZ('06') + DT('41 34 80 9D 80 07'),
+                        HD(ECU_R_ADDR_E) + SZ('06') + DT('41 34 7E 17 7F FE'),
+                        HD(ECU_R_ADDR_E) + SZ('06') + DT('41 34 9D CF 81 6D'),
+                        HD(ECU_R_ADDR_E) + SZ('06') + DT('41 34 81 81 80 0B'),
+                        HD(ECU_R_ADDR_E) + SZ('06') + DT('41 34 7A AC 7F EF'),
+                        HD(ECU_R_ADDR_E) + SZ('06') + DT('41 34 99 CC 80 47'),
+                        HD(ECU_R_ADDR_E) + SZ('06') + DT('41 34 7E 9C 80 00'),
+                        HD(ECU_R_ADDR_E) + SZ('06') + DT('41 34 7E A1 80 00'),
+                        HD(ECU_R_ADDR_E) + SZ('06') + DT('41 34 9D CF 81 96'),
+                        HD(ECU_R_ADDR_E) + SZ('06') + DT('41 34 83 FD 80 14'),
+                        HD(ECU_R_ADDR_E) + SZ('06') + DT('41 34 74 77 7F CD')
                         ]
             # -0.05859375 milliampere
             # -0.37890625 milliampere
@@ -1052,21 +1061,21 @@ ObdMessage = {
             'Descr': 'Catalyst Temperature: Bank 1 - Sensor 1',
             'Header': ECU_ADDR_E,
             'Response': [
-                        ECU_R_ADDR_E + ' 04 41 3C 15 9A \r',
-                        ECU_R_ADDR_E + ' 04 41 3C 1D 7C \r',
-                        ECU_R_ADDR_E + ' 04 41 3C 1C 1C \r',
-                        ECU_R_ADDR_E + ' 04 41 3C 04 76 \r',
-                        ECU_R_ADDR_E + ' 04 41 3C 0E 43 \r',
-                        ECU_R_ADDR_E + ' 04 41 3C 0D 71 \r',
-                        ECU_R_ADDR_E + ' 04 41 3C 15 C5 \r',
-                        ECU_R_ADDR_E + ' 04 41 3C 15 B3 \r',
-                        ECU_R_ADDR_E + ' 04 41 3C 05 82 \r',
-                        ECU_R_ADDR_E + ' 04 41 3C 23 0F \r',
-                        ECU_R_ADDR_E + ' 04 41 3C 06 9E \r',
-                        ECU_R_ADDR_E + ' 04 41 3C 22 36 \r',
-                        ECU_R_ADDR_E + ' 04 41 3C 22 E0 \r',
-                        ECU_R_ADDR_E + ' 04 41 3C 20 4E \r',
-                        ECU_R_ADDR_E + ' 04 41 3C 1C 66 \r'
+                        HD(ECU_R_ADDR_E) + SZ('04') + DT('41 3C 15 9A'),
+                        HD(ECU_R_ADDR_E) + SZ('04') + DT('41 3C 1D 7C'),
+                        HD(ECU_R_ADDR_E) + SZ('04') + DT('41 3C 1C 1C'),
+                        HD(ECU_R_ADDR_E) + SZ('04') + DT('41 3C 04 76'),
+                        HD(ECU_R_ADDR_E) + SZ('04') + DT('41 3C 0E 43'),
+                        HD(ECU_R_ADDR_E) + SZ('04') + DT('41 3C 0D 71'),
+                        HD(ECU_R_ADDR_E) + SZ('04') + DT('41 3C 15 C5'),
+                        HD(ECU_R_ADDR_E) + SZ('04') + DT('41 3C 15 B3'),
+                        HD(ECU_R_ADDR_E) + SZ('04') + DT('41 3C 05 82'),
+                        HD(ECU_R_ADDR_E) + SZ('04') + DT('41 3C 23 0F'),
+                        HD(ECU_R_ADDR_E) + SZ('04') + DT('41 3C 06 9E'),
+                        HD(ECU_R_ADDR_E) + SZ('04') + DT('41 3C 22 36'),
+                        HD(ECU_R_ADDR_E) + SZ('04') + DT('41 3C 22 E0'),
+                        HD(ECU_R_ADDR_E) + SZ('04') + DT('41 3C 20 4E'),
+                        HD(ECU_R_ADDR_E) + SZ('04') + DT('41 3C 1C 66')
                         ]
             # 513.0 degC
             # 714.8000000000001 degC
@@ -1089,21 +1098,21 @@ ObdMessage = {
             'Descr': 'Catalyst Temperature: Bank 1 - Sensor 2',
             'Header': ECU_ADDR_E,
             'Response': [
-                        ECU_R_ADDR_E + ' 04 41 3E 02 B9 \r',
-                        ECU_R_ADDR_E + ' 04 41 3E 09 44 \r',
-                        ECU_R_ADDR_E + ' 04 41 3E 06 B7 \r',
-                        ECU_R_ADDR_E + ' 04 41 3E 0E 77 \r',
-                        ECU_R_ADDR_E + ' 04 41 3E 03 69 \r',
-                        ECU_R_ADDR_E + ' 04 41 3E 20 A1 \r',
-                        ECU_R_ADDR_E + ' 04 41 3E 18 1B \r',
-                        ECU_R_ADDR_E + ' 04 41 3E 15 A0 \r',
-                        ECU_R_ADDR_E + ' 04 41 3E 11 3E \r',
-                        ECU_R_ADDR_E + ' 04 41 3E 1E 38 \r',
-                        ECU_R_ADDR_E + ' 04 41 3E 10 C4 \r',
-                        ECU_R_ADDR_E + ' 04 41 3E 20 3F \r',
-                        ECU_R_ADDR_E + ' 04 41 3E 02 83 \r',
-                        ECU_R_ADDR_E + ' 04 41 3E 16 DD \r',
-                        ECU_R_ADDR_E + ' 04 41 3E 1B 27 \r'
+                        HD(ECU_R_ADDR_E) + SZ('04') + DT('41 3E 02 B9'),
+                        HD(ECU_R_ADDR_E) + SZ('04') + DT('41 3E 09 44'),
+                        HD(ECU_R_ADDR_E) + SZ('04') + DT('41 3E 06 B7'),
+                        HD(ECU_R_ADDR_E) + SZ('04') + DT('41 3E 0E 77'),
+                        HD(ECU_R_ADDR_E) + SZ('04') + DT('41 3E 03 69'),
+                        HD(ECU_R_ADDR_E) + SZ('04') + DT('41 3E 20 A1'),
+                        HD(ECU_R_ADDR_E) + SZ('04') + DT('41 3E 18 1B'),
+                        HD(ECU_R_ADDR_E) + SZ('04') + DT('41 3E 15 A0'),
+                        HD(ECU_R_ADDR_E) + SZ('04') + DT('41 3E 11 3E'),
+                        HD(ECU_R_ADDR_E) + SZ('04') + DT('41 3E 1E 38'),
+                        HD(ECU_R_ADDR_E) + SZ('04') + DT('41 3E 10 C4'),
+                        HD(ECU_R_ADDR_E) + SZ('04') + DT('41 3E 20 3F'),
+                        HD(ECU_R_ADDR_E) + SZ('04') + DT('41 3E 02 83'),
+                        HD(ECU_R_ADDR_E) + SZ('04') + DT('41 3E 16 DD'),
+                        HD(ECU_R_ADDR_E) + SZ('04') + DT('41 3E 1B 27')
                         ]
             # 29.700000000000003 degC
             # 197.20000000000002 degC
@@ -1126,9 +1135,9 @@ ObdMessage = {
             'Descr': 'Supported PIDs [41-60]',
             'Header': ECU_ADDR_E,
             'Response': [
-                        ECU_R_ADDR_E + ' 06 41 40 7A 1C 80 00 \r' +
-                        ECU_R_ADDR_H + ' 06 41 40 44 CC 00 21 \r',
-                        ECU_R_ADDR_E + ' 06 41 40 7A 1C 80 00 \r'
+                        HD(ECU_R_ADDR_E) + SZ('06') + DT('41 40 7A 1C 80 00') +
+                        HD(ECU_R_ADDR_H) + SZ('06') + DT('41 40 44 CC 00 21'),
+                        HD(ECU_R_ADDR_E) + SZ('06') + DT('41 40 7A 1C 80 00')
                         ]
         },
         'CONTROL_MODULE_VOLTAGE': {
@@ -1136,12 +1145,12 @@ ObdMessage = {
             'Descr': 'Control module voltage',
             'Header': ECU_ADDR_E,
             'Response': [
-                        ECU_R_ADDR_E + ' 04 41 42 39 4B \r',
-                        ECU_R_ADDR_E + ' 04 41 42 39 C1 \r',
-                        ECU_R_ADDR_E + ' 04 41 42 39 73 \r',
-                        ECU_R_ADDR_E + ' 04 41 42 39 5F \r',
-                        ECU_R_ADDR_E + ' 04 41 42 39 9A \r',
-                        ECU_R_ADDR_E + ' 04 41 42 39 38 \r'
+                        HD(ECU_R_ADDR_E) + SZ('04') + DT('41 42 39 4B'),
+                        HD(ECU_R_ADDR_E) + SZ('04') + DT('41 42 39 C1'),
+                        HD(ECU_R_ADDR_E) + SZ('04') + DT('41 42 39 73'),
+                        HD(ECU_R_ADDR_E) + SZ('04') + DT('41 42 39 5F'),
+                        HD(ECU_R_ADDR_E) + SZ('04') + DT('41 42 39 9A'),
+                        HD(ECU_R_ADDR_E) + SZ('04') + DT('41 42 39 38')
                         ]
             # 14.667 volt
             # 14.785 volt
@@ -1155,18 +1164,18 @@ ObdMessage = {
             'Descr': 'Absolute load value',
             'Header': ECU_ADDR_E,
             'Response': [
-                        ECU_R_ADDR_E + ' 04 41 43 00 54 \r',
-                        ECU_R_ADDR_E + ' 04 41 43 00 3C \r',
-                        ECU_R_ADDR_E + ' 04 41 43 00 39 \r',
-                        ECU_R_ADDR_E + ' 04 41 43 00 29 \r',
-                        ECU_R_ADDR_E + ' 04 41 43 00 BB \r',
-                        ECU_R_ADDR_E + ' 04 41 43 00 66 \r',
-                        ECU_R_ADDR_E + ' 04 41 43 00 C0 \r',
-                        ECU_R_ADDR_E + ' 04 41 43 00 6F \r',
-                        ECU_R_ADDR_E + ' 04 41 43 00 1B \r',
-                        ECU_R_ADDR_E + ' 04 41 43 00 BE \r',
-                        ECU_R_ADDR_E + ' 04 41 43 00 00 \r',
-                        ECU_R_ADDR_E + ' 04 41 43 00 55 \r'
+                        HD(ECU_R_ADDR_E) + SZ('04') + DT('41 43 00 54'),
+                        HD(ECU_R_ADDR_E) + SZ('04') + DT('41 43 00 3C'),
+                        HD(ECU_R_ADDR_E) + SZ('04') + DT('41 43 00 39'),
+                        HD(ECU_R_ADDR_E) + SZ('04') + DT('41 43 00 29'),
+                        HD(ECU_R_ADDR_E) + SZ('04') + DT('41 43 00 BB'),
+                        HD(ECU_R_ADDR_E) + SZ('04') + DT('41 43 00 66'),
+                        HD(ECU_R_ADDR_E) + SZ('04') + DT('41 43 00 C0'),
+                        HD(ECU_R_ADDR_E) + SZ('04') + DT('41 43 00 6F'),
+                        HD(ECU_R_ADDR_E) + SZ('04') + DT('41 43 00 1B'),
+                        HD(ECU_R_ADDR_E) + SZ('04') + DT('41 43 00 BE'),
+                        HD(ECU_R_ADDR_E) + SZ('04') + DT('41 43 00 00'),
+                        HD(ECU_R_ADDR_E) + SZ('04') + DT('41 43 00 55')
                         ]
             # 32.94117647058823 percent
             # 23.52941176470588 percent
@@ -1185,15 +1194,15 @@ ObdMessage = {
             'Descr': 'Commanded equivalence ratio',
             'Header': ECU_ADDR_E,
             'Response': [
-                        ECU_R_ADDR_E + ' 04 41 44 7E 71 \r',
-                        ECU_R_ADDR_E + ' 04 41 44 7E 82 \r',
-                        ECU_R_ADDR_E + ' 04 41 44 7F 20 \r',
-                        ECU_R_ADDR_E + ' 04 41 44 80 C5 \r',
-                        ECU_R_ADDR_E + ' 04 41 44 7F F2 \r',
-                        ECU_R_ADDR_E + ' 04 41 44 75 A8 \r',
-                        ECU_R_ADDR_E + ' 04 41 44 7E 07 \r',
-                        ECU_R_ADDR_E + ' 04 41 44 62 8C \r',
-                        ECU_R_ADDR_E + ' 04 41 44 7E 4E \r'
+                        HD(ECU_R_ADDR_E) + SZ('04') + DT('41 44 7E 71'),
+                        HD(ECU_R_ADDR_E) + SZ('04') + DT('41 44 7E 82'),
+                        HD(ECU_R_ADDR_E) + SZ('04') + DT('41 44 7F 20'),
+                        HD(ECU_R_ADDR_E) + SZ('04') + DT('41 44 80 C5'),
+                        HD(ECU_R_ADDR_E) + SZ('04') + DT('41 44 7F F2'),
+                        HD(ECU_R_ADDR_E) + SZ('04') + DT('41 44 75 A8'),
+                        HD(ECU_R_ADDR_E) + SZ('04') + DT('41 44 7E 07'),
+                        HD(ECU_R_ADDR_E) + SZ('04') + DT('41 44 62 8C'),
+                        HD(ECU_R_ADDR_E) + SZ('04') + DT('41 44 7E 4E')
                         ]
             # 0.9872545 ratio
             # 0.987773 ratio
@@ -1210,14 +1219,14 @@ ObdMessage = {
             'Descr': 'Relative throttle position',
             'Header': ECU_ADDR_E,
             'Response': [
-                        ECU_R_ADDR_E + ' 03 41 45 19 \r',
-                        ECU_R_ADDR_E + ' 03 41 45 42 \r',
-                        ECU_R_ADDR_E + ' 03 41 45 10 \r',
-                        ECU_R_ADDR_E + ' 03 41 45 46 \r',
-                        ECU_R_ADDR_E + ' 03 41 45 27 \r',
-                        ECU_R_ADDR_E + ' 03 41 45 03 \r',
-                        ECU_R_ADDR_E + ' 03 41 45 02 \r',
-                        ECU_R_ADDR_E + ' 03 41 45 00 \r'
+                        HD(ECU_R_ADDR_E) + SZ('03') + DT('41 45 19'),
+                        HD(ECU_R_ADDR_E) + SZ('03') + DT('41 45 42'),
+                        HD(ECU_R_ADDR_E) + SZ('03') + DT('41 45 10'),
+                        HD(ECU_R_ADDR_E) + SZ('03') + DT('41 45 46'),
+                        HD(ECU_R_ADDR_E) + SZ('03') + DT('41 45 27'),
+                        HD(ECU_R_ADDR_E) + SZ('03') + DT('41 45 03'),
+                        HD(ECU_R_ADDR_E) + SZ('03') + DT('41 45 02'),
+                        HD(ECU_R_ADDR_E) + SZ('03') + DT('41 45 00')
                         ]
             # 9.803921568627452 percent
             # 25.88235294117647 percent
@@ -1232,16 +1241,16 @@ ObdMessage = {
             'Descr': 'Absolute throttle position B',
             'Header': ECU_ADDR_E,
             'Response': [
-                        ECU_R_ADDR_E + ' 03 41 47 92 \r',
-                        ECU_R_ADDR_E + ' 03 41 47 7B \r',
-                        ECU_R_ADDR_E + ' 03 41 47 7D \r',
-                        ECU_R_ADDR_E + ' 03 41 47 81 \r',
-                        ECU_R_ADDR_E + ' 03 41 47 AD \r',
-                        ECU_R_ADDR_E + ' 03 41 47 E9 \r',
-                        ECU_R_ADDR_E + ' 03 41 47 D3 \r',
-                        ECU_R_ADDR_E + ' 03 41 47 95 \r',
-                        ECU_R_ADDR_E + ' 03 41 47 85 \r',
-                        ECU_R_ADDR_E + ' 03 41 47 7C \r'
+                        HD(ECU_R_ADDR_E) + SZ('03') + DT('41 47 92'),
+                        HD(ECU_R_ADDR_E) + SZ('03') + DT('41 47 7B'),
+                        HD(ECU_R_ADDR_E) + SZ('03') + DT('41 47 7D'),
+                        HD(ECU_R_ADDR_E) + SZ('03') + DT('41 47 81'),
+                        HD(ECU_R_ADDR_E) + SZ('03') + DT('41 47 AD'),
+                        HD(ECU_R_ADDR_E) + SZ('03') + DT('41 47 E9'),
+                        HD(ECU_R_ADDR_E) + SZ('03') + DT('41 47 D3'),
+                        HD(ECU_R_ADDR_E) + SZ('03') + DT('41 47 95'),
+                        HD(ECU_R_ADDR_E) + SZ('03') + DT('41 47 85'),
+                        HD(ECU_R_ADDR_E) + SZ('03') + DT('41 47 7C')
                         ]
             # 57.254901960784316 percent
             # 48.23529411764706 percent
@@ -1259,18 +1268,18 @@ ObdMessage = {
             'Descr': 'Commanded throttle actuator',
             'Header': ECU_ADDR_E,
             'Response': [
-                        ECU_R_ADDR_E + ' 03 41 4C 71 \r',
-                        ECU_R_ADDR_E + ' 03 41 4C 33 \r',
-                        ECU_R_ADDR_E + ' 03 41 4C 6F \r',
-                        ECU_R_ADDR_E + ' 03 41 4C 3D \r',
-                        ECU_R_ADDR_E + ' 03 41 4C 74 \r',
-                        ECU_R_ADDR_E + ' 03 41 4C 2F \r',
-                        ECU_R_ADDR_E + ' 03 41 4C 2A \r',
-                        ECU_R_ADDR_E + ' 03 41 4C 6B \r',
-                        ECU_R_ADDR_E + ' 03 41 4C 32 \r',
-                        ECU_R_ADDR_E + ' 03 41 4C 22 \r',
-                        ECU_R_ADDR_E + ' 03 41 4C 2B \r',
-                        ECU_R_ADDR_E + ' 03 41 4C 75 \r'
+                        HD(ECU_R_ADDR_E) + SZ('03') + DT('41 4C 71'),
+                        HD(ECU_R_ADDR_E) + SZ('03') + DT('41 4C 33'),
+                        HD(ECU_R_ADDR_E) + SZ('03') + DT('41 4C 6F'),
+                        HD(ECU_R_ADDR_E) + SZ('03') + DT('41 4C 3D'),
+                        HD(ECU_R_ADDR_E) + SZ('03') + DT('41 4C 74'),
+                        HD(ECU_R_ADDR_E) + SZ('03') + DT('41 4C 2F'),
+                        HD(ECU_R_ADDR_E) + SZ('03') + DT('41 4C 2A'),
+                        HD(ECU_R_ADDR_E) + SZ('03') + DT('41 4C 6B'),
+                        HD(ECU_R_ADDR_E) + SZ('03') + DT('41 4C 32'),
+                        HD(ECU_R_ADDR_E) + SZ('03') + DT('41 4C 22'),
+                        HD(ECU_R_ADDR_E) + SZ('03') + DT('41 4C 2B'),
+                        HD(ECU_R_ADDR_E) + SZ('03') + DT('41 4C 75')
                         ]
             # 44.31372549019608 percent
             # 20.0 percent
@@ -1289,16 +1298,16 @@ ObdMessage = {
             'Request': '^014D' + ELM_MAX_RESP,
             'Descr': 'Time run with MIL on',
             'Header': ECU_ADDR_E,
-            'Response': ECU_R_ADDR_E + ' 04 41 4D 00 00 \r'
+            'Response': HD(ECU_R_ADDR_E) + SZ('04') + DT('41 4D 00 00')
         },
         'TIME_SINCE_DTC_CLEARED': {
             'Request': '^014E' + ELM_MAX_RESP,
             'Descr': 'Time since trouble codes cleared',
             'Header': ECU_ADDR_E,
             'Response': [
-                        ECU_R_ADDR_E + ' 04 41 4E 00 5B \r',
-                        ECU_R_ADDR_E + ' 04 41 4E 00 5C \r',
-                        ECU_R_ADDR_E + ' 04 41 4E 00 5D \r'
+                        HD(ECU_R_ADDR_E) + SZ('04') + DT('41 4E 00 5B'),
+                        HD(ECU_R_ADDR_E) + SZ('04') + DT('41 4E 00 5C'),
+                        HD(ECU_R_ADDR_E) + SZ('04') + DT('41 4E 00 5D')
                         ]
             # 91 minute
             # 92 minute
@@ -1308,7 +1317,7 @@ ObdMessage = {
             'Request': '^0151' + ELM_MAX_RESP,
             'Descr': 'Fuel Type',
             'Header': ECU_ADDR_E,
-            'Response': ECU_R_ADDR_E + ' 03 41 51 01 \r'
+            'Response': HD(ECU_R_ADDR_E) + SZ('03') + DT('41 51 01')
         },
         'PIDS_D': {
             'Request': '^0160' + ELM_MAX_RESP,
@@ -1330,125 +1339,125 @@ ObdMessage = {
             'Request': '^0201' + ELM_MAX_RESP,
             'Descr': 'DTC Status since DTCs cleared',
             'Header': ECU_ADDR_E,
-            'Response': ECU_R_ADDR_E + ' 03 7F 02 12 \r'
+            'Response': HD(ECU_R_ADDR_E) + SZ('03') + DT('7F 02 12')
             # invalid data returned by diagnostic request (mode 02)
         },
         'INJ_MF_2': {
             'Request': '^020200' + ELM_MAX_RESP,
             'Descr': 'Injector Malfunction 2',
             'Header': ECU_ADDR_E,
-            'Response': ECU_R_ADDR_E + ' 05 42 02 00 00 00 \r'
+            'Response': HD(ECU_R_ADDR_E) + SZ('05') + DT('42 02 00 00 00')
         },
         'DTC_FUEL_STATUS': {
             'Request': '^0203' + ELM_MAX_RESP,
             'Descr': 'DTC Fuel System Status',
             'Header': ECU_ADDR_E,
-            'Response': ECU_R_ADDR_E + ' 03 7F 02 12 \r'
+            'Response': HD(ECU_R_ADDR_E) + SZ('03') + DT('7F 02 12')
             # invalid data returned by diagnostic request (mode 02)
         },
         'DTC_ENGINE_LOAD': {
             'Request': '^0204' + ELM_MAX_RESP,
             'Descr': 'DTC Calculated Engine Load',
             'Header': ECU_ADDR_E,
-            'Response': ECU_R_ADDR_E + ' 03 7F 02 12 \r'
+            'Response': HD(ECU_R_ADDR_E) + SZ('03') + DT('7F 02 12')
             # invalid data returned by diagnostic request (mode 02)
         },
         'DTC_COOLANT_TEMP': {
             'Request': '^0205' + ELM_MAX_RESP,
             'Descr': 'DTC Engine Coolant Temperature',
             'Header': ECU_ADDR_E,
-            'Response': ECU_R_ADDR_E + ' 03 7F 02 12 \r'
+            'Response': HD(ECU_R_ADDR_E) + SZ('03') + DT('7F 02 12')
             # invalid data returned by diagnostic request (mode 02)
         },
         'DTC_SHORT_FUEL_TRIM_1': {
             'Request': '^0206' + ELM_MAX_RESP,
             'Descr': 'DTC Short Term Fuel Trim - Bank 1',
             'Header': ECU_ADDR_E,
-            'Response': ECU_R_ADDR_E + ' 03 7F 02 12 \r'
+            'Response': HD(ECU_R_ADDR_E) + SZ('03') + DT('7F 02 12')
             # invalid data returned by diagnostic request (mode 02)
         },
         'DTC_LONG_FUEL_TRIM_1': {
             'Request': '^0207' + ELM_MAX_RESP,
             'Descr': 'DTC Long Term Fuel Trim - Bank 1',
             'Header': ECU_ADDR_E,
-            'Response': ECU_R_ADDR_E + ' 03 7F 02 12 \r'
+            'Response': HD(ECU_R_ADDR_E) + SZ('03') + DT('7F 02 12')
             # invalid data returned by diagnostic request (mode 02)
         },
         'DTC_INTAKE_PRESSURE': {
             'Request': '^020B' + ELM_MAX_RESP,
             'Descr': 'DTC Intake Manifold Pressure',
             'Header': ECU_ADDR_E,
-            'Response': ECU_R_ADDR_E + ' 03 7F 02 12 \r'
+            'Response': HD(ECU_R_ADDR_E) + SZ('03') + DT('7F 02 12')
             # invalid data returned by diagnostic request (mode 02)
         },
         'DTC_RPM': {
             'Request': '^020C' + ELM_MAX_RESP,
             'Descr': 'DTC Engine RPM',
             'Header': ECU_ADDR_E,
-            'Response': ECU_R_ADDR_E + ' 03 7F 02 12 \r'
+            'Response': HD(ECU_R_ADDR_E) + SZ('03') + DT('7F 02 12')
             # invalid data returned by diagnostic request (mode 02)
         },
         'DTC_SPEED': {
             'Request': '^020D' + ELM_MAX_RESP,
             'Descr': 'DTC Vehicle Speed',
             'Header': ECU_ADDR_E,
-            'Response': ECU_R_ADDR_E + ' 03 7F 02 12 \r'
+            'Response': HD(ECU_R_ADDR_E) + SZ('03') + DT('7F 02 12')
             # invalid data returned by diagnostic request (mode 02)
         },
         'DTC_TIMING_ADVANCE': {
             'Request': '^020E' + ELM_MAX_RESP,
             'Descr': 'DTC Timing Advance',
             'Header': ECU_ADDR_E,
-            'Response': ECU_R_ADDR_E + ' 03 7F 02 12 \r'
+            'Response': HD(ECU_R_ADDR_E) + SZ('03') + DT('7F 02 12')
             # invalid data returned by diagnostic request (mode 02)
         },
         'DTC_INTAKE_TEMP': {
             'Request': '^020F' + ELM_MAX_RESP,
             'Descr': 'DTC Intake Air Temp',
             'Header': ECU_ADDR_E,
-            'Response': ECU_R_ADDR_E + ' 03 7F 02 12 \r'
+            'Response': HD(ECU_R_ADDR_E) + SZ('03') + DT('7F 02 12')
             # invalid data returned by diagnostic request (mode 02)
         },
         'DTC_MAF': {
             'Request': '^0210' + ELM_MAX_RESP,
             'Descr': 'DTC Air Flow Rate (MAF)',
             'Header': ECU_ADDR_E,
-            'Response': ECU_R_ADDR_E + ' 03 7F 02 12 \r'
+            'Response': HD(ECU_R_ADDR_E) + SZ('03') + DT('7F 02 12')
             # invalid data returned by diagnostic request (mode 02)
         },
         'DTC_THROTTLE_POS': {
             'Request': '^0211' + ELM_MAX_RESP,
             'Descr': 'DTC Throttle Position',
             'Header': ECU_ADDR_E,
-            'Response': ECU_R_ADDR_E + ' 03 7F 02 12 \r'
+            'Response': HD(ECU_R_ADDR_E) + SZ('03') + DT('7F 02 12')
             # invalid data returned by diagnostic request (mode 02)
         },
         'DTC_O2_SENSORS': {
             'Request': '^0213' + ELM_MAX_RESP,
             'Descr': 'DTC O2 Sensors Present',
             'Header': ECU_ADDR_E,
-            'Response': ECU_R_ADDR_E + ' 03 7F 02 12 \r'
+            'Response': HD(ECU_R_ADDR_E) + SZ('03') + DT('7F 02 12')
             # invalid data returned by diagnostic request (mode 02)
         },
         'DTC_O2_B1S2': {
             'Request': '^0215' + ELM_MAX_RESP,
             'Descr': 'DTC O2: Bank 1 - Sensor 2 Voltage',
             'Header': ECU_ADDR_E,
-            'Response': ECU_R_ADDR_E + ' 03 7F 02 12 \r'
+            'Response': HD(ECU_R_ADDR_E) + SZ('03') + DT('7F 02 12')
             # invalid data returned by diagnostic request (mode 02)
         },
         'DTC_OBD_COMPLIANCE': {
             'Request': '^021C' + ELM_MAX_RESP,
             'Descr': 'DTC OBD Standards Compliance',
             'Header': ECU_ADDR_E,
-            'Response': ECU_R_ADDR_E + ' 03 7F 02 12 \r'
+            'Response': HD(ECU_R_ADDR_E) + SZ('03') + DT('7F 02 12')
             # invalid data returned by diagnostic request (mode 02)
         },
         'DTC_RUN_TIME': {
             'Request': '^021F' + ELM_MAX_RESP,
             'Descr': 'DTC Engine Run Time',
             'Header': ECU_ADDR_E,
-            'Response': ECU_R_ADDR_E + ' 03 7F 02 12 \r'
+            'Response': HD(ECU_R_ADDR_E) + SZ('03') + DT('7F 02 12')
             # invalid data returned by diagnostic request (mode 02)
         },
         'DTC_PIDS_B': {
@@ -1457,7 +1466,7 @@ ObdMessage = {
             'Header': ECU_ADDR_E,
             'Response': [
                         'NO^DATA^\r',
-                        ECU_R_ADDR_E + ' 03 7F 02 12 \r'
+                        HD(ECU_R_ADDR_E) + SZ('03') + DT('7F 02 12')
                         ]
             # invalid data returned by diagnostic request (mode 02)
         },
@@ -1465,28 +1474,28 @@ ObdMessage = {
             'Request': '^0221' + ELM_MAX_RESP,
             'Descr': 'DTC Distance Traveled with MIL on',
             'Header': ECU_ADDR_E,
-            'Response': ECU_R_ADDR_E + ' 03 7F 02 12 \r'
+            'Response': HD(ECU_R_ADDR_E) + SZ('03') + DT('7F 02 12')
             # invalid data returned by diagnostic request (mode 02)
         },
         'DTC_O2_S1_WR_VOLTAGE': {
             'Request': '^0224' + ELM_MAX_RESP,
             'Descr': 'DTC 02 Sensor 1 WR Lambda Voltage',
             'Header': ECU_ADDR_E,
-            'Response': ECU_R_ADDR_E + ' 03 7F 02 12 \r'
+            'Response': HD(ECU_R_ADDR_E) + SZ('03') + DT('7F 02 12')
             # invalid data returned by diagnostic request (mode 02)
         },
         'DTC_COMMANDED_EGR': {
             'Request': '^022C' + ELM_MAX_RESP,
             'Descr': 'DTC Commanded EGR',
             'Header': ECU_ADDR_E,
-            'Response': ECU_R_ADDR_E + ' 03 7F 02 12 \r'
+            'Response': HD(ECU_R_ADDR_E) + SZ('03') + DT('7F 02 12')
             # invalid data returned by diagnostic request (mode 02)
         },
         'DTC_EVAPORATIVE_PURGE': {
             'Request': '^022E' + ELM_MAX_RESP,
             'Descr': 'DTC Commanded Evaporative Purge',
             'Header': ECU_ADDR_E,
-            'Response': ECU_R_ADDR_E + ' 03 7F 02 12 \r'
+            'Response': HD(ECU_R_ADDR_E) + SZ('03') + DT('7F 02 12')
             # invalid data returned by diagnostic request (mode 02)
         },
         'DTC_WARMUPS_SINCE_DTC_CLEAR': {
@@ -1495,7 +1504,7 @@ ObdMessage = {
             'Header': ECU_ADDR_E,
             'Response': [
                         'NO^DATA^\r',
-                        ECU_R_ADDR_E + ' 03 7F 02 12 \r'
+                        HD(ECU_R_ADDR_E) + SZ('03') + DT('7F 02 12')
                         ]
             # invalid data returned by diagnostic request (mode 02)
         },
@@ -1503,98 +1512,98 @@ ObdMessage = {
             'Request': '^0231' + ELM_MAX_RESP,
             'Descr': 'DTC Distance traveled since codes cleared',
             'Header': ECU_ADDR_E,
-            'Response': ECU_R_ADDR_E + ' 03 7F 02 12 \r'
+            'Response': HD(ECU_R_ADDR_E) + SZ('03') + DT('7F 02 12')
             # invalid data returned by diagnostic request (mode 02)
         },
         'DTC_BAROMETRIC_PRESSURE': {
             'Request': '^0233' + ELM_MAX_RESP,
             'Descr': 'DTC Barometric Pressure',
             'Header': ECU_ADDR_E,
-            'Response': ECU_R_ADDR_E + ' 03 7F 02 12 \r'
+            'Response': HD(ECU_R_ADDR_E) + SZ('03') + DT('7F 02 12')
             # invalid data returned by diagnostic request (mode 02)
         },
         'DTC_O2_S1_WR_CURRENT': {
             'Request': '^0234' + ELM_MAX_RESP,
             'Descr': 'DTC 02 Sensor 1 WR Lambda Current',
             'Header': ECU_ADDR_E,
-            'Response': ECU_R_ADDR_E + ' 03 7F 02 12 \r'
+            'Response': HD(ECU_R_ADDR_E) + SZ('03') + DT('7F 02 12')
             # invalid data returned by diagnostic request (mode 02)
         },
         'DTC_CATALYST_TEMP_B1S1': {
             'Request': '^023C' + ELM_MAX_RESP,
             'Descr': 'DTC Catalyst Temperature: Bank 1 - Sensor 1',
             'Header': ECU_ADDR_E,
-            'Response': ECU_R_ADDR_E + ' 03 7F 02 12 \r'
+            'Response': HD(ECU_R_ADDR_E) + SZ('03') + DT('7F 02 12')
             # invalid data returned by diagnostic request (mode 02)
         },
         'DTC_CATALYST_TEMP_B1S2': {
             'Request': '^023E' + ELM_MAX_RESP,
             'Descr': 'DTC Catalyst Temperature: Bank 1 - Sensor 2',
             'Header': ECU_ADDR_E,
-            'Response': ECU_R_ADDR_E + ' 03 7F 02 12 \r'
+            'Response': HD(ECU_R_ADDR_E) + SZ('03') + DT('7F 02 12')
             # invalid data returned by diagnostic request (mode 02)
         },
         'DTC_PIDS_C': {
             'Request': '^0240' + ELM_MAX_RESP,
             'Descr': 'DTC Supported PIDs [41-60]',
             'Header': ECU_ADDR_E,
-            'Response': ECU_R_ADDR_E + ' 03 7F 02 12 \r'
+            'Response': HD(ECU_R_ADDR_E) + SZ('03') + DT('7F 02 12')
             # invalid data returned by diagnostic request (mode 02)
         },
         'DTC_CONTROL_MODULE_VOLTAGE': {
             'Request': '^0242' + ELM_MAX_RESP,
             'Descr': 'DTC Control module voltage',
             'Header': ECU_ADDR_E,
-            'Response': ECU_R_ADDR_E + ' 03 7F 02 12 \r'
+            'Response': HD(ECU_R_ADDR_E) + SZ('03') + DT('7F 02 12')
             # invalid data returned by diagnostic request (mode 02)
         },
         'DTC_ABSOLUTE_LOAD': {
             'Request': '^0243' + ELM_MAX_RESP,
             'Descr': 'DTC Absolute load value',
             'Header': ECU_ADDR_E,
-            'Response': ECU_R_ADDR_E + ' 03 7F 02 12 \r'
+            'Response': HD(ECU_R_ADDR_E) + SZ('03') + DT('7F 02 12')
             # invalid data returned by diagnostic request (mode 02)
         },
         'DTC_COMMANDED_EQUIV_RATIO': {
             'Request': '^0244' + ELM_MAX_RESP,
             'Descr': 'DTC Commanded equivalence ratio',
             'Header': ECU_ADDR_E,
-            'Response': ECU_R_ADDR_E + ' 03 7F 02 12 \r'
+            'Response': HD(ECU_R_ADDR_E) + SZ('03') + DT('7F 02 12')
             # invalid data returned by diagnostic request (mode 02)
         },
         'DTC_RELATIVE_THROTTLE_POS': {
             'Request': '^0245' + ELM_MAX_RESP,
             'Descr': 'DTC Relative throttle position',
             'Header': ECU_ADDR_E,
-            'Response': ECU_R_ADDR_E + ' 03 7F 02 12 \r'
+            'Response': HD(ECU_R_ADDR_E) + SZ('03') + DT('7F 02 12')
             # invalid data returned by diagnostic request (mode 02)
         },
         'DTC_THROTTLE_POS_B': {
             'Request': '^0247' + ELM_MAX_RESP,
             'Descr': 'DTC Absolute throttle position B',
             'Header': ECU_ADDR_E,
-            'Response': ECU_R_ADDR_E + ' 03 7F 02 12 \r'
+            'Response': HD(ECU_R_ADDR_E) + SZ('03') + DT('7F 02 12')
             # invalid data returned by diagnostic request (mode 02)
         },
         'DTC_THROTTLE_ACTUATOR': {
             'Request': '^024C' + ELM_MAX_RESP,
             'Descr': 'DTC Commanded throttle actuator',
             'Header': ECU_ADDR_E,
-            'Response': ECU_R_ADDR_E + ' 03 7F 02 12 \r'
+            'Response': HD(ECU_R_ADDR_E) + SZ('03') + DT('7F 02 12')
             # invalid data returned by diagnostic request (mode 02)
         },
         'DTC_RUN_TIME_MIL': {
             'Request': '^024D' + ELM_MAX_RESP,
             'Descr': 'DTC Time run with MIL on',
             'Header': ECU_ADDR_E,
-            'Response': ECU_R_ADDR_E + ' 03 7F 02 12 \r'
+            'Response': HD(ECU_R_ADDR_E) + SZ('03') + DT('7F 02 12')
             # invalid data returned by diagnostic request (mode 02)
         },
         'DTC_TIME_SINCE_DTC_CLEARED': {
             'Request': '^024E' + ELM_MAX_RESP,
             'Descr': 'DTC Time since trouble codes cleared',
             'Header': ECU_ADDR_E,
-            'Response': ECU_R_ADDR_E + ' 03 7F 02 12 \r'
+            'Response': HD(ECU_R_ADDR_E) + SZ('03') + DT('7F 02 12')
             # invalid data returned by diagnostic request (mode 02)
         },
         'DTC_FUEL_TYPE': {
@@ -1603,7 +1612,7 @@ ObdMessage = {
             'Header': ECU_ADDR_E,
             'Response': [
                         'NO^DATA^\r',
-                        ECU_R_ADDR_E + ' 03 7F 02 12 \r'
+                        HD(ECU_R_ADDR_E) + SZ('03') + DT('7F 02 12')
                         ]
             # invalid data returned by diagnostic request (mode 02)
         },
@@ -1612,7 +1621,7 @@ ObdMessage = {
             'Request': '^03' + ELM_MAX_RESP,
             'Descr': 'Get DTCs',
             'Header': ECU_ADDR_E,
-            'Response': ECU_R_ADDR_E + ' 02 43 00 \r'
+            'Response': HD(ECU_R_ADDR_E) + SZ('02') + DT('43 00')
         },
     # Mode 04 Clearing/resetting emission-related malfunction information
     # MODE 6 - results of self-diagnostics - Sending intermittent monitoring system test results (DMTR)
@@ -1620,122 +1629,122 @@ ObdMessage = {
             'Request': '^0600' + ELM_MAX_RESP,
             'Descr': 'Supported MIDs [01-20]',
             'Header': ECU_ADDR_E,
-            'Response': ECU_R_ADDR_E + ' 06 46 00 C0 00 00 01 \r'
+            'Response': HD(ECU_R_ADDR_E) + SZ('06') + DT('46 00 C0 00 00 01')
         },
         'MONITOR_O2_B1S1': {
             'Request': '^0601' + ELM_MAX_RESP,
             'Descr': 'O2 Sensor Monitor Bank 1 - Sensor 1',
             'Header': ECU_ADDR_E,
-            'Response': ECU_R_ADDR_E + ' 10 13 46 01 8E 0B 02 27 \r' +
-                        ECU_R_ADDR_E + ' 21 00 A9 4D BA 01 91 8D \r' +
-                        ECU_R_ADDR_E + ' 22 01 9D 00 B4 02 2F 00 \r'
+            'Response': HD(ECU_R_ADDR_E) + SZ('10') + DT('13 46 01 8E 0B 02 27') +
+                        HD(ECU_R_ADDR_E) + SZ('21') + DT('00 A9 4D BA 01 91 8D') +
+                        HD(ECU_R_ADDR_E) + SZ('22') + DT('01 9D 00 B4 02 2F 00')
         },
         'MONITOR_O2_B1S2': {
             'Request': '^0602' + ELM_MAX_RESP,
             'Descr': 'O2 Sensor Monitor Bank 1 - Sensor 2',
             'Header': ECU_ADDR_E,
             'Response': [
-                        ECU_R_ADDR_E + ' 10 1C 46 02 07 0B 00 88 \r' +
-                        ECU_R_ADDR_E + ' 21 00 00 00 D6 02 08 0B \r' +
-                        ECU_R_ADDR_E + ' 22 02 F9 02 49 03 E3 02 \r' +
-                        ECU_R_ADDR_E + ' 23 8F 86 03 C2 00 00 1A \r' +
-                        ECU_R_ADDR_E + ' 24 E0 00 00 00 00 00 00 \r',
-                        ECU_R_ADDR_E + ' 10 1C 46 02 07 0B 00 88 \r' +
-                        ECU_R_ADDR_E + ' 21 00 00 00 D6 02 08 0B \r' +
-                        ECU_R_ADDR_E + ' 22 02 F9 02 49 03 E3 02 \r' +
-                        ECU_R_ADDR_E + ' 23 8F 86 03 C2 00 00 1A \r'
+                        HD(ECU_R_ADDR_E) + SZ('10') + DT('1C 46 02 07 0B 00 88') +
+                        HD(ECU_R_ADDR_E) + SZ('21') + DT('00 00 00 D6 02 08 0B') +
+                        HD(ECU_R_ADDR_E) + SZ('22') + DT('02 F9 02 49 03 E3 02') +
+                        HD(ECU_R_ADDR_E) + SZ('23') + DT('8F 86 03 C2 00 00 1A') +
+                        HD(ECU_R_ADDR_E) + SZ('24') + DT('E0 00 00 00 00 00 00'),
+                        HD(ECU_R_ADDR_E) + SZ('10') + DT('1C 46 02 07 0B 00 88') +
+                        HD(ECU_R_ADDR_E) + SZ('21') + DT('00 00 00 D6 02 08 0B') +
+                        HD(ECU_R_ADDR_E) + SZ('22') + DT('02 F9 02 49 03 E3 02') +
+                        HD(ECU_R_ADDR_E) + SZ('23') + DT('8F 86 03 C2 00 00 1A')
                         ]
         },
         'MIDS_B': {
             'Request': '^0620' + ELM_MAX_RESP,
             'Descr': 'Supported MIDs [21-40]',
             'Header': ECU_ADDR_E,
-            'Response': ECU_R_ADDR_E + ' 06 46 20 80 00 80 01 \r'
+            'Response': HD(ECU_R_ADDR_E) + SZ('06') + DT('46 20 80 00 80 01')
         },
         'MONITOR_CATALYST_B1': {
             'Request': '^0621' + ELM_MAX_RESP,
             'Descr': 'Catalyst Monitor Bank 1',
             'Header': ECU_ADDR_E,
-            'Response': ECU_R_ADDR_E + ' 10 0A 46 21 A9 86 02 E5 \r' +
-                        ECU_R_ADDR_E + ' 21 02 D0 7F FF 00 00 00 \r'
+            'Response': HD(ECU_R_ADDR_E) + SZ('10') + DT('0A 46 21 A9 86 02 E5') +
+                        HD(ECU_R_ADDR_E) + SZ('21') + DT('02 D0 7F FF 00 00 00')
         },
         'MONITOR_EGR_B1': {
             'Request': '^0631' + ELM_MAX_RESP,
             'Descr': 'EGR Monitor Bank 1',
             'Header': ECU_ADDR_E,
-            'Response': ECU_R_ADDR_E + ' 10 0A 46 31 BD 17 07 47 \r' +
-                        ECU_R_ADDR_E + ' 21 00 63 FF FF 00 00 00 \r'
+            'Response': HD(ECU_R_ADDR_E) + SZ('10') + DT('0A 46 31 BD 17 07 47') +
+                        HD(ECU_R_ADDR_E) + SZ('21') + DT('00 63 FF FF 00 00 00')
         },
         'MIDS_C': {
             'Request': '^0640' + ELM_MAX_RESP,
             'Descr': 'Supported MIDs [41-60]',
             'Header': ECU_ADDR_E,
-            'Response': ECU_R_ADDR_E + ' 06 46 40 00 00 00 01 \r'
+            'Response': HD(ECU_R_ADDR_E) + SZ('06') + DT('46 40 00 00 00 01')
         },
         'MIDS_D': {
             'Request': '^0660' + ELM_MAX_RESP,
             'Descr': 'Supported MIDs [61-80]',
             'Header': ECU_ADDR_E,
-            'Response': ECU_R_ADDR_E + ' 06 46 60 00 00 00 01 \r'
+            'Response': HD(ECU_R_ADDR_E) + SZ('06') + DT('46 60 00 00 00 01')
         },
         'MIDS_E': {
             'Request': '^0680' + ELM_MAX_RESP,
             'Descr': 'Supported MIDs [81-A0]',
             'Header': ECU_ADDR_E,
-            'Response': ECU_R_ADDR_E + ' 06 46 80 00 00 00 01 \r'
+            'Response': HD(ECU_R_ADDR_E) + SZ('06') + DT('46 80 00 00 00 01')
         },
         'MIDS_F': {
             'Request': '^06A0' + ELM_MAX_RESP,
             'Descr': 'Supported MIDs [A1-C0]',
             'Header': ECU_ADDR_E,
-            'Response': ECU_R_ADDR_E + ' 06 46 A0 F8 00 00 00 \r'
+            'Response': HD(ECU_R_ADDR_E) + SZ('06') + DT('46 A0 F8 00 00 00')
         },
         'MONITOR_MISFIRE_GENERAL': {
             'Request': '^06A1' + ELM_MAX_RESP,
             'Descr': 'Misfire Monitor General Data',
             'Header': ECU_ADDR_E,
-            'Response': ECU_R_ADDR_E + ' 10 13 46 A1 0B 24 00 00 \r' +
-                        ECU_R_ADDR_E + ' 21 00 00 FF FF A1 0C 24 \r' +
-                        ECU_R_ADDR_E + ' 22 00 00 00 00 FF FF 00 \r'
+            'Response': HD(ECU_R_ADDR_E) + SZ('10') + DT('13 46 A1 0B 24 00 00') +
+                        HD(ECU_R_ADDR_E) + SZ('21') + DT('00 00 FF FF A1 0C 24') +
+                        HD(ECU_R_ADDR_E) + SZ('22') + DT('00 00 00 00 FF FF 00')
         },
         'MONITOR_MISFIRE_CYLINDER_1': {
             'Request': '^06A2' + ELM_MAX_RESP,
             'Descr': 'Misfire Cylinder 1 Data',
             'Header': ECU_ADDR_E,
-            'Response': ECU_R_ADDR_E + ' 10 13 46 A2 0B 24 00 00 \r' +
-                        ECU_R_ADDR_E + ' 21 00 00 FF FF A2 0C 24 \r' +
-                        ECU_R_ADDR_E + ' 22 00 00 00 00 FF FF 00 \r'
+            'Response': HD(ECU_R_ADDR_E) + SZ('10') + DT('13 46 A2 0B 24 00 00') +
+                        HD(ECU_R_ADDR_E) + SZ('21') + DT('00 00 FF FF A2 0C 24') +
+                        HD(ECU_R_ADDR_E) + SZ('22') + DT('00 00 00 00 FF FF 00')
         },
         'MONITOR_MISFIRE_CYLINDER_2': {
             'Request': '^06A3' + ELM_MAX_RESP,
             'Descr': 'Misfire Cylinder 2 Data',
             'Header': ECU_ADDR_E,
-            'Response': ECU_R_ADDR_E + ' 10 13 46 A3 0B 24 00 00 \r' +
-                        ECU_R_ADDR_E + ' 21 00 00 FF FF A3 0C 24 \r' +
-                        ECU_R_ADDR_E + ' 22 00 00 00 00 FF FF 00 \r'
+            'Response': HD(ECU_R_ADDR_E) + SZ('10') + DT('13 46 A3 0B 24 00 00') +
+                        HD(ECU_R_ADDR_E) + SZ('21') + DT('00 00 FF FF A3 0C 24') +
+                        HD(ECU_R_ADDR_E) + SZ('22') + DT('00 00 00 00 FF FF 00')
         },
         'MONITOR_MISFIRE_CYLINDER_3': {
             'Request': '^06A4' + ELM_MAX_RESP,
             'Descr': 'Misfire Cylinder 3 Data',
             'Header': ECU_ADDR_E,
-            'Response': ECU_R_ADDR_E + ' 10 13 46 A4 0B 24 00 00 \r' +
-                        ECU_R_ADDR_E + ' 21 00 00 FF FF A4 0C 24 \r' +
-                        ECU_R_ADDR_E + ' 22 00 00 00 00 FF FF 00 \r'
+            'Response': HD(ECU_R_ADDR_E) + SZ('10') + DT('13 46 A4 0B 24 00 00') +
+                        HD(ECU_R_ADDR_E) + SZ('21') + DT('00 00 FF FF A4 0C 24') +
+                        HD(ECU_R_ADDR_E) + SZ('22') + DT('00 00 00 00 FF FF 00')
         },
         'MONITOR_MISFIRE_CYLINDER_4': {
             'Request': '^06A5' + ELM_MAX_RESP,
             'Descr': 'Misfire Cylinder 4 Data',
             'Header': ECU_ADDR_E,
-            'Response': ECU_R_ADDR_E + ' 10 13 46 A5 0B 24 00 00 \r' +
-                        ECU_R_ADDR_E + ' 21 00 00 FF FF A5 0C 24 \r' +
-                        ECU_R_ADDR_E + ' 22 00 00 00 00 FF FF 00 \r'
+            'Response': HD(ECU_R_ADDR_E) + SZ('10') + DT('13 46 A5 0B 24 00 00') +
+                        HD(ECU_R_ADDR_E) + SZ('21') + DT('00 00 FF FF A5 0C 24') +
+                        HD(ECU_R_ADDR_E) + SZ('22') + DT('00 00 00 00 FF FF 00')
         },
     # MODE 7 - unconfirmed fault codes - Sending continuous monitoring system test results (pending code)
         'GET_CURRENT_DTC': {
             'Request': '^07' + ELM_MAX_RESP,
             'Descr': 'Get DTCs from the current/last driving cycle',
             'Header': ECU_ADDR_E,
-            'Response': ECU_R_ADDR_E + ' 02 47 00 \r'
+            'Response': HD(ECU_R_ADDR_E) + SZ('02') + DT('47 00')
         },
     # Mode 08 On-board device control (simulation test, active command mode)
         'PIDS_8': {
@@ -1747,80 +1756,78 @@ ObdMessage = {
         'ELM_PIDS_9A': {
             'Request': '^0900' + ELM_MAX_RESP,
             'Descr': 'Supported PIDs [01-20]',
-            'Response': ECU_R_ADDR_E + ' 06 49 00 55 40 00 00 \r'
+            'Response': HD(ECU_R_ADDR_E) + SZ('06') + DT('49 00 55 40 00 00')
         },
         'VIN_MESSAGE_COUNT': {
             'Request': '^0901' + ELM_MAX_RESP,
             'Descr': 'VIN Message Count',
-            'Response': ECU_R_ADDR_E + ' 03 49 01 01 \r'
+            'Response': HD(ECU_R_ADDR_E) + SZ('03') + DT('49 01 01')
         },
         'VIN': {
             # Check this also: https://stackoverflow.com/a/26752855/10598800, https://www.autocheck.com/vehiclehistory/autocheck/en/vinbasics
             'Request': '^0902' + ELM_MAX_RESP,
             'Descr': 'Get Vehicle Identification Number',
             'Response': [
-                ECU_R_ADDR_E + ' 10 14 49 02 01 57 50 30 \r' +
-                ECU_R_ADDR_E + ' 21 5A 5A 5A 39 39 5A 54 \r' +
-                ECU_R_ADDR_E + ' 22 53 33 39 30 30 30 30 \r',
+                HD(ECU_R_ADDR_E) + SZ('10') + DT('14 49 02 01 57 50 30') +
+                HD(ECU_R_ADDR_E) + SZ('21') + DT('5A 5A 5A 39 39 5A 54') +
+                HD(ECU_R_ADDR_E) + SZ('22') + DT('53 33 39 30 30 30 30'),
                 # https://www.autodna.com/vin/WP0ZZZ99ZTS390000, https://it.vin-info.com/libro-denuncia/WP0ZZZ99ZTS390000
-                ECU_R_ADDR_E + ' 10 14 49 02 01 4D 41 54 \r' +  # https://community.carloop.io/t/how-to-request-vin/153/11
-                ECU_R_ADDR_E + ' 21 34 30 33 30 39 36 42 \r' +
-                ECU_R_ADDR_E + ' 22 4E 4C 30 30 30 30 30 \r',
-                ECU_R_ADDR_E + ' 10 14 49 02 01 53 42 31 \r' +
-                ECU_R_ADDR_E + ' 21 5A 53 33 4A 45 36 30 \r' +
-                ECU_R_ADDR_E + ' 22 45 32 38 32 31 30 32 \r'
+                HD(ECU_R_ADDR_E) + SZ('10') + DT('14 49 02 01 4D 41 54') +  # https://community.carloop.io/t/how-to-request-vin/153/11
+                HD(ECU_R_ADDR_E) + SZ('21') + DT('34 30 33 30 39 36 42') +
+                HD(ECU_R_ADDR_E) + SZ('22') + DT('4E 4C 30 30 30 30 30'),
+                HD(ECU_R_ADDR_E) + SZ('10') + DT('14 49 02 01 53 42 31') +
+                HD(ECU_R_ADDR_E) + SZ('21') + DT('5A 53 33 4A 45 36 30') +
+                HD(ECU_R_ADDR_E) + SZ('22') + DT('45 32 38 32 31 30 32')
             ]
         },
         'CALIBRATION_ID_MESSAGE_COUNT': {
             'Request': '^0903' + ELM_MAX_RESP,
             'Descr': 'Calibration ID message count for PID 04',
-            'Response': ECU_R_ADDR_E + ' 03 49 03 01 \r'
+            'Response': HD(ECU_R_ADDR_E) + SZ('03') + DT('49 03 01')
         },
         'CALIBRATION_ID': {
             'Request': '^0904' + ELM_MAX_RESP,
             'Descr': 'Calibration ID',
             'Header': ECU_ADDR_E,
-            'Response': ECU_R_ADDR_E + ' 10 23 49 04 02 33 31 32 \r' +
-                        ECU_R_ADDR_E + ' 21 4A 36 30 30 30 00 00 \r' +
-                        ECU_R_ADDR_E + ' 22 00 00 00 00 00 00 41 \r' +
-                        ECU_R_ADDR_E + ' 23 34 37 30 31 30 30 30 \r' +
-                        ECU_R_ADDR_E + ' 24 00 00 00 00 00 00 00 \r' +
-                        ECU_R_ADDR_E + ' 25 00 00 00 00 00 00 00 \r'
+            'Response': HD(ECU_R_ADDR_E) + SZ('10') + DT('23 49 04 02 33 31 32') +
+                        HD(ECU_R_ADDR_E) + SZ('21') + DT('4A 36 30 30 30 00 00') +
+                        HD(ECU_R_ADDR_E) + SZ('22') + DT('00 00 00 00 00 00 41') +
+                        HD(ECU_R_ADDR_E) + SZ('23') + DT('34 37 30 31 30 30 30') +
+                        HD(ECU_R_ADDR_E) + SZ('24') + DT('00 00 00 00 00 00 00') +
+                        HD(ECU_R_ADDR_E) + SZ('25') + DT('00 00 00 00 00 00 00')
         },
-        '''
-        'CVN_MESSAGE_COUNT': {
-            'Request': '^0905' + ELM_MAX_RESP,
-            'Descr': 'CVN Message Count for PID 06',
-            ... (incomplete)
-        },
-        '''
+        #'CVN_MESSAGE_COUNT': {
+        #    'Request': '^0905' + ELM_MAX_RESP,
+        #    'Descr': 'CVN Message Count for PID 06',
+        #    ... (incomplete)
+        #},
         'CVN': {
             'Request': '^0906' + ELM_MAX_RESP,
             'Descr': 'Calibration Verification Numbers',
             'Header': ECU_ADDR_E,
-            'Response': ECU_R_ADDR_E + ' 10 0B 49 06 02 69 53 CD \r' +
-                        ECU_R_ADDR_E + ' 21 4B 61 1F 6E F2 00 00 \r'
+            'Response': HD(ECU_R_ADDR_E) + SZ('10') + DT('0B 49 06 02 69 53 CD') +
+                        HD(ECU_R_ADDR_E) + SZ('21') + DT('4B 61 1F 6E F2 00 00')
         },
         'PERF_TRACKING_SPARK': {
             'Request': '^0908' + ELM_MAX_RESP,
             'Descr': 'In-use performance tracking (spark ignition)',
             'Header': ECU_ADDR_E,
-            'Response': ECU_R_ADDR_E + ' 10 2B 49 08 14 00 18 00 \r' +
-                        ECU_R_ADDR_E + ' 21 9A 00 11 00 18 00 00 \r' +
-                        ECU_R_ADDR_E + ' 22 00 00 00 14 00 18 00 \r' +
-                        ECU_R_ADDR_E + ' 23 00 00 00 00 1C 00 18 \r' +
-                        ECU_R_ADDR_E + ' 24 00 00 00 00 00 00 00 \r' +
-                        ECU_R_ADDR_E + ' 25 00 00 0C 00 18 00 00 \r' +
-                        ECU_R_ADDR_E + ' 26 00 00 00 00 00 00 00 \r'
+            'Response': HD(ECU_R_ADDR_E) + SZ('10') + DT('2B 49 08 14 00 18 00') +
+                        HD(ECU_R_ADDR_E) + SZ('21') + DT('9A 00 11 00 18 00 00') +
+                        HD(ECU_R_ADDR_E) + SZ('22') + DT('00 00 00 14 00 18 00') +
+                        HD(ECU_R_ADDR_E) + SZ('23') + DT('00 00 00 00 1C 00 18') +
+                        HD(ECU_R_ADDR_E) + SZ('24') + DT('00 00 00 00 00 00 00') +
+                        HD(ECU_R_ADDR_E) + SZ('25') + DT('00 00 0C 00 18 00 00') +
+                        HD(ECU_R_ADDR_E) + SZ('26') + DT('00 00 00 00 00 00 00')
         },
         'ECU_NAME': {
             'Request': '^090A' + ELM_MAX_RESP,
             'Descr': 'ECU name',
             'Header': ECU_ADDR_E,
-            'Response': ECU_R_ADDR_E + ' 10 17 49 0A 01 45 43 4D \r' +
-                        ECU_R_ADDR_E + ' 21 00 2D 45 6E 67 69 6E \r' +
-                        ECU_R_ADDR_E + ' 22 65 43 6F 6E 74 72 6F \r' +
-                        ECU_R_ADDR_E + ' 23 6C 00 00 00 00 00 00 \r'
+            'Response': HD(ECU_R_ADDR_E) + SZ('10') + DT('17 49 0A 01 45 43 4D') +
+                        HD(ECU_R_ADDR_E) + SZ('21') + DT('00 2D 45 6E 67 69 6E') +
+                        HD(ECU_R_ADDR_E) + SZ('22') + DT('65 43 6F 6E 74 72 6F') +
+                        HD(ECU_R_ADDR_E) + SZ('23') + DT('6C 00 00 00 00 00 00')
         },
         'UNKNOWN_0A': {
             'Request': '^0A' + ELM_MAX_RESP,
@@ -1837,66 +1844,66 @@ ObdMessage = {
             'Unit': '%',
             'Header': ECU_ADDR_E,
             'Response': [
-                        ECU_R_ADDR_E + ' 10 1B 61 01 66 00 29 01 \r' +
-                        ECU_R_ADDR_E + ' 21 3B 24 37 61 66 11 26 \r' +
-                        ECU_R_ADDR_E + ' 22 53 00 9B 00 2A 7B 2A \r' +
-                        ECU_R_ADDR_E + ' 23 04 00 33 00 5D 39 73 \r',
-                        ECU_R_ADDR_E + ' 10 1B 61 01 98 00 57 03 \r' +
-                        ECU_R_ADDR_E + ' 21 13 35 3A 61 44 14 3D \r' +
-                        ECU_R_ADDR_E + ' 22 00 00 13 02 32 85 32 \r' +
-                        ECU_R_ADDR_E + ' 23 04 00 31 00 5B 39 38 \r',
-                        ECU_R_ADDR_E + ' 10 1B 61 01 A5 00 61 03 \r' +
-                        ECU_R_ADDR_E + ' 21 8A 3D 37 61 59 14 EC \r' +
-                        ECU_R_ADDR_E + ' 22 4C 00 63 07 33 87 33 \r' +
-                        ECU_R_ADDR_E + ' 23 04 00 32 00 5C 39 5F \r',
-                        ECU_R_ADDR_E + ' 10 1B 61 01 00 00 00 00 \r' +
-                        ECU_R_ADDR_E + ' 21 14 63 38 61 65 00 00 \r' +
-                        ECU_R_ADDR_E + ' 22 2D 00 A6 00 2A 7C 2A \r' +
-                        ECU_R_ADDR_E + ' 23 04 00 33 00 5D 39 C1 \r',
-                        ECU_R_ADDR_E + ' 10 1B 61 01 96 00 55 03 \r' +
-                        ECU_R_ADDR_E + ' 21 07 35 3A 61 47 14 65 \r' +
-                        ECU_R_ADDR_E + ' 22 09 00 1F 02 32 85 32 \r' +
-                        ECU_R_ADDR_E + ' 23 04 00 31 00 5B 39 4B \r',
-                        ECU_R_ADDR_E + ' 10 1B 61 01 00 00 25 00 \r' +
-                        ECU_R_ADDR_E + ' 21 1D 5C 3E 61 42 00 00 \r' +
-                        ECU_R_ADDR_E + ' 22 03 00 05 00 2B 7C 2B \r' +
-                        ECU_R_ADDR_E + ' 23 04 00 31 00 5B 39 38 \r',
-                        ECU_R_ADDR_E + ' 10 1B 61 01 00 00 00 00 \r' +
-                        ECU_R_ADDR_E + ' 21 12 63 3A 61 5B 00 00 \r' +
-                        ECU_R_ADDR_E + ' 22 2B 00 6F 00 2B 7D 2B \r' +
-                        ECU_R_ADDR_E + ' 23 04 00 32 00 5C 39 AD \r',
-                        ECU_R_ADDR_E + ' 10 1B 61 01 71 00 3C 02 \r' +
-                        ECU_R_ADDR_E + ' 21 29 29 38 61 55 14 5C \r' +
-                        ECU_R_ADDR_E + ' 22 34 00 4D 03 2E 81 2F \r' +
-                        ECU_R_ADDR_E + ' 23 04 00 32 00 5C 39 5F \r',
-                        ECU_R_ADDR_E + ' 10 1B 61 01 EE 00 94 06 \r' +
-                        ECU_R_ADDR_E + ' 21 94 5B 39 61 56 19 6D \r' +
-                        ECU_R_ADDR_E + ' 22 1C 00 58 1B 47 9F 47 \r' +
-                        ECU_R_ADDR_E + ' 23 04 00 32 00 5C 39 4B \r',
-                        ECU_R_ADDR_E + ' 10 1B 61 01 F9 00 BF 12 \r' +
-                        ECU_R_ADDR_E + ' 21 D9 60 36 61 5B 38 7E \r' +
-                        ECU_R_ADDR_E + ' 22 41 00 7A 46 71 D5 71 \r' +
-                        ECU_R_ADDR_E + ' 23 04 00 32 00 5D 39 38 \r',
-                        ECU_R_ADDR_E + ' 10 1B 61 01 95 00 54 03 \r' +
-                        ECU_R_ADDR_E + ' 21 02 35 38 61 4E 14 78 \r' +
-                        ECU_R_ADDR_E + ' 22 16 00 37 02 31 85 31 \r' +
-                        ECU_R_ADDR_E + ' 23 04 00 31 00 5B 39 4B \r',
-                        ECU_R_ADDR_E + ' 10 1B 61 01 F3 00 B9 12 \r' +
-                        ECU_R_ADDR_E + ' 21 B6 5D 35 61 62 39 C6 \r' +
-                        ECU_R_ADDR_E + ' 22 69 00 90 43 6E D1 6E \r' +
-                        ECU_R_ADDR_E + ' 23 04 00 33 00 5D 39 4B \r',
-                        ECU_R_ADDR_E + ' 10 1B 61 01 3E 00 1B 01 \r' +
-                        ECU_R_ADDR_E + ' 21 8C 15 38 61 52 20 9A \r' +
-                        ECU_R_ADDR_E + ' 22 41 00 42 00 2C 7D 2C \r' +
-                        ECU_R_ADDR_E + ' 23 04 00 31 00 5C 39 5F \r',
-                        ECU_R_ADDR_E + ' 10 1B 61 01 6F 00 44 02 \r' +
-                        ECU_R_ADDR_E + ' 21 C6 28 38 61 4B 17 21 \r' +
-                        ECU_R_ADDR_E + ' 22 31 00 2B 01 30 83 31 \r' +
-                        ECU_R_ADDR_E + ' 23 04 00 31 00 5B 39 5F \r',
-                        ECU_R_ADDR_E + ' 10 1B 61 01 E8 00 AD 0F \r' +
-                        ECU_R_ADDR_E + ' 21 EF 59 35 61 5E 34 C8 \r' +
-                        ECU_R_ADDR_E + ' 22 59 00 85 2D 58 B5 58 \r' +
-                        ECU_R_ADDR_E + ' 23 04 00 32 00 5D 39 4B \r'
+                        HD(ECU_R_ADDR_E) + SZ('10') + DT('1B 61 01 66 00 29 01') +
+                        HD(ECU_R_ADDR_E) + SZ('21') + DT('3B 24 37 61 66 11 26') +
+                        HD(ECU_R_ADDR_E) + SZ('22') + DT('53 00 9B 00 2A 7B 2A') +
+                        HD(ECU_R_ADDR_E) + SZ('23') + DT('04 00 33 00 5D 39 73'),
+                        HD(ECU_R_ADDR_E) + SZ('10') + DT('1B 61 01 98 00 57 03') +
+                        HD(ECU_R_ADDR_E) + SZ('21') + DT('13 35 3A 61 44 14 3D') +
+                        HD(ECU_R_ADDR_E) + SZ('22') + DT('00 00 13 02 32 85 32') +
+                        HD(ECU_R_ADDR_E) + SZ('23') + DT('04 00 31 00 5B 39 38'),
+                        HD(ECU_R_ADDR_E) + SZ('10') + DT('1B 61 01 A5 00 61 03') +
+                        HD(ECU_R_ADDR_E) + SZ('21') + DT('8A 3D 37 61 59 14 EC') +
+                        HD(ECU_R_ADDR_E) + SZ('22') + DT('4C 00 63 07 33 87 33') +
+                        HD(ECU_R_ADDR_E) + SZ('23') + DT('04 00 32 00 5C 39 5F'),
+                        HD(ECU_R_ADDR_E) + SZ('10') + DT('1B 61 01 00 00 00 00') +
+                        HD(ECU_R_ADDR_E) + SZ('21') + DT('14 63 38 61 65 00 00') +
+                        HD(ECU_R_ADDR_E) + SZ('22') + DT('2D 00 A6 00 2A 7C 2A') +
+                        HD(ECU_R_ADDR_E) + SZ('23') + DT('04 00 33 00 5D 39 C1'),
+                        HD(ECU_R_ADDR_E) + SZ('10') + DT('1B 61 01 96 00 55 03') +
+                        HD(ECU_R_ADDR_E) + SZ('21') + DT('07 35 3A 61 47 14 65') +
+                        HD(ECU_R_ADDR_E) + SZ('22') + DT('09 00 1F 02 32 85 32') +
+                        HD(ECU_R_ADDR_E) + SZ('23') + DT('04 00 31 00 5B 39 4B'),
+                        HD(ECU_R_ADDR_E) + SZ('10') + DT('1B 61 01 00 00 25 00') +
+                        HD(ECU_R_ADDR_E) + SZ('21') + DT('1D 5C 3E 61 42 00 00') +
+                        HD(ECU_R_ADDR_E) + SZ('22') + DT('03 00 05 00 2B 7C 2B') +
+                        HD(ECU_R_ADDR_E) + SZ('23') + DT('04 00 31 00 5B 39 38'),
+                        HD(ECU_R_ADDR_E) + SZ('10') + DT('1B 61 01 00 00 00 00') +
+                        HD(ECU_R_ADDR_E) + SZ('21') + DT('12 63 3A 61 5B 00 00') +
+                        HD(ECU_R_ADDR_E) + SZ('22') + DT('2B 00 6F 00 2B 7D 2B') +
+                        HD(ECU_R_ADDR_E) + SZ('23') + DT('04 00 32 00 5C 39 AD'),
+                        HD(ECU_R_ADDR_E) + SZ('10') + DT('1B 61 01 71 00 3C 02') +
+                        HD(ECU_R_ADDR_E) + SZ('21') + DT('29 29 38 61 55 14 5C') +
+                        HD(ECU_R_ADDR_E) + SZ('22') + DT('34 00 4D 03 2E 81 2F') +
+                        HD(ECU_R_ADDR_E) + SZ('23') + DT('04 00 32 00 5C 39 5F'),
+                        HD(ECU_R_ADDR_E) + SZ('10') + DT('1B 61 01 EE 00 94 06') +
+                        HD(ECU_R_ADDR_E) + SZ('21') + DT('94 5B 39 61 56 19 6D') +
+                        HD(ECU_R_ADDR_E) + SZ('22') + DT('1C 00 58 1B 47 9F 47') +
+                        HD(ECU_R_ADDR_E) + SZ('23') + DT('04 00 32 00 5C 39 4B'),
+                        HD(ECU_R_ADDR_E) + SZ('10') + DT('1B 61 01 F9 00 BF 12') +
+                        HD(ECU_R_ADDR_E) + SZ('21') + DT('D9 60 36 61 5B 38 7E') +
+                        HD(ECU_R_ADDR_E) + SZ('22') + DT('41 00 7A 46 71 D5 71') +
+                        HD(ECU_R_ADDR_E) + SZ('23') + DT('04 00 32 00 5D 39 38'),
+                        HD(ECU_R_ADDR_E) + SZ('10') + DT('1B 61 01 95 00 54 03') +
+                        HD(ECU_R_ADDR_E) + SZ('21') + DT('02 35 38 61 4E 14 78') +
+                        HD(ECU_R_ADDR_E) + SZ('22') + DT('16 00 37 02 31 85 31') +
+                        HD(ECU_R_ADDR_E) + SZ('23') + DT('04 00 31 00 5B 39 4B'),
+                        HD(ECU_R_ADDR_E) + SZ('10') + DT('1B 61 01 F3 00 B9 12') +
+                        HD(ECU_R_ADDR_E) + SZ('21') + DT('B6 5D 35 61 62 39 C6') +
+                        HD(ECU_R_ADDR_E) + SZ('22') + DT('69 00 90 43 6E D1 6E') +
+                        HD(ECU_R_ADDR_E) + SZ('23') + DT('04 00 33 00 5D 39 4B'),
+                        HD(ECU_R_ADDR_E) + SZ('10') + DT('1B 61 01 3E 00 1B 01') +
+                        HD(ECU_R_ADDR_E) + SZ('21') + DT('8C 15 38 61 52 20 9A') +
+                        HD(ECU_R_ADDR_E) + SZ('22') + DT('41 00 42 00 2C 7D 2C') +
+                        HD(ECU_R_ADDR_E) + SZ('23') + DT('04 00 31 00 5C 39 5F'),
+                        HD(ECU_R_ADDR_E) + SZ('10') + DT('1B 61 01 6F 00 44 02') +
+                        HD(ECU_R_ADDR_E) + SZ('21') + DT('C6 28 38 61 4B 17 21') +
+                        HD(ECU_R_ADDR_E) + SZ('22') + DT('31 00 2B 01 30 83 31') +
+                        HD(ECU_R_ADDR_E) + SZ('23') + DT('04 00 31 00 5B 39 5F'),
+                        HD(ECU_R_ADDR_E) + SZ('10') + DT('1B 61 01 E8 00 AD 0F') +
+                        HD(ECU_R_ADDR_E) + SZ('21') + DT('EF 59 35 61 5E 34 C8') +
+                        HD(ECU_R_ADDR_E) + SZ('22') + DT('59 00 85 2D 58 B5 58') +
+                        HD(ECU_R_ADDR_E) + SZ('23') + DT('04 00 32 00 5D 39 4B')
                         ]
         },
         'CUSTOM_SOC': {
@@ -1908,16 +1915,16 @@ ObdMessage = {
             'Unit': '%',
             'Header': ECU_ADDR_H,
             'Response': [
-                        ECU_R_ADDR_H + ' 03 41 5B 95 \r',
-                        ECU_R_ADDR_H + ' 03 41 5B 97 \r',
-                        ECU_R_ADDR_H + ' 03 41 5B 96 \r',
-                        ECU_R_ADDR_H + ' 03 41 5B 94 \r',
-                        ECU_R_ADDR_H + ' 03 41 5B 99 \r',
-                        ECU_R_ADDR_H + ' 03 41 5B 93 \r',
-                        ECU_R_ADDR_H + ' 03 41 5B 9E \r',
-                        ECU_R_ADDR_H + ' 03 41 5B 92 \r',
-                        ECU_R_ADDR_H + ' 03 41 5B 98 \r',
-                        ECU_R_ADDR_H + ' 03 41 5B 9A \r'
+                        HD(ECU_R_ADDR_H) + SZ('03') + DT('41 5B 95'),
+                        HD(ECU_R_ADDR_H) + SZ('03') + DT('41 5B 97'),
+                        HD(ECU_R_ADDR_H) + SZ('03') + DT('41 5B 96'),
+                        HD(ECU_R_ADDR_H) + SZ('03') + DT('41 5B 94'),
+                        HD(ECU_R_ADDR_H) + SZ('03') + DT('41 5B 99'),
+                        HD(ECU_R_ADDR_H) + SZ('03') + DT('41 5B 93'),
+                        HD(ECU_R_ADDR_H) + SZ('03') + DT('41 5B 9E'),
+                        HD(ECU_R_ADDR_H) + SZ('03') + DT('41 5B 92'),
+                        HD(ECU_R_ADDR_H) + SZ('03') + DT('41 5B 98'),
+                        HD(ECU_R_ADDR_H) + SZ('03') + DT('41 5B 9A')
                         ]
         },
         'CUSTOM_MG1T': {
@@ -1929,21 +1936,21 @@ ObdMessage = {
             'Unit': 'C',
             'Header': ECU_ADDR_H,
             'Response': [
-                        ECU_R_ADDR_H + ' 07 61 61 3D 3C 3D 8F 4D \r',
-                        ECU_R_ADDR_H + ' 07 61 61 3D 3C 3D 85 8E \r',
-                        ECU_R_ADDR_H + ' 07 61 61 3E 3C 3E 7C 2C \r',
-                        ECU_R_ADDR_H + ' 07 61 61 3D 3C 3D 87 95 \r',
-                        ECU_R_ADDR_H + ' 07 61 61 42 3C 42 79 0E \r',
-                        ECU_R_ADDR_H + ' 07 61 61 3F 3C 3F 74 61 \r',
-                        ECU_R_ADDR_H + ' 07 61 61 3D 3C 3D 90 0E \r',
-                        ECU_R_ADDR_H + ' 07 61 61 40 3C 40 90 0A \r',
-                        ECU_R_ADDR_H + ' 07 61 61 40 3C 40 9B 9F \r',
-                        ECU_R_ADDR_H + ' 07 61 61 3D 3C 3D 92 86 \r',
-                        ECU_R_ADDR_H + ' 07 61 61 41 3C 41 A3 EB \r',
-                        ECU_R_ADDR_H + ' 07 61 61 43 3C 43 76 FB \r',
-                        ECU_R_ADDR_H + ' 07 61 61 3E 3C 3E 9C 2E \r',
-                        ECU_R_ADDR_H + ' 07 61 61 3D 3C 3D 8F BF \r',
-                        ECU_R_ADDR_H + ' 07 61 61 3E 3C 3E 87 70 \r'
+                        HD(ECU_R_ADDR_H) + SZ('07') + DT('61 61 3D 3C 3D 8F 4D'),
+                        HD(ECU_R_ADDR_H) + SZ('07') + DT('61 61 3D 3C 3D 85 8E'),
+                        HD(ECU_R_ADDR_H) + SZ('07') + DT('61 61 3E 3C 3E 7C 2C'),
+                        HD(ECU_R_ADDR_H) + SZ('07') + DT('61 61 3D 3C 3D 87 95'),
+                        HD(ECU_R_ADDR_H) + SZ('07') + DT('61 61 42 3C 42 79 0E'),
+                        HD(ECU_R_ADDR_H) + SZ('07') + DT('61 61 3F 3C 3F 74 61'),
+                        HD(ECU_R_ADDR_H) + SZ('07') + DT('61 61 3D 3C 3D 90 0E'),
+                        HD(ECU_R_ADDR_H) + SZ('07') + DT('61 61 40 3C 40 90 0A'),
+                        HD(ECU_R_ADDR_H) + SZ('07') + DT('61 61 40 3C 40 9B 9F'),
+                        HD(ECU_R_ADDR_H) + SZ('07') + DT('61 61 3D 3C 3D 92 86'),
+                        HD(ECU_R_ADDR_H) + SZ('07') + DT('61 61 41 3C 41 A3 EB'),
+                        HD(ECU_R_ADDR_H) + SZ('07') + DT('61 61 43 3C 43 76 FB'),
+                        HD(ECU_R_ADDR_H) + SZ('07') + DT('61 61 3E 3C 3E 9C 2E'),
+                        HD(ECU_R_ADDR_H) + SZ('07') + DT('61 61 3D 3C 3D 8F BF'),
+                        HD(ECU_R_ADDR_H) + SZ('07') + DT('61 61 3E 3C 3E 87 70')
                         ]
         },
         'CUSTOM_MG2T': {
@@ -1955,21 +1962,21 @@ ObdMessage = {
             'Unit': 'C',
             'Header': ECU_ADDR_H,
             'Response': [
-                        ECU_R_ADDR_H + ' 07 61 62 3F 3A 3F 8E 13 \r',
-                        ECU_R_ADDR_H + ' 07 61 62 43 3A 43 9F EA \r',
-                        ECU_R_ADDR_H + ' 07 61 62 3A 3A 3A 80 99 \r',
-                        ECU_R_ADDR_H + ' 07 61 62 40 3A 40 8A 22 \r',
-                        ECU_R_ADDR_H + ' 07 61 62 3D 3A 3D 87 FB \r',
-                        ECU_R_ADDR_H + ' 07 61 62 44 3A 44 8A F1 \r',
-                        ECU_R_ADDR_H + ' 07 61 62 3B 3A 3B 82 6D \r',
-                        ECU_R_ADDR_H + ' 07 61 62 3E 3A 3E 91 BC \r',
-                        ECU_R_ADDR_H + ' 07 61 62 42 3A 42 95 3E \r',
-                        ECU_R_ADDR_H + ' 07 61 62 40 3A 40 95 EC \r',
-                        ECU_R_ADDR_H + ' 07 61 62 44 3A 44 97 85 \r',
-                        ECU_R_ADDR_H + ' 07 61 62 3A 3A 3A 80 75 \r',
-                        ECU_R_ADDR_H + ' 07 61 62 41 3A 41 8C 1B \r',
-                        ECU_R_ADDR_H + ' 07 61 62 42 3A 42 9A CD \r',
-                        ECU_R_ADDR_H + ' 07 61 62 3C 3A 3C 8D 81 \r'
+                        HD(ECU_R_ADDR_H) + SZ('07') + DT('61 62 3F 3A 3F 8E 13'),
+                        HD(ECU_R_ADDR_H) + SZ('07') + DT('61 62 43 3A 43 9F EA'),
+                        HD(ECU_R_ADDR_H) + SZ('07') + DT('61 62 3A 3A 3A 80 99'),
+                        HD(ECU_R_ADDR_H) + SZ('07') + DT('61 62 40 3A 40 8A 22'),
+                        HD(ECU_R_ADDR_H) + SZ('07') + DT('61 62 3D 3A 3D 87 FB'),
+                        HD(ECU_R_ADDR_H) + SZ('07') + DT('61 62 44 3A 44 8A F1'),
+                        HD(ECU_R_ADDR_H) + SZ('07') + DT('61 62 3B 3A 3B 82 6D'),
+                        HD(ECU_R_ADDR_H) + SZ('07') + DT('61 62 3E 3A 3E 91 BC'),
+                        HD(ECU_R_ADDR_H) + SZ('07') + DT('61 62 42 3A 42 95 3E'),
+                        HD(ECU_R_ADDR_H) + SZ('07') + DT('61 62 40 3A 40 95 EC'),
+                        HD(ECU_R_ADDR_H) + SZ('07') + DT('61 62 44 3A 44 97 85'),
+                        HD(ECU_R_ADDR_H) + SZ('07') + DT('61 62 3A 3A 3A 80 75'),
+                        HD(ECU_R_ADDR_H) + SZ('07') + DT('61 62 41 3A 41 8C 1B'),
+                        HD(ECU_R_ADDR_H) + SZ('07') + DT('61 62 42 3A 42 9A CD'),
+                        HD(ECU_R_ADDR_H) + SZ('07') + DT('61 62 3C 3A 3C 8D 81')
                         ]
         },
         'CUSTOM_MG1_TORQ': {
@@ -1981,21 +1988,21 @@ ObdMessage = {
             'Unit': 'Nm',
             'Header': ECU_ADDR_H,
             'Response': [
-                        ECU_R_ADDR_H + ' 07 61 67 7F FD 7F FA 00 \r',
-                        ECU_R_ADDR_H + ' 07 61 67 7F C9 7F C7 00 \r',
-                        ECU_R_ADDR_H + ' 07 61 67 80 00 80 00 00 \r',
-                        ECU_R_ADDR_H + ' 07 61 67 7F 5A 7F 60 00 \r',
-                        ECU_R_ADDR_H + ' 07 61 67 7F E8 7F EB 00 \r',
-                        ECU_R_ADDR_H + ' 07 61 67 7F 67 7F 7B 00 \r',
-                        ECU_R_ADDR_H + ' 07 61 67 80 00 80 04 00 \r',
-                        ECU_R_ADDR_H + ' 07 61 67 7F CF 7F CD 00 \r',
-                        ECU_R_ADDR_H + ' 07 61 67 7E E3 7F 04 02 \r',
-                        ECU_R_ADDR_H + ' 07 61 67 7E E2 7E F2 01 \r',
-                        ECU_R_ADDR_H + ' 07 61 67 80 22 80 1C 00 \r',
-                        ECU_R_ADDR_H + ' 07 61 67 7F DD 7F E0 00 \r',
-                        ECU_R_ADDR_H + ' 07 61 67 7F AC 7F C6 00 \r',
-                        ECU_R_ADDR_H + ' 07 61 67 7F EE 7F ED 02 \r',
-                        ECU_R_ADDR_H + ' 07 61 67 80 00 7F FE 00 \r'
+                        HD(ECU_R_ADDR_H) + SZ('07') + DT('61 67 7F FD 7F FA 00'),
+                        HD(ECU_R_ADDR_H) + SZ('07') + DT('61 67 7F C9 7F C7 00'),
+                        HD(ECU_R_ADDR_H) + SZ('07') + DT('61 67 80 00 80 00 00'),
+                        HD(ECU_R_ADDR_H) + SZ('07') + DT('61 67 7F 5A 7F 60 00'),
+                        HD(ECU_R_ADDR_H) + SZ('07') + DT('61 67 7F E8 7F EB 00'),
+                        HD(ECU_R_ADDR_H) + SZ('07') + DT('61 67 7F 67 7F 7B 00'),
+                        HD(ECU_R_ADDR_H) + SZ('07') + DT('61 67 80 00 80 04 00'),
+                        HD(ECU_R_ADDR_H) + SZ('07') + DT('61 67 7F CF 7F CD 00'),
+                        HD(ECU_R_ADDR_H) + SZ('07') + DT('61 67 7E E3 7F 04 02'),
+                        HD(ECU_R_ADDR_H) + SZ('07') + DT('61 67 7E E2 7E F2 01'),
+                        HD(ECU_R_ADDR_H) + SZ('07') + DT('61 67 80 22 80 1C 00'),
+                        HD(ECU_R_ADDR_H) + SZ('07') + DT('61 67 7F DD 7F E0 00'),
+                        HD(ECU_R_ADDR_H) + SZ('07') + DT('61 67 7F AC 7F C6 00'),
+                        HD(ECU_R_ADDR_H) + SZ('07') + DT('61 67 7F EE 7F ED 02'),
+                        HD(ECU_R_ADDR_H) + SZ('07') + DT('61 67 80 00 7F FE 00')
                         ]
         },
         'CUSTOM_INV1T': {
@@ -2007,18 +2014,18 @@ ObdMessage = {
             'Unit': 'C',
             'Header': ECU_ADDR_H,
             'Response': [
-                        ECU_R_ADDR_H + ' 06 61 70 37 37 41 00 \r',
-                        ECU_R_ADDR_H + ' 06 61 70 37 37 39 00 \r',
-                        ECU_R_ADDR_H + ' 06 61 70 40 37 41 00 \r',
-                        ECU_R_ADDR_H + ' 06 61 70 38 37 47 00 \r',
-                        ECU_R_ADDR_H + ' 06 61 70 44 37 44 00 \r',
-                        ECU_R_ADDR_H + ' 06 61 70 3C 37 41 00 \r',
-                        ECU_R_ADDR_H + ' 06 61 70 41 37 40 00 \r',
-                        ECU_R_ADDR_H + ' 06 61 70 3D 37 41 00 \r',
-                        ECU_R_ADDR_H + ' 06 61 70 37 37 47 80 \r',
-                        ECU_R_ADDR_H + ' 06 61 70 3E 37 41 00 \r',
-                        ECU_R_ADDR_H + ' 06 61 70 44 37 47 00 \r',
-                        ECU_R_ADDR_H + ' 06 61 70 37 37 37 80 \r'
+                        HD(ECU_R_ADDR_H) + SZ('06') + DT('61 70 37 37 41 00'),
+                        HD(ECU_R_ADDR_H) + SZ('06') + DT('61 70 37 37 39 00'),
+                        HD(ECU_R_ADDR_H) + SZ('06') + DT('61 70 40 37 41 00'),
+                        HD(ECU_R_ADDR_H) + SZ('06') + DT('61 70 38 37 47 00'),
+                        HD(ECU_R_ADDR_H) + SZ('06') + DT('61 70 44 37 44 00'),
+                        HD(ECU_R_ADDR_H) + SZ('06') + DT('61 70 3C 37 41 00'),
+                        HD(ECU_R_ADDR_H) + SZ('06') + DT('61 70 41 37 40 00'),
+                        HD(ECU_R_ADDR_H) + SZ('06') + DT('61 70 3D 37 41 00'),
+                        HD(ECU_R_ADDR_H) + SZ('06') + DT('61 70 37 37 47 80'),
+                        HD(ECU_R_ADDR_H) + SZ('06') + DT('61 70 3E 37 41 00'),
+                        HD(ECU_R_ADDR_H) + SZ('06') + DT('61 70 44 37 47 00'),
+                        HD(ECU_R_ADDR_H) + SZ('06') + DT('61 70 37 37 37 80')
                         ]
         },
         'CUSTOM_INV2T': {
@@ -2030,15 +2037,15 @@ ObdMessage = {
             'Unit': 'C',
             'Header': ECU_ADDR_H,
             'Response': [
-                        ECU_R_ADDR_H + ' 06 61 71 3A 37 46 00 \r',
-                        ECU_R_ADDR_H + ' 06 61 71 3D 37 46 00 \r',
-                        ECU_R_ADDR_H + ' 06 61 71 39 37 3C 00 \r',
-                        ECU_R_ADDR_H + ' 06 61 71 37 37 46 00 \r',
-                        ECU_R_ADDR_H + ' 06 61 71 3B 37 46 00 \r',
-                        ECU_R_ADDR_H + ' 06 61 71 3F 37 46 00 \r',
-                        ECU_R_ADDR_H + ' 06 61 71 38 37 46 00 \r',
-                        ECU_R_ADDR_H + ' 06 61 71 43 37 46 00 \r',
-                        ECU_R_ADDR_H + ' 06 61 71 37 37 39 00 \r'
+                        HD(ECU_R_ADDR_H) + SZ('06') + DT('61 71 3A 37 46 00'),
+                        HD(ECU_R_ADDR_H) + SZ('06') + DT('61 71 3D 37 46 00'),
+                        HD(ECU_R_ADDR_H) + SZ('06') + DT('61 71 39 37 3C 00'),
+                        HD(ECU_R_ADDR_H) + SZ('06') + DT('61 71 37 37 46 00'),
+                        HD(ECU_R_ADDR_H) + SZ('06') + DT('61 71 3B 37 46 00'),
+                        HD(ECU_R_ADDR_H) + SZ('06') + DT('61 71 3F 37 46 00'),
+                        HD(ECU_R_ADDR_H) + SZ('06') + DT('61 71 38 37 46 00'),
+                        HD(ECU_R_ADDR_H) + SZ('06') + DT('61 71 43 37 46 00'),
+                        HD(ECU_R_ADDR_H) + SZ('06') + DT('61 71 37 37 39 00')
                         ]
         },
         'CUSTOM_BC_U': {
@@ -2050,36 +2057,36 @@ ObdMessage = {
             'Unit': 'C',
             'Header': ECU_ADDR_H,
             'Response': [
-                        ECU_R_ADDR_H + ' 10 0B 61 74 46 39 37 50 \r' +
-                        ECU_R_ADDR_H + ' 21 00 01 C8 03 E8 00 00 \r',
-                        ECU_R_ADDR_H + ' 10 0B 61 74 43 3B 37 56 \r' +
-                        ECU_R_ADDR_H + ' 21 00 01 D1 03 E8 00 00 \r',
-                        ECU_R_ADDR_H + ' 10 0B 61 74 3E 46 37 50 \r' +
-                        ECU_R_ADDR_H + ' 21 00 01 9B 05 12 00 00 \r',
-                        ECU_R_ADDR_H + ' 10 0B 61 74 3D 41 37 50 \r' +
-                        ECU_R_ADDR_H + ' 21 00 01 9E 05 10 00 00 \r',
-                        ECU_R_ADDR_H + ' 10 0B 61 74 49 39 37 56 \r' +
-                        ECU_R_ADDR_H + ' 21 00 01 E1 03 E8 00 00 \r',
-                        ECU_R_ADDR_H + ' 10 0B 61 74 38 3C 37 56 \r' +
-                        ECU_R_ADDR_H + ' 21 00 01 9E 05 0D 00 00 \r',
-                        ECU_R_ADDR_H + ' 10 0B 61 74 42 39 37 50 \r' +
-                        ECU_R_ADDR_H + ' 21 00 01 CD 01 D0 00 00 \r',
-                        ECU_R_ADDR_H + ' 10 0B 61 74 4D 39 37 50 \r' +
-                        ECU_R_ADDR_H + ' 21 00 01 F8 03 E8 00 00 \r',
-                        ECU_R_ADDR_H + ' 10 0B 61 74 4F 3A 37 50 \r' +
-                        ECU_R_ADDR_H + ' 21 00 01 E6 03 E9 00 00 \r',
-                        ECU_R_ADDR_H + ' 10 0B 61 74 4A 3F 37 56 \r' +
-                        ECU_R_ADDR_H + ' 21 00 01 E4 04 3B 00 00 \r',
-                        ECU_R_ADDR_H + ' 10 0B 61 74 38 37 37 3A \r' +
-                        ECU_R_ADDR_H + ' 21 00 01 AA 01 A8 00 00 \r',
-                        ECU_R_ADDR_H + ' 10 0B 61 74 37 37 37 37 \r' +
-                        ECU_R_ADDR_H + ' 21 00 01 BA 01 BB 00 00 \r',
-                        ECU_R_ADDR_H + ' 10 0B 61 74 39 37 37 3F \r' +
-                        ECU_R_ADDR_H + ' 21 00 01 9C 01 99 00 00 \r',
-                        ECU_R_ADDR_H + ' 10 0B 61 74 47 3B 37 56 \r' +
-                        ECU_R_ADDR_H + ' 21 00 01 DA 03 E8 00 00 \r',
-                        ECU_R_ADDR_H + ' 10 0B 61 74 38 37 37 3A \r' +
-                        ECU_R_ADDR_H + ' 21 00 01 BA 01 BD 00 00 \r'
+                        HD(ECU_R_ADDR_H) + SZ('10') + DT('0B 61 74 46 39 37 50') +
+                        HD(ECU_R_ADDR_H) + SZ('21') + DT('00 01 C8 03 E8 00 00'),
+                        HD(ECU_R_ADDR_H) + SZ('10') + DT('0B 61 74 43 3B 37 56') +
+                        HD(ECU_R_ADDR_H) + SZ('21') + DT('00 01 D1 03 E8 00 00'),
+                        HD(ECU_R_ADDR_H) + SZ('10') + DT('0B 61 74 3E 46 37 50') +
+                        HD(ECU_R_ADDR_H) + SZ('21') + DT('00 01 9B 05 12 00 00'),
+                        HD(ECU_R_ADDR_H) + SZ('10') + DT('0B 61 74 3D 41 37 50') +
+                        HD(ECU_R_ADDR_H) + SZ('21') + DT('00 01 9E 05 10 00 00'),
+                        HD(ECU_R_ADDR_H) + SZ('10') + DT('0B 61 74 49 39 37 56') +
+                        HD(ECU_R_ADDR_H) + SZ('21') + DT('00 01 E1 03 E8 00 00'),
+                        HD(ECU_R_ADDR_H) + SZ('10') + DT('0B 61 74 38 3C 37 56') +
+                        HD(ECU_R_ADDR_H) + SZ('21') + DT('00 01 9E 05 0D 00 00'),
+                        HD(ECU_R_ADDR_H) + SZ('10') + DT('0B 61 74 42 39 37 50') +
+                        HD(ECU_R_ADDR_H) + SZ('21') + DT('00 01 CD 01 D0 00 00'),
+                        HD(ECU_R_ADDR_H) + SZ('10') + DT('0B 61 74 4D 39 37 50') +
+                        HD(ECU_R_ADDR_H) + SZ('21') + DT('00 01 F8 03 E8 00 00'),
+                        HD(ECU_R_ADDR_H) + SZ('10') + DT('0B 61 74 4F 3A 37 50') +
+                        HD(ECU_R_ADDR_H) + SZ('21') + DT('00 01 E6 03 E9 00 00'),
+                        HD(ECU_R_ADDR_H) + SZ('10') + DT('0B 61 74 4A 3F 37 56') +
+                        HD(ECU_R_ADDR_H) + SZ('21') + DT('00 01 E4 04 3B 00 00'),
+                        HD(ECU_R_ADDR_H) + SZ('10') + DT('0B 61 74 38 37 37 3A') +
+                        HD(ECU_R_ADDR_H) + SZ('21') + DT('00 01 AA 01 A8 00 00'),
+                        HD(ECU_R_ADDR_H) + SZ('10') + DT('0B 61 74 37 37 37 37') +
+                        HD(ECU_R_ADDR_H) + SZ('21') + DT('00 01 BA 01 BB 00 00'),
+                        HD(ECU_R_ADDR_H) + SZ('10') + DT('0B 61 74 39 37 37 3F') +
+                        HD(ECU_R_ADDR_H) + SZ('21') + DT('00 01 9C 01 99 00 00'),
+                        HD(ECU_R_ADDR_H) + SZ('10') + DT('0B 61 74 47 3B 37 56') +
+                        HD(ECU_R_ADDR_H) + SZ('21') + DT('00 01 DA 03 E8 00 00'),
+                        HD(ECU_R_ADDR_H) + SZ('10') + DT('0B 61 74 38 37 37 3A') +
+                        HD(ECU_R_ADDR_H) + SZ('21') + DT('00 01 BA 01 BD 00 00')
                         ]
         },
         'CUSTOM_P_DCDC': {
@@ -2091,18 +2098,18 @@ ObdMessage = {
             'Unit': 'Off/On',
             'Header': ECU_ADDR_H,
             'Response': [
-                        ECU_R_ADDR_H + ' 10 08 61 75 20 0D 2F 3A \r' +
-                        ECU_R_ADDR_H + ' 21 C5 C0 00 00 00 00 00 \r',
-                        ECU_R_ADDR_H + ' 10 08 61 75 20 0D 2F 38 \r' +
-                        ECU_R_ADDR_H + ' 21 C5 80 00 00 00 00 00 \r',
-                        ECU_R_ADDR_H + ' 10 08 61 75 20 0D 2F 39 \r' +
-                        ECU_R_ADDR_H + ' 21 C5 80 00 00 00 00 00 \r',
-                        ECU_R_ADDR_H + ' 10 08 61 75 20 0D 2F 39 \r' +
-                        ECU_R_ADDR_H + ' 21 C5 C0 00 00 00 00 00 \r',
-                        ECU_R_ADDR_H + ' 10 08 61 75 20 0D 2F 38 \r' +
-                        ECU_R_ADDR_H + ' 21 C5 C0 00 00 00 00 00 \r',
-                        ECU_R_ADDR_H + ' 10 08 61 75 20 0D 2F 3A \r' +
-                        ECU_R_ADDR_H + ' 21 C5 80 00 00 00 00 00 \r'
+                        HD(ECU_R_ADDR_H) + SZ('10') + DT('08 61 75 20 0D 2F 3A') +
+                        HD(ECU_R_ADDR_H) + SZ('21') + DT('C5 C0 00 00 00 00 00'),
+                        HD(ECU_R_ADDR_H) + SZ('10') + DT('08 61 75 20 0D 2F 38') +
+                        HD(ECU_R_ADDR_H) + SZ('21') + DT('C5 80 00 00 00 00 00'),
+                        HD(ECU_R_ADDR_H) + SZ('10') + DT('08 61 75 20 0D 2F 39') +
+                        HD(ECU_R_ADDR_H) + SZ('21') + DT('C5 80 00 00 00 00 00'),
+                        HD(ECU_R_ADDR_H) + SZ('10') + DT('08 61 75 20 0D 2F 39') +
+                        HD(ECU_R_ADDR_H) + SZ('21') + DT('C5 C0 00 00 00 00 00'),
+                        HD(ECU_R_ADDR_H) + SZ('10') + DT('08 61 75 20 0D 2F 38') +
+                        HD(ECU_R_ADDR_H) + SZ('21') + DT('C5 C0 00 00 00 00 00'),
+                        HD(ECU_R_ADDR_H) + SZ('10') + DT('08 61 75 20 0D 2F 3A') +
+                        HD(ECU_R_ADDR_H) + SZ('21') + DT('C5 80 00 00 00 00 00')
                         ]
         },
         'CUSTOM_INV1_S/D': {
@@ -2114,8 +2121,8 @@ ObdMessage = {
             'Unit': 'Off/On',
             'Header': ECU_ADDR_H,
             'Response': [
-                        ECU_R_ADDR_H + ' 04 61 78 80 00 \r',
-                        ECU_R_ADDR_H + ' 04 61 78 00 00 \r'
+                        HD(ECU_R_ADDR_H) + SZ('04') + DT('61 78 80 00'),
+                        HD(ECU_R_ADDR_H) + SZ('04') + DT('61 78 00 00')
                         ]
         },
         'CUSTOM_DCTPD': {
@@ -2126,7 +2133,7 @@ ObdMessage = {
             'Max': '100',
             'Unit': '%',
             'Header': ECU_ADDR_H,
-            'Response': ECU_R_ADDR_H + ' 06 61 79 2E 13 0A 00 \r'
+            'Response': HD(ECU_R_ADDR_H) + SZ('06') + DT('61 79 2E 13 0A 00')
         },
         'CUSTOM_MG1_CF': {
             'Request': '^217C' + ELM_MAX_RESP,
@@ -2137,10 +2144,10 @@ ObdMessage = {
             'Unit': 'kHz',
             'Header': ECU_ADDR_H,
             'Response': [
-                        ECU_R_ADDR_H + ' 04 61 7C 64 64 \r',
-                        ECU_R_ADDR_H + ' 04 61 7C 64 32 \r',
-                        ECU_R_ADDR_H + ' 04 61 7C 4B 64 \r',
-                        ECU_R_ADDR_H + ' 04 61 7C 4B 32 \r'
+                        HD(ECU_R_ADDR_H) + SZ('04') + DT('61 7C 64 64'),
+                        HD(ECU_R_ADDR_H) + SZ('04') + DT('61 7C 64 32'),
+                        HD(ECU_R_ADDR_H) + SZ('04') + DT('61 7C 4B 64'),
+                        HD(ECU_R_ADDR_H) + SZ('04') + DT('61 7C 4B 32')
                         ]
         },
         'CUSTOM_B_RATIO': {
@@ -2152,19 +2159,19 @@ ObdMessage = {
             'Unit': '%',
             'Header': ECU_ADDR_H,
             'Response': [
-                        ECU_R_ADDR_H + ' 05 61 7D 59 00 00 \r',
-                        ECU_R_ADDR_H + ' 05 61 7D 6F 05 00 \r',
-                        ECU_R_ADDR_H + ' 05 61 7D 6B 00 00 \r',
-                        ECU_R_ADDR_H + ' 05 61 7D 00 00 00 \r',
-                        ECU_R_ADDR_H + ' 05 61 7D 77 05 00 \r',
-                        ECU_R_ADDR_H + ' 05 61 7D 86 05 00 \r',
-                        ECU_R_ADDR_H + ' 05 61 7D 95 05 00 \r',
-                        ECU_R_ADDR_H + ' 05 61 7D 64 00 00 \r',
-                        ECU_R_ADDR_H + ' 05 61 7D 5C 00 00 \r',
-                        ECU_R_ADDR_H + ' 05 61 7D 6D 00 00 \r',
-                        ECU_R_ADDR_H + ' 05 61 7D 6A 05 00 \r',
-                        ECU_R_ADDR_H + ' 05 61 7D 00 05 00 \r',
-                        ECU_R_ADDR_H + ' 05 61 7D 57 00 00 \r'
+                        HD(ECU_R_ADDR_H) + SZ('05') + DT('61 7D 59 00 00'),
+                        HD(ECU_R_ADDR_H) + SZ('05') + DT('61 7D 6F 05 00'),
+                        HD(ECU_R_ADDR_H) + SZ('05') + DT('61 7D 6B 00 00'),
+                        HD(ECU_R_ADDR_H) + SZ('05') + DT('61 7D 00 00 00'),
+                        HD(ECU_R_ADDR_H) + SZ('05') + DT('61 7D 77 05 00'),
+                        HD(ECU_R_ADDR_H) + SZ('05') + DT('61 7D 86 05 00'),
+                        HD(ECU_R_ADDR_H) + SZ('05') + DT('61 7D 95 05 00'),
+                        HD(ECU_R_ADDR_H) + SZ('05') + DT('61 7D 64 00 00'),
+                        HD(ECU_R_ADDR_H) + SZ('05') + DT('61 7D 5C 00 00'),
+                        HD(ECU_R_ADDR_H) + SZ('05') + DT('61 7D 6D 00 00'),
+                        HD(ECU_R_ADDR_H) + SZ('05') + DT('61 7D 6A 05 00'),
+                        HD(ECU_R_ADDR_H) + SZ('05') + DT('61 7D 00 05 00'),
+                        HD(ECU_R_ADDR_H) + SZ('05') + DT('61 7D 57 00 00')
                         ]
         },
         'CUSTOM_V01': {
@@ -2176,81 +2183,81 @@ ObdMessage = {
             'Unit': 'V',
             'Header': ECU_ADDR_H,
             'Response': [
-                        ECU_R_ADDR_H + ' 10 22 61 81 37 7C 37 1A \r' +
-                        ECU_R_ADDR_H + ' 21 38 08 38 08 38 BC 38 \r' +
-                        ECU_R_ADDR_H + ' 22 BC 37 95 37 95 37 33 \r' +
-                        ECU_R_ADDR_H + ' 23 37 22 38 49 38 5A 37 \r' +
-                        ECU_R_ADDR_H + ' 24 53 37 95 AF 3B 09 74 \r',
-                        ECU_R_ADDR_H + ' 10 22 61 81 38 72 38 20 \r' +
-                        ECU_R_ADDR_H + ' 21 38 08 38 08 38 08 38 \r' +
-                        ECU_R_ADDR_H + ' 22 20 37 F7 37 F7 38 31 \r' +
-                        ECU_R_ADDR_H + ' 23 38 39 38 31 38 49 38 \r' +
-                        ECU_R_ADDR_H + ' 24 72 38 BC AF 4B 09 92 \r',
-                        ECU_R_ADDR_H + ' 10 22 61 81 2D 58 2D 58 \r' +
-                        ECU_R_ADDR_H + ' 21 2E 1C 2E 0C 2D 81 2D \r' +
-                        ECU_R_ADDR_H + ' 22 91 2E 0C 2E 0C 2E A7 \r' +
-                        ECU_R_ADDR_H + ' 23 2E B8 2E 6E 2E 7E 2D \r' +
-                        ECU_R_ADDR_H + ' 24 16 2D 2F AF 3B 07 BC \r',
-                        ECU_R_ADDR_H + ' 10 22 61 81 30 DD 30 B4 \r' +
-                        ECU_R_ADDR_H + ' 21 31 3F 31 3F 31 4F 31 \r' +
-                        ECU_R_ADDR_H + ' 22 3F 30 C4 30 DD 31 26 \r' +
-                        ECU_R_ADDR_H + ' 23 31 37 30 C4 30 C4 31 \r' +
-                        ECU_R_ADDR_H + ' 24 4F 31 68 AF 3B 08 52 \r',
-                        ECU_R_ADDR_H + ' 10 22 61 81 30 72 30 49 \r' +
-                        ECU_R_ADDR_H + ' 21 30 49 30 49 30 49 30 \r' +
-                        ECU_R_ADDR_H + ' 22 49 30 28 30 28 30 39 \r' +
-                        ECU_R_ADDR_H + ' 23 30 20 30 49 30 49 30 \r' +
-                        ECU_R_ADDR_H + ' 24 49 30 72 AF 3B 08 3E \r',
-                        ECU_R_ADDR_H + ' 10 22 61 81 33 CE 33 AE \r' +
-                        ECU_R_ADDR_H + ' 21 33 CE 33 CE 34 49 34 \r' +
-                        ECU_R_ADDR_H + ' 22 62 33 E7 33 E7 34 49 \r' +
-                        ECU_R_ADDR_H + ' 23 34 5A 33 F7 33 F7 34 \r' +
-                        ECU_R_ADDR_H + ' 24 49 34 72 AF 2B 08 D4 \r',
-                        ECU_R_ADDR_H + ' 10 22 61 81 37 CE 37 6C \r' +
-                        ECU_R_ADDR_H + ' 21 37 33 37 1A 37 7C 37 \r' +
-                        ECU_R_ADDR_H + ' 22 6C 37 6C 37 6C 37 53 \r' +
-                        ECU_R_ADDR_H + ' 23 37 5C 37 7C 37 A5 37 \r' +
-                        ECU_R_ADDR_H + ' 24 7C 37 BE AF 4B 09 7E \r',
-                        ECU_R_ADDR_H + ' 10 22 61 81 33 1A 32 F9 \r' +
-                        ECU_R_ADDR_H + ' 21 32 E1 32 D0 32 8F 32 \r' +
-                        ECU_R_ADDR_H + ' 22 A7 32 B8 32 A7 32 D0 \r' +
-                        ECU_R_ADDR_H + ' 23 32 D9 32 8F 32 A7 32 \r' +
-                        ECU_R_ADDR_H + ' 24 E1 33 33 AF 3B 08 AC \r',
-                        ECU_R_ADDR_H + ' 10 22 61 81 3A 66 3A 24 \r' +
-                        ECU_R_ADDR_H + ' 21 3A 24 3A 24 3A 24 3A \r' +
-                        ECU_R_ADDR_H + ' 22 24 3A 14 3A 14 3A 24 \r' +
-                        ECU_R_ADDR_H + ' 23 3A 2D 3A 24 3A 3D 3A \r' +
-                        ECU_R_ADDR_H + ' 24 76 3A C8 AF 4B 09 EC \r',
-                        ECU_R_ADDR_H + ' 10 22 61 81 32 1C 32 04 \r' +
-                        ECU_R_ADDR_H + ' 21 32 04 31 F3 31 F3 31 \r' +
-                        ECU_R_ADDR_H + ' 22 DB 31 DB 31 DB 31 F3 \r' +
-                        ECU_R_ADDR_H + ' 23 31 DB 31 DB 32 04 32 \r' +
-                        ECU_R_ADDR_H + ' 24 1C 32 45 AF 3B 08 8E \r',
-                        ECU_R_ADDR_H + ' 10 22 61 81 2C 62 2C 8B \r' +
-                        ECU_R_ADDR_H + ' 21 2C A3 2C 8B 2C 39 2C \r' +
-                        ECU_R_ADDR_H + ' 22 51 2D 06 2D 06 2C 18 \r' +
-                        ECU_R_ADDR_H + ' 23 2C 18 2C 8B 2C 8B 2C \r' +
-                        ECU_R_ADDR_H + ' 24 8B 2C 8B AF 0A 07 A8 \r',
-                        ECU_R_ADDR_H + ' 10 22 61 81 3A 24 39 FB \r' +
-                        ECU_R_ADDR_H + ' 21 38 FD 38 E5 39 60 39 \r' +
-                        ECU_R_ADDR_H + ' 22 70 39 26 39 0E 39 89 \r' +
-                        ECU_R_ADDR_H + ' 23 39 81 39 26 39 26 39 \r' +
-                        ECU_R_ADDR_H + ' 24 99 39 DB AF 4B 09 C4 \r',
-                        ECU_R_ADDR_H + ' 10 22 61 81 36 F1 36 B8 \r' +
-                        ECU_R_ADDR_H + ' 21 35 37 35 26 36 8F 36 \r' +
-                        ECU_R_ADDR_H + ' 22 8F 35 B2 35 A1 36 B8 \r' +
-                        ECU_R_ADDR_H + ' 23 36 C0 35 89 35 78 36 \r' +
-                        ECU_R_ADDR_H + ' 24 C8 37 1A AF 1A 09 6A \r',
-                        ECU_R_ADDR_H + ' 10 22 61 81 34 AC 34 83 \r' +
-                        ECU_R_ADDR_H + ' 21 34 72 34 72 34 72 34 \r' +
-                        ECU_R_ADDR_H + ' 22 72 34 72 34 62 34 72 \r' +
-                        ECU_R_ADDR_H + ' 23 34 6A 34 72 34 72 34 \r' +
-                        ECU_R_ADDR_H + ' 24 9B 34 AC AF 4B 08 F2 \r',
-                        ECU_R_ADDR_H + ' 10 22 61 81 32 D0 32 B8 \r' +
-                        ECU_R_ADDR_H + ' 21 32 A7 32 8F 32 8F 32 \r' +
-                        ECU_R_ADDR_H + ' 22 8F 32 8F 32 7E 32 8F \r' +
-                        ECU_R_ADDR_H + ' 23 32 9F 32 8F 32 A7 32 \r' +
-                        ECU_R_ADDR_H + ' 24 B8 32 E1 AF 3B 08 AC \r'
+                        HD(ECU_R_ADDR_H) + SZ('10') + DT('22 61 81 37 7C 37 1A') +
+                        HD(ECU_R_ADDR_H) + SZ('21') + DT('38 08 38 08 38 BC 38') +
+                        HD(ECU_R_ADDR_H) + SZ('22') + DT('BC 37 95 37 95 37 33') +
+                        HD(ECU_R_ADDR_H) + SZ('23') + DT('37 22 38 49 38 5A 37') +
+                        HD(ECU_R_ADDR_H) + SZ('24') + DT('53 37 95 AF 3B 09 74'),
+                        HD(ECU_R_ADDR_H) + SZ('10') + DT('22 61 81 38 72 38 20') +
+                        HD(ECU_R_ADDR_H) + SZ('21') + DT('38 08 38 08 38 08 38') +
+                        HD(ECU_R_ADDR_H) + SZ('22') + DT('20 37 F7 37 F7 38 31') +
+                        HD(ECU_R_ADDR_H) + SZ('23') + DT('38 39 38 31 38 49 38') +
+                        HD(ECU_R_ADDR_H) + SZ('24') + DT('72 38 BC AF 4B 09 92'),
+                        HD(ECU_R_ADDR_H) + SZ('10') + DT('22 61 81 2D 58 2D 58') +
+                        HD(ECU_R_ADDR_H) + SZ('21') + DT('2E 1C 2E 0C 2D 81 2D') +
+                        HD(ECU_R_ADDR_H) + SZ('22') + DT('91 2E 0C 2E 0C 2E A7') +
+                        HD(ECU_R_ADDR_H) + SZ('23') + DT('2E B8 2E 6E 2E 7E 2D') +
+                        HD(ECU_R_ADDR_H) + SZ('24') + DT('16 2D 2F AF 3B 07 BC'),
+                        HD(ECU_R_ADDR_H) + SZ('10') + DT('22 61 81 30 DD 30 B4') +
+                        HD(ECU_R_ADDR_H) + SZ('21') + DT('31 3F 31 3F 31 4F 31') +
+                        HD(ECU_R_ADDR_H) + SZ('22') + DT('3F 30 C4 30 DD 31 26') +
+                        HD(ECU_R_ADDR_H) + SZ('23') + DT('31 37 30 C4 30 C4 31') +
+                        HD(ECU_R_ADDR_H) + SZ('24') + DT('4F 31 68 AF 3B 08 52'),
+                        HD(ECU_R_ADDR_H) + SZ('10') + DT('22 61 81 30 72 30 49') +
+                        HD(ECU_R_ADDR_H) + SZ('21') + DT('30 49 30 49 30 49 30') +
+                        HD(ECU_R_ADDR_H) + SZ('22') + DT('49 30 28 30 28 30 39') +
+                        HD(ECU_R_ADDR_H) + SZ('23') + DT('30 20 30 49 30 49 30') +
+                        HD(ECU_R_ADDR_H) + SZ('24') + DT('49 30 72 AF 3B 08 3E'),
+                        HD(ECU_R_ADDR_H) + SZ('10') + DT('22 61 81 33 CE 33 AE') +
+                        HD(ECU_R_ADDR_H) + SZ('21') + DT('33 CE 33 CE 34 49 34') +
+                        HD(ECU_R_ADDR_H) + SZ('22') + DT('62 33 E7 33 E7 34 49') +
+                        HD(ECU_R_ADDR_H) + SZ('23') + DT('34 5A 33 F7 33 F7 34') +
+                        HD(ECU_R_ADDR_H) + SZ('24') + DT('49 34 72 AF 2B 08 D4'),
+                        HD(ECU_R_ADDR_H) + SZ('10') + DT('22 61 81 37 CE 37 6C') +
+                        HD(ECU_R_ADDR_H) + SZ('21') + DT('37 33 37 1A 37 7C 37') +
+                        HD(ECU_R_ADDR_H) + SZ('22') + DT('6C 37 6C 37 6C 37 53') +
+                        HD(ECU_R_ADDR_H) + SZ('23') + DT('37 5C 37 7C 37 A5 37') +
+                        HD(ECU_R_ADDR_H) + SZ('24') + DT('7C 37 BE AF 4B 09 7E'),
+                        HD(ECU_R_ADDR_H) + SZ('10') + DT('22 61 81 33 1A 32 F9') +
+                        HD(ECU_R_ADDR_H) + SZ('21') + DT('32 E1 32 D0 32 8F 32') +
+                        HD(ECU_R_ADDR_H) + SZ('22') + DT('A7 32 B8 32 A7 32 D0') +
+                        HD(ECU_R_ADDR_H) + SZ('23') + DT('32 D9 32 8F 32 A7 32') +
+                        HD(ECU_R_ADDR_H) + SZ('24') + DT('E1 33 33 AF 3B 08 AC'),
+                        HD(ECU_R_ADDR_H) + SZ('10') + DT('22 61 81 3A 66 3A 24') +
+                        HD(ECU_R_ADDR_H) + SZ('21') + DT('3A 24 3A 24 3A 24 3A') +
+                        HD(ECU_R_ADDR_H) + SZ('22') + DT('24 3A 14 3A 14 3A 24') +
+                        HD(ECU_R_ADDR_H) + SZ('23') + DT('3A 2D 3A 24 3A 3D 3A') +
+                        HD(ECU_R_ADDR_H) + SZ('24') + DT('76 3A C8 AF 4B 09 EC'),
+                        HD(ECU_R_ADDR_H) + SZ('10') + DT('22 61 81 32 1C 32 04') +
+                        HD(ECU_R_ADDR_H) + SZ('21') + DT('32 04 31 F3 31 F3 31') +
+                        HD(ECU_R_ADDR_H) + SZ('22') + DT('DB 31 DB 31 DB 31 F3') +
+                        HD(ECU_R_ADDR_H) + SZ('23') + DT('31 DB 31 DB 32 04 32') +
+                        HD(ECU_R_ADDR_H) + SZ('24') + DT('1C 32 45 AF 3B 08 8E'),
+                        HD(ECU_R_ADDR_H) + SZ('10') + DT('22 61 81 2C 62 2C 8B') +
+                        HD(ECU_R_ADDR_H) + SZ('21') + DT('2C A3 2C 8B 2C 39 2C') +
+                        HD(ECU_R_ADDR_H) + SZ('22') + DT('51 2D 06 2D 06 2C 18') +
+                        HD(ECU_R_ADDR_H) + SZ('23') + DT('2C 18 2C 8B 2C 8B 2C') +
+                        HD(ECU_R_ADDR_H) + SZ('24') + DT('8B 2C 8B AF 0A 07 A8'),
+                        HD(ECU_R_ADDR_H) + SZ('10') + DT('22 61 81 3A 24 39 FB') +
+                        HD(ECU_R_ADDR_H) + SZ('21') + DT('38 FD 38 E5 39 60 39') +
+                        HD(ECU_R_ADDR_H) + SZ('22') + DT('70 39 26 39 0E 39 89') +
+                        HD(ECU_R_ADDR_H) + SZ('23') + DT('39 81 39 26 39 26 39') +
+                        HD(ECU_R_ADDR_H) + SZ('24') + DT('99 39 DB AF 4B 09 C4'),
+                        HD(ECU_R_ADDR_H) + SZ('10') + DT('22 61 81 36 F1 36 B8') +
+                        HD(ECU_R_ADDR_H) + SZ('21') + DT('35 37 35 26 36 8F 36') +
+                        HD(ECU_R_ADDR_H) + SZ('22') + DT('8F 35 B2 35 A1 36 B8') +
+                        HD(ECU_R_ADDR_H) + SZ('23') + DT('36 C0 35 89 35 78 36') +
+                        HD(ECU_R_ADDR_H) + SZ('24') + DT('C8 37 1A AF 1A 09 6A'),
+                        HD(ECU_R_ADDR_H) + SZ('10') + DT('22 61 81 34 AC 34 83') +
+                        HD(ECU_R_ADDR_H) + SZ('21') + DT('34 72 34 72 34 72 34') +
+                        HD(ECU_R_ADDR_H) + SZ('22') + DT('72 34 72 34 62 34 72') +
+                        HD(ECU_R_ADDR_H) + SZ('23') + DT('34 6A 34 72 34 72 34') +
+                        HD(ECU_R_ADDR_H) + SZ('24') + DT('9B 34 AC AF 4B 08 F2'),
+                        HD(ECU_R_ADDR_H) + SZ('10') + DT('22 61 81 32 D0 32 B8') +
+                        HD(ECU_R_ADDR_H) + SZ('21') + DT('32 A7 32 8F 32 8F 32') +
+                        HD(ECU_R_ADDR_H) + SZ('22') + DT('8F 32 8F 32 7E 32 8F') +
+                        HD(ECU_R_ADDR_H) + SZ('23') + DT('32 9F 32 8F 32 A7 32') +
+                        HD(ECU_R_ADDR_H) + SZ('24') + DT('B8 32 E1 AF 3B 08 AC')
                         ]
         },
         'CUSTOM_TB_INTAKE': {
@@ -2262,30 +2269,30 @@ ObdMessage = {
             'Unit': 'C',
             'Header': ECU_ADDR_H,
             'Response': [
-                        ECU_R_ADDR_H + ' 10 0A 61 87 3D C2 40 73 \r' +
-                        ECU_R_ADDR_H + ' 21 41 5E 40 8C 00 00 00 \r',
-                        ECU_R_ADDR_H + ' 10 0A 61 87 3D A8 3F D4 \r' +
-                        ECU_R_ADDR_H + ' 21 40 DC 3F EE 00 00 00 \r',
-                        ECU_R_ADDR_H + ' 10 0A 61 87 3D A8 3F D4 \r' +
-                        ECU_R_ADDR_H + ' 21 40 DC 40 07 00 00 00 \r',
-                        ECU_R_ADDR_H + ' 10 0A 61 87 3D A8 40 57 \r' +
-                        ECU_R_ADDR_H + ' 21 41 45 40 73 00 00 00 \r',
-                        ECU_R_ADDR_H + ' 10 0A 61 87 3E 11 40 C2 \r' +
-                        ECU_R_ADDR_H + ' 21 41 94 40 C2 00 00 00 \r',
-                        ECU_R_ADDR_H + ' 10 0A 61 87 3D 8F 40 07 \r' +
-                        ECU_R_ADDR_H + ' 21 40 F5 40 23 00 00 00 \r',
-                        ECU_R_ADDR_H + ' 10 0A 61 87 3D A8 40 3D \r' +
-                        ECU_R_ADDR_H + ' 21 41 2B 40 57 00 00 00 \r',
-                        ECU_R_ADDR_H + ' 10 0A 61 87 3D 8F 3F EE \r' +
-                        ECU_R_ADDR_H + ' 21 40 F5 40 07 00 00 00 \r',
-                        ECU_R_ADDR_H + ' 10 0A 61 87 3D F8 40 8C \r' +
-                        ECU_R_ADDR_H + ' 21 41 7A 40 A8 00 00 00 \r',
-                        ECU_R_ADDR_H + ' 10 0A 61 87 3D 8F 40 23 \r' +
-                        ECU_R_ADDR_H + ' 21 41 11 40 3D 00 00 00 \r',
-                        ECU_R_ADDR_H + ' 10 0A 61 87 3D A8 3F B8 \r' +
-                        ECU_R_ADDR_H + ' 21 40 C2 3F EE 00 00 00 \r',
-                        ECU_R_ADDR_H + ' 10 0A 61 87 3D A8 3F D4 \r' +
-                        ECU_R_ADDR_H + ' 21 40 C2 3F EE 00 00 00 \r'
+                        HD(ECU_R_ADDR_H) + SZ('10') + DT('0A 61 87 3D C2 40 73') +
+                        HD(ECU_R_ADDR_H) + SZ('21') + DT('41 5E 40 8C 00 00 00'),
+                        HD(ECU_R_ADDR_H) + SZ('10') + DT('0A 61 87 3D A8 3F D4') +
+                        HD(ECU_R_ADDR_H) + SZ('21') + DT('40 DC 3F EE 00 00 00'),
+                        HD(ECU_R_ADDR_H) + SZ('10') + DT('0A 61 87 3D A8 3F D4') +
+                        HD(ECU_R_ADDR_H) + SZ('21') + DT('40 DC 40 07 00 00 00'),
+                        HD(ECU_R_ADDR_H) + SZ('10') + DT('0A 61 87 3D A8 40 57') +
+                        HD(ECU_R_ADDR_H) + SZ('21') + DT('41 45 40 73 00 00 00'),
+                        HD(ECU_R_ADDR_H) + SZ('10') + DT('0A 61 87 3E 11 40 C2') +
+                        HD(ECU_R_ADDR_H) + SZ('21') + DT('41 94 40 C2 00 00 00'),
+                        HD(ECU_R_ADDR_H) + SZ('10') + DT('0A 61 87 3D 8F 40 07') +
+                        HD(ECU_R_ADDR_H) + SZ('21') + DT('40 F5 40 23 00 00 00'),
+                        HD(ECU_R_ADDR_H) + SZ('10') + DT('0A 61 87 3D A8 40 3D') +
+                        HD(ECU_R_ADDR_H) + SZ('21') + DT('41 2B 40 57 00 00 00'),
+                        HD(ECU_R_ADDR_H) + SZ('10') + DT('0A 61 87 3D 8F 3F EE') +
+                        HD(ECU_R_ADDR_H) + SZ('21') + DT('40 F5 40 07 00 00 00'),
+                        HD(ECU_R_ADDR_H) + SZ('10') + DT('0A 61 87 3D F8 40 8C') +
+                        HD(ECU_R_ADDR_H) + SZ('21') + DT('41 7A 40 A8 00 00 00'),
+                        HD(ECU_R_ADDR_H) + SZ('10') + DT('0A 61 87 3D 8F 40 23') +
+                        HD(ECU_R_ADDR_H) + SZ('21') + DT('41 11 40 3D 00 00 00'),
+                        HD(ECU_R_ADDR_H) + SZ('10') + DT('0A 61 87 3D A8 3F B8') +
+                        HD(ECU_R_ADDR_H) + SZ('21') + DT('40 C2 3F EE 00 00 00'),
+                        HD(ECU_R_ADDR_H) + SZ('10') + DT('0A 61 87 3D A8 3F D4') +
+                        HD(ECU_R_ADDR_H) + SZ('21') + DT('40 C2 3F EE 00 00 00')
                         ]
         },
         'CUSTOM_IB': {
@@ -2297,21 +2304,21 @@ ObdMessage = {
             'Unit': 'Amperes',
             'Header': ECU_ADDR_H,
             'Response': [
-                        ECU_R_ADDR_H + ' 06 61 8A 82 17 00 00 \r',
-                        ECU_R_ADDR_H + ' 06 61 8A 7F 6A 00 00 \r',
-                        ECU_R_ADDR_H + ' 06 61 8A 78 29 00 00 \r',
-                        ECU_R_ADDR_H + ' 06 61 8A 83 3C 00 00 \r',
-                        ECU_R_ADDR_H + ' 06 61 8A 61 40 00 00 \r',
-                        ECU_R_ADDR_H + ' 06 61 8A 8B 71 00 00 \r',
-                        ECU_R_ADDR_H + ' 06 61 8A 81 53 00 00 \r',
-                        ECU_R_ADDR_H + ' 06 61 8A 7C BE 00 00 \r',
-                        ECU_R_ADDR_H + ' 06 61 8A 82 78 00 00 \r',
-                        ECU_R_ADDR_H + ' 06 61 8A 65 A4 00 00 \r',
-                        ECU_R_ADDR_H + ' 06 61 8A 7F 39 00 00 \r',
-                        ECU_R_ADDR_H + ' 06 61 8A 62 C7 00 00 \r',
-                        ECU_R_ADDR_H + ' 06 61 8A 67 EF 00 00 \r',
-                        ECU_R_ADDR_H + ' 06 61 8A A3 B1 00 00 \r',
-                        ECU_R_ADDR_H + ' 06 61 8A 66 68 00 00 \r'
+                        HD(ECU_R_ADDR_H) + SZ('06') + DT('61 8A 82 17 00 00'),
+                        HD(ECU_R_ADDR_H) + SZ('06') + DT('61 8A 7F 6A 00 00'),
+                        HD(ECU_R_ADDR_H) + SZ('06') + DT('61 8A 78 29 00 00'),
+                        HD(ECU_R_ADDR_H) + SZ('06') + DT('61 8A 83 3C 00 00'),
+                        HD(ECU_R_ADDR_H) + SZ('06') + DT('61 8A 61 40 00 00'),
+                        HD(ECU_R_ADDR_H) + SZ('06') + DT('61 8A 8B 71 00 00'),
+                        HD(ECU_R_ADDR_H) + SZ('06') + DT('61 8A 81 53 00 00'),
+                        HD(ECU_R_ADDR_H) + SZ('06') + DT('61 8A 7C BE 00 00'),
+                        HD(ECU_R_ADDR_H) + SZ('06') + DT('61 8A 82 78 00 00'),
+                        HD(ECU_R_ADDR_H) + SZ('06') + DT('61 8A 65 A4 00 00'),
+                        HD(ECU_R_ADDR_H) + SZ('06') + DT('61 8A 7F 39 00 00'),
+                        HD(ECU_R_ADDR_H) + SZ('06') + DT('61 8A 62 C7 00 00'),
+                        HD(ECU_R_ADDR_H) + SZ('06') + DT('61 8A 67 EF 00 00'),
+                        HD(ECU_R_ADDR_H) + SZ('06') + DT('61 8A A3 B1 00 00'),
+                        HD(ECU_R_ADDR_H) + SZ('06') + DT('61 8A 66 68 00 00')
                         ]
         },
         'CUSTOM_C_FAN_0': {
@@ -2322,7 +2329,7 @@ ObdMessage = {
             'Max': '100',
             'Unit': '%',
             'Header': ECU_ADDR_H,
-            'Response': ECU_R_ADDR_H + ' 04 61 8E 00 80 \r'
+            'Response': HD(ECU_R_ADDR_H) + SZ('04') + DT('61 8E 00 80')
         },
         'CUSTOM_VMIN': {
             'Request': '^2192' + ELM_MAX_RESP,
@@ -2333,51 +2340,51 @@ ObdMessage = {
             'Unit': 'V',
             'Header': ECU_ADDR_H,
             'Response': [
-                        ECU_R_ADDR_H + ' 10 11 61 92 33 F7 04 35 \r' +
-                        ECU_R_ADDR_H + ' 21 26 0D 0E 00 00 00 00 \r' +
-                        ECU_R_ADDR_H + ' 22 00 00 00 00 00 00 00 \r',
-                        ECU_R_ADDR_H + ' 10 11 61 92 3B 64 06 3C \r' +
-                        ECU_R_ADDR_H + ' 21 83 0D 0E 00 00 00 00 \r' +
-                        ECU_R_ADDR_H + ' 22 00 00 00 00 00 00 00 \r',
-                        ECU_R_ADDR_H + ' 10 11 61 92 32 66 08 32 \r' +
-                        ECU_R_ADDR_H + ' 21 E1 00 0E 00 00 00 00 \r' +
-                        ECU_R_ADDR_H + ' 22 00 00 00 00 00 00 00 \r',
-                        ECU_R_ADDR_H + ' 10 11 61 92 31 B2 06 32 \r' +
-                        ECU_R_ADDR_H + ' 21 8F 0D 0E 00 00 00 00 \r' +
-                        ECU_R_ADDR_H + ' 22 00 00 00 00 00 00 00 \r',
-                        ECU_R_ADDR_H + ' 10 11 61 92 32 7E 07 32 \r' +
-                        ECU_R_ADDR_H + ' 21 E1 0D 0E 00 00 00 00 \r' +
-                        ECU_R_ADDR_H + ' 22 00 00 00 00 00 00 00 \r',
-                        ECU_R_ADDR_H + ' 10 11 61 92 2E 97 04 2F \r' +
-                        ECU_R_ADDR_H + ' 21 74 06 0E 00 00 00 00 \r' +
-                        ECU_R_ADDR_H + ' 22 00 00 00 00 00 00 00 \r',
-                        ECU_R_ADDR_H + ' 10 11 61 92 32 7E 07 32 \r' +
-                        ECU_R_ADDR_H + ' 21 F9 0D 0E 00 00 00 00 \r' +
-                        ECU_R_ADDR_H + ' 22 00 00 00 00 00 00 00 \r',
-                        ECU_R_ADDR_H + ' 10 11 61 92 35 C2 09 36 \r' +
-                        ECU_R_ADDR_H + ' 21 66 00 0E 00 00 00 00 \r' +
-                        ECU_R_ADDR_H + ' 22 00 00 00 00 00 00 00 \r',
-                        ECU_R_ADDR_H + ' 10 11 61 92 34 C4 04 35 \r' +
-                        ECU_R_ADDR_H + ' 21 CA 00 0E 00 00 00 00 \r' +
-                        ECU_R_ADDR_H + ' 22 00 00 00 00 00 00 00 \r',
-                        ECU_R_ADDR_H + ' 10 11 61 92 31 EB 09 32 \r' +
-                        ECU_R_ADDR_H + ' 21 7E 0D 0E 00 00 00 00 \r' +
-                        ECU_R_ADDR_H + ' 22 00 00 00 00 00 00 00 \r',
-                        ECU_R_ADDR_H + ' 10 11 61 92 35 EB 06 36 \r' +
-                        ECU_R_ADDR_H + ' 21 56 00 0E 00 00 00 00 \r' +
-                        ECU_R_ADDR_H + ' 22 00 00 00 00 00 00 00 \r',
-                        ECU_R_ADDR_H + ' 10 11 61 92 32 2D 0B 32 \r' +
-                        ECU_R_ADDR_H + ' 21 A7 00 0E 00 00 00 00 \r' +
-                        ECU_R_ADDR_H + ' 22 00 00 00 00 00 00 00 \r',
-                        ECU_R_ADDR_H + ' 10 11 61 92 31 91 02 31 \r' +
-                        ECU_R_ADDR_H + ' 21 DB 0D 0E 00 00 00 00 \r' +
-                        ECU_R_ADDR_H + ' 22 00 00 00 00 00 00 00 \r',
-                        ECU_R_ADDR_H + ' 10 11 61 92 33 33 04 33 \r' +
-                        ECU_R_ADDR_H + ' 21 E7 0D 0E 00 00 00 00 \r' +
-                        ECU_R_ADDR_H + ' 22 00 00 00 00 00 00 00 \r',
-                        ECU_R_ADDR_H + ' 10 11 61 92 2E C0 04 2F \r' +
-                        ECU_R_ADDR_H + ' 21 22 00 0E 00 00 00 00 \r' +
-                        ECU_R_ADDR_H + ' 22 00 00 00 00 00 00 00 \r'
+                        HD(ECU_R_ADDR_H) + SZ('10') + DT('11 61 92 33 F7 04 35') +
+                        HD(ECU_R_ADDR_H) + SZ('21') + DT('26 0D 0E 00 00 00 00') +
+                        HD(ECU_R_ADDR_H) + SZ('22') + DT('00 00 00 00 00 00 00'),
+                        HD(ECU_R_ADDR_H) + SZ('10') + DT('11 61 92 3B 64 06 3C') +
+                        HD(ECU_R_ADDR_H) + SZ('21') + DT('83 0D 0E 00 00 00 00') +
+                        HD(ECU_R_ADDR_H) + SZ('22') + DT('00 00 00 00 00 00 00'),
+                        HD(ECU_R_ADDR_H) + SZ('10') + DT('11 61 92 32 66 08 32') +
+                        HD(ECU_R_ADDR_H) + SZ('21') + DT('E1 00 0E 00 00 00 00') +
+                        HD(ECU_R_ADDR_H) + SZ('22') + DT('00 00 00 00 00 00 00'),
+                        HD(ECU_R_ADDR_H) + SZ('10') + DT('11 61 92 31 B2 06 32') +
+                        HD(ECU_R_ADDR_H) + SZ('21') + DT('8F 0D 0E 00 00 00 00') +
+                        HD(ECU_R_ADDR_H) + SZ('22') + DT('00 00 00 00 00 00 00'),
+                        HD(ECU_R_ADDR_H) + SZ('10') + DT('11 61 92 32 7E 07 32') +
+                        HD(ECU_R_ADDR_H) + SZ('21') + DT('E1 0D 0E 00 00 00 00') +
+                        HD(ECU_R_ADDR_H) + SZ('22') + DT('00 00 00 00 00 00 00'),
+                        HD(ECU_R_ADDR_H) + SZ('10') + DT('11 61 92 2E 97 04 2F') +
+                        HD(ECU_R_ADDR_H) + SZ('21') + DT('74 06 0E 00 00 00 00') +
+                        HD(ECU_R_ADDR_H) + SZ('22') + DT('00 00 00 00 00 00 00'),
+                        HD(ECU_R_ADDR_H) + SZ('10') + DT('11 61 92 32 7E 07 32') +
+                        HD(ECU_R_ADDR_H) + SZ('21') + DT('F9 0D 0E 00 00 00 00') +
+                        HD(ECU_R_ADDR_H) + SZ('22') + DT('00 00 00 00 00 00 00'),
+                        HD(ECU_R_ADDR_H) + SZ('10') + DT('11 61 92 35 C2 09 36') +
+                        HD(ECU_R_ADDR_H) + SZ('21') + DT('66 00 0E 00 00 00 00') +
+                        HD(ECU_R_ADDR_H) + SZ('22') + DT('00 00 00 00 00 00 00'),
+                        HD(ECU_R_ADDR_H) + SZ('10') + DT('11 61 92 34 C4 04 35') +
+                        HD(ECU_R_ADDR_H) + SZ('21') + DT('CA 00 0E 00 00 00 00') +
+                        HD(ECU_R_ADDR_H) + SZ('22') + DT('00 00 00 00 00 00 00'),
+                        HD(ECU_R_ADDR_H) + SZ('10') + DT('11 61 92 31 EB 09 32') +
+                        HD(ECU_R_ADDR_H) + SZ('21') + DT('7E 0D 0E 00 00 00 00') +
+                        HD(ECU_R_ADDR_H) + SZ('22') + DT('00 00 00 00 00 00 00'),
+                        HD(ECU_R_ADDR_H) + SZ('10') + DT('11 61 92 35 EB 06 36') +
+                        HD(ECU_R_ADDR_H) + SZ('21') + DT('56 00 0E 00 00 00 00') +
+                        HD(ECU_R_ADDR_H) + SZ('22') + DT('00 00 00 00 00 00 00'),
+                        HD(ECU_R_ADDR_H) + SZ('10') + DT('11 61 92 32 2D 0B 32') +
+                        HD(ECU_R_ADDR_H) + SZ('21') + DT('A7 00 0E 00 00 00 00') +
+                        HD(ECU_R_ADDR_H) + SZ('22') + DT('00 00 00 00 00 00 00'),
+                        HD(ECU_R_ADDR_H) + SZ('10') + DT('11 61 92 31 91 02 31') +
+                        HD(ECU_R_ADDR_H) + SZ('21') + DT('DB 0D 0E 00 00 00 00') +
+                        HD(ECU_R_ADDR_H) + SZ('22') + DT('00 00 00 00 00 00 00'),
+                        HD(ECU_R_ADDR_H) + SZ('10') + DT('11 61 92 33 33 04 33') +
+                        HD(ECU_R_ADDR_H) + SZ('21') + DT('E7 0D 0E 00 00 00 00') +
+                        HD(ECU_R_ADDR_H) + SZ('22') + DT('00 00 00 00 00 00 00'),
+                        HD(ECU_R_ADDR_H) + SZ('10') + DT('11 61 92 2E C0 04 2F') +
+                        HD(ECU_R_ADDR_H) + SZ('21') + DT('22 00 0E 00 00 00 00') +
+                        HD(ECU_R_ADDR_H) + SZ('22') + DT('00 00 00 00 00 00 00')
                         ]
         },
         'CUSTOM_R01': {
@@ -2388,9 +2395,9 @@ ObdMessage = {
             'Max': '0.255',
             'Unit': 'ohm',
             'Header': ECU_ADDR_H,
-            'Response': ECU_R_ADDR_H + ' 10 10 61 95 17 16 15 16 \r' +
-                        ECU_R_ADDR_H + ' 21 16 16 16 16 16 16 16 \r' +
-                        ECU_R_ADDR_H + ' 22 16 16 17 00 00 00 00 \r'
+            'Response': HD(ECU_R_ADDR_H) + SZ('10') + DT('10 61 95 17 16 15 16') +
+                        HD(ECU_R_ADDR_H) + SZ('21') + DT('16 16 16 16 16 16 16') +
+                        HD(ECU_R_ADDR_H) + SZ('22') + DT('16 16 17 00 00 00 00')
         },
         'CUSTOM_BTY_CURR': {
             'Request': '^2198' + ELM_MAX_RESP,
@@ -2401,36 +2408,36 @@ ObdMessage = {
             'Unit': 'Amperes',
             'Header': ECU_ADDR_H,
             'Response': [
-                        ECU_R_ADDR_H + ' 10 0A 61 98 74 E9 5A A1 \r' +
-                        ECU_R_ADDR_H + ' 21 00 79 79 72 00 00 00 \r',
-                        ECU_R_ADDR_H + ' 10 0A 61 98 7F 4D 5A A1 \r' +
-                        ECU_R_ADDR_H + ' 21 00 79 79 77 00 00 00 \r',
-                        ECU_R_ADDR_H + ' 10 0A 61 98 62 57 5A A1 \r' +
-                        ECU_R_ADDR_H + ' 21 00 79 79 72 00 00 00 \r',
-                        ECU_R_ADDR_H + ' 10 0A 61 98 9C 1A 5A A1 \r' +
-                        ECU_R_ADDR_H + ' 21 00 79 79 72 00 00 00 \r',
-                        ECU_R_ADDR_H + ' 10 0A 61 98 87 10 5A A1 \r' +
-                        ECU_R_ADDR_H + ' 21 00 79 79 72 00 00 00 \r',
-                        ECU_R_ADDR_H + ' 10 0A 61 98 9C AB 5A A1 \r' +
-                        ECU_R_ADDR_H + ' 21 00 79 79 73 00 00 00 \r',
-                        ECU_R_ADDR_H + ' 10 0A 61 98 A2 58 59 A1 \r' +
-                        ECU_R_ADDR_H + ' 21 00 79 79 72 00 00 00 \r',
-                        ECU_R_ADDR_H + ' 10 0A 61 98 72 15 59 A1 \r' +
-                        ECU_R_ADDR_H + ' 21 00 79 7B 72 00 00 00 \r',
-                        ECU_R_ADDR_H + ' 10 0A 61 98 81 5C 5A A1 \r' +
-                        ECU_R_ADDR_H + ' 21 00 79 79 78 00 00 00 \r',
-                        ECU_R_ADDR_H + ' 10 0A 61 98 63 40 59 A1 \r' +
-                        ECU_R_ADDR_H + ' 21 00 79 79 72 00 00 00 \r',
-                        ECU_R_ADDR_H + ' 10 0A 61 98 7D 8E 5A A1 \r' +
-                        ECU_R_ADDR_H + ' 21 00 79 79 72 00 00 00 \r',
-                        ECU_R_ADDR_H + ' 10 0A 61 98 85 EF 5A A1 \r' +
-                        ECU_R_ADDR_H + ' 21 00 79 79 72 00 00 00 \r',
-                        ECU_R_ADDR_H + ' 10 0A 61 98 A0 1B 5A A1 \r' +
-                        ECU_R_ADDR_H + ' 21 00 79 79 72 00 00 00 \r',
-                        ECU_R_ADDR_H + ' 10 0A 61 98 7C CE 5A A1 \r' +
-                        ECU_R_ADDR_H + ' 21 00 79 79 72 00 00 00 \r',
-                        ECU_R_ADDR_H + ' 10 0A 61 98 91 31 5A A1 \r' +
-                        ECU_R_ADDR_H + ' 21 00 79 79 76 00 00 00 \r'
+                        HD(ECU_R_ADDR_H) + SZ('10') + DT('0A 61 98 74 E9 5A A1') +
+                        HD(ECU_R_ADDR_H) + SZ('21') + DT('00 79 79 72 00 00 00'),
+                        HD(ECU_R_ADDR_H) + SZ('10') + DT('0A 61 98 7F 4D 5A A1') +
+                        HD(ECU_R_ADDR_H) + SZ('21') + DT('00 79 79 77 00 00 00'),
+                        HD(ECU_R_ADDR_H) + SZ('10') + DT('0A 61 98 62 57 5A A1') +
+                        HD(ECU_R_ADDR_H) + SZ('21') + DT('00 79 79 72 00 00 00'),
+                        HD(ECU_R_ADDR_H) + SZ('10') + DT('0A 61 98 9C 1A 5A A1') +
+                        HD(ECU_R_ADDR_H) + SZ('21') + DT('00 79 79 72 00 00 00'),
+                        HD(ECU_R_ADDR_H) + SZ('10') + DT('0A 61 98 87 10 5A A1') +
+                        HD(ECU_R_ADDR_H) + SZ('21') + DT('00 79 79 72 00 00 00'),
+                        HD(ECU_R_ADDR_H) + SZ('10') + DT('0A 61 98 9C AB 5A A1') +
+                        HD(ECU_R_ADDR_H) + SZ('21') + DT('00 79 79 73 00 00 00'),
+                        HD(ECU_R_ADDR_H) + SZ('10') + DT('0A 61 98 A2 58 59 A1') +
+                        HD(ECU_R_ADDR_H) + SZ('21') + DT('00 79 79 72 00 00 00'),
+                        HD(ECU_R_ADDR_H) + SZ('10') + DT('0A 61 98 72 15 59 A1') +
+                        HD(ECU_R_ADDR_H) + SZ('21') + DT('00 79 7B 72 00 00 00'),
+                        HD(ECU_R_ADDR_H) + SZ('10') + DT('0A 61 98 81 5C 5A A1') +
+                        HD(ECU_R_ADDR_H) + SZ('21') + DT('00 79 79 78 00 00 00'),
+                        HD(ECU_R_ADDR_H) + SZ('10') + DT('0A 61 98 63 40 59 A1') +
+                        HD(ECU_R_ADDR_H) + SZ('21') + DT('00 79 79 72 00 00 00'),
+                        HD(ECU_R_ADDR_H) + SZ('10') + DT('0A 61 98 7D 8E 5A A1') +
+                        HD(ECU_R_ADDR_H) + SZ('21') + DT('00 79 79 72 00 00 00'),
+                        HD(ECU_R_ADDR_H) + SZ('10') + DT('0A 61 98 85 EF 5A A1') +
+                        HD(ECU_R_ADDR_H) + SZ('21') + DT('00 79 79 72 00 00 00'),
+                        HD(ECU_R_ADDR_H) + SZ('10') + DT('0A 61 98 A0 1B 5A A1') +
+                        HD(ECU_R_ADDR_H) + SZ('21') + DT('00 79 79 72 00 00 00'),
+                        HD(ECU_R_ADDR_H) + SZ('10') + DT('0A 61 98 7C CE 5A A1') +
+                        HD(ECU_R_ADDR_H) + SZ('21') + DT('00 79 79 72 00 00 00'),
+                        HD(ECU_R_ADDR_H) + SZ('10') + DT('0A 61 98 91 31 5A A1') +
+                        HD(ECU_R_ADDR_H) + SZ('21') + DT('00 79 79 76 00 00 00')
                         ]
         },
         'CUSTOM_ECU_MODE': {
@@ -2442,15 +2449,15 @@ ObdMessage = {
             'Unit': 'Number',
             'Header': ECU_ADDR_H,
             'Response': [
-                        ECU_R_ADDR_H + ' 06 61 9B 00 00 00 D3 \r',
-                        ECU_R_ADDR_H + ' 06 61 9B 00 00 00 D1 \r',
-                        ECU_R_ADDR_H + ' 06 61 9B 00 00 00 DA \r',
-                        ECU_R_ADDR_H + ' 06 61 9B 00 00 00 D7 \r',
-                        ECU_R_ADDR_H + ' 06 61 9B 00 00 00 D4 \r',
-                        ECU_R_ADDR_H + ' 06 61 9B 00 00 00 CB \r',
-                        ECU_R_ADDR_H + ' 06 61 9B 00 00 00 E4 \r',
-                        ECU_R_ADDR_H + ' 06 61 9B 00 00 00 C7 \r',
-                        ECU_R_ADDR_H + ' 06 61 9B 00 00 00 D2 \r'
+                        HD(ECU_R_ADDR_H) + SZ('06') + DT('61 9B 00 00 00 D3'),
+                        HD(ECU_R_ADDR_H) + SZ('06') + DT('61 9B 00 00 00 D1'),
+                        HD(ECU_R_ADDR_H) + SZ('06') + DT('61 9B 00 00 00 DA'),
+                        HD(ECU_R_ADDR_H) + SZ('06') + DT('61 9B 00 00 00 D7'),
+                        HD(ECU_R_ADDR_H) + SZ('06') + DT('61 9B 00 00 00 D4'),
+                        HD(ECU_R_ADDR_H) + SZ('06') + DT('61 9B 00 00 00 CB'),
+                        HD(ECU_R_ADDR_H) + SZ('06') + DT('61 9B 00 00 00 E4'),
+                        HD(ECU_R_ADDR_H) + SZ('06') + DT('61 9B 00 00 00 C7'),
+                        HD(ECU_R_ADDR_H) + SZ('06') + DT('61 9B 00 00 00 D2')
                         ]
         },
         'CUSTOM_MODEL_CODE': {
@@ -2461,7 +2468,7 @@ ObdMessage = {
             'Max': '0',
             'Unit': 'Number',
             'Header': ECU_ADDR_H,
-            'Response': ECU_R_ADDR_H + ' 03 7F 21 12 \r'
+            'Response': HD(ECU_R_ADDR_H) + SZ('03') + DT('7F 21 12')
         },
         'CUSTOM_ECU_CODE': {
             'Request': '^21C2' + ELM_MAX_RESP,
@@ -2471,9 +2478,9 @@ ObdMessage = {
             'Max': '0',
             'Unit': 'Number',
             'Header': ECU_ADDR_H,
-            'Response': ECU_R_ADDR_H + ' 10 0F 61 C2 30 32 30 35 \r' +
-                        ECU_R_ADDR_H + ' 21 30 00 22 05 04 00 00 \r' +
-                        ECU_R_ADDR_H + ' 22 00 01 00 00 00 00 00 \r'
+            'Response': HD(ECU_R_ADDR_H) + SZ('10') + DT('0F 61 C2 30 32 30 35') +
+                        HD(ECU_R_ADDR_H) + SZ('21') + DT('30 00 22 05 04 00 00') +
+                        HD(ECU_R_ADDR_H) + SZ('22') + DT('00 01 00 00 00 00 00')
         },
         'CUSTOM_#CURR_CODE': {
             'Request': '^21E1' + ELM_MAX_RESP,
@@ -2484,36 +2491,36 @@ ObdMessage = {
             'Unit': 'Number',
             'Header': ECU_ADDR_H,
             'Response': [
-                        ECU_R_ADDR_H + ' 10 0A 61 E1 00 00 0E B1 \r' +
-                        ECU_R_ADDR_H + ' 21 20 00 04 07 00 00 00 \r',
-                        ECU_R_ADDR_H + ' 10 0A 61 E1 00 00 0E B1 \r' +
-                        ECU_R_ADDR_H + ' 21 20 00 05 2E 00 00 00 \r',
-                        ECU_R_ADDR_H + ' 10 0A 61 E1 00 00 0E B1 \r' +
-                        ECU_R_ADDR_H + ' 21 20 00 04 69 00 00 00 \r',
-                        ECU_R_ADDR_H + ' 10 0A 61 E1 00 00 0E B1 \r' +
-                        ECU_R_ADDR_H + ' 21 20 00 02 D0 00 00 00 \r',
-                        ECU_R_ADDR_H + ' 10 0A 61 E1 00 00 0E B1 \r' +
-                        ECU_R_ADDR_H + ' 21 20 00 01 DD 00 00 00 \r',
-                        ECU_R_ADDR_H + ' 10 0A 61 E1 00 00 0E B1 \r' +
-                        ECU_R_ADDR_H + ' 21 20 00 06 56 00 00 00 \r',
-                        ECU_R_ADDR_H + ' 10 0A 61 E1 00 00 0E B1 \r' +
-                        ECU_R_ADDR_H + ' 21 20 00 07 7D 00 00 00 \r',
-                        ECU_R_ADDR_H + ' 10 0A 61 E1 00 00 0E B1 \r' +
-                        ECU_R_ADDR_H + ' 21 20 00 04 CA 00 00 00 \r',
-                        ECU_R_ADDR_H + ' 10 0A 61 E1 00 00 0E B1 \r' +
-                        ECU_R_ADDR_H + ' 21 20 00 05 F4 00 00 00 \r',
-                        ECU_R_ADDR_H + ' 10 0A 61 E1 00 00 0E B1 \r' +
-                        ECU_R_ADDR_H + ' 21 20 00 03 A4 00 00 00 \r',
-                        ECU_R_ADDR_H + ' 10 0A 61 E1 00 00 0E B1 \r' +
-                        ECU_R_ADDR_H + ' 21 20 00 05 90 00 00 00 \r',
-                        ECU_R_ADDR_H + ' 10 0A 61 E1 00 00 0E B1 \r' +
-                        ECU_R_ADDR_H + ' 21 20 00 03 3C 00 00 00 \r',
-                        ECU_R_ADDR_H + ' 10 0A 61 E1 00 00 0E B1 \r' +
-                        ECU_R_ADDR_H + ' 21 20 00 07 1D 00 00 00 \r',
-                        ECU_R_ADDR_H + ' 10 0A 61 E1 00 00 0E B1 \r' +
-                        ECU_R_ADDR_H + ' 21 20 00 02 63 00 00 00 \r',
-                        ECU_R_ADDR_H + ' 10 0A 61 E1 00 00 0E B1 \r' +
-                        ECU_R_ADDR_H + ' 21 20 00 06 B8 00 00 00 \r'
+                        HD(ECU_R_ADDR_H) + SZ('10') + DT('0A 61 E1 00 00 0E B1') +
+                        HD(ECU_R_ADDR_H) + SZ('21') + DT('20 00 04 07 00 00 00'),
+                        HD(ECU_R_ADDR_H) + SZ('10') + DT('0A 61 E1 00 00 0E B1') +
+                        HD(ECU_R_ADDR_H) + SZ('21') + DT('20 00 05 2E 00 00 00'),
+                        HD(ECU_R_ADDR_H) + SZ('10') + DT('0A 61 E1 00 00 0E B1') +
+                        HD(ECU_R_ADDR_H) + SZ('21') + DT('20 00 04 69 00 00 00'),
+                        HD(ECU_R_ADDR_H) + SZ('10') + DT('0A 61 E1 00 00 0E B1') +
+                        HD(ECU_R_ADDR_H) + SZ('21') + DT('20 00 02 D0 00 00 00'),
+                        HD(ECU_R_ADDR_H) + SZ('10') + DT('0A 61 E1 00 00 0E B1') +
+                        HD(ECU_R_ADDR_H) + SZ('21') + DT('20 00 01 DD 00 00 00'),
+                        HD(ECU_R_ADDR_H) + SZ('10') + DT('0A 61 E1 00 00 0E B1') +
+                        HD(ECU_R_ADDR_H) + SZ('21') + DT('20 00 06 56 00 00 00'),
+                        HD(ECU_R_ADDR_H) + SZ('10') + DT('0A 61 E1 00 00 0E B1') +
+                        HD(ECU_R_ADDR_H) + SZ('21') + DT('20 00 07 7D 00 00 00'),
+                        HD(ECU_R_ADDR_H) + SZ('10') + DT('0A 61 E1 00 00 0E B1') +
+                        HD(ECU_R_ADDR_H) + SZ('21') + DT('20 00 04 CA 00 00 00'),
+                        HD(ECU_R_ADDR_H) + SZ('10') + DT('0A 61 E1 00 00 0E B1') +
+                        HD(ECU_R_ADDR_H) + SZ('21') + DT('20 00 05 F4 00 00 00'),
+                        HD(ECU_R_ADDR_H) + SZ('10') + DT('0A 61 E1 00 00 0E B1') +
+                        HD(ECU_R_ADDR_H) + SZ('21') + DT('20 00 03 A4 00 00 00'),
+                        HD(ECU_R_ADDR_H) + SZ('10') + DT('0A 61 E1 00 00 0E B1') +
+                        HD(ECU_R_ADDR_H) + SZ('21') + DT('20 00 05 90 00 00 00'),
+                        HD(ECU_R_ADDR_H) + SZ('10') + DT('0A 61 E1 00 00 0E B1') +
+                        HD(ECU_R_ADDR_H) + SZ('21') + DT('20 00 03 3C 00 00 00'),
+                        HD(ECU_R_ADDR_H) + SZ('10') + DT('0A 61 E1 00 00 0E B1') +
+                        HD(ECU_R_ADDR_H) + SZ('21') + DT('20 00 07 1D 00 00 00'),
+                        HD(ECU_R_ADDR_H) + SZ('10') + DT('0A 61 E1 00 00 0E B1') +
+                        HD(ECU_R_ADDR_H) + SZ('21') + DT('20 00 02 63 00 00 00'),
+                        HD(ECU_R_ADDR_H) + SZ('10') + DT('0A 61 E1 00 00 0E B1') +
+                        HD(ECU_R_ADDR_H) + SZ('21') + DT('20 00 06 B8 00 00 00')
                         ]
         },
         'CUSTOM_TAIL_CANCEL': {
@@ -2525,10 +2532,10 @@ ObdMessage = {
             'Unit': 'Off/On',
             'Header': ECU_ADDR_I,
             'Response': [
-                        ECU_R_ADDR_I + ' 10 08 61 12 00 00 07 00 \r' +
-                        ECU_R_ADDR_I + ' 21 00 00 00 00 00 00 00 \r',
-                        ECU_R_ADDR_I + ' 10 08 61 12 00 00 07 10 \r' +
-                        ECU_R_ADDR_I + ' 21 00 00 00 00 00 00 00 \r'
+                        HD(ECU_R_ADDR_I) + SZ('10') + DT('08 61 12 00 00 07 00') +
+                        HD(ECU_R_ADDR_I) + SZ('21') + DT('00 00 00 00 00 00 00'),
+                        HD(ECU_R_ADDR_I) + SZ('10') + DT('08 61 12 00 00 07 10') +
+                        HD(ECU_R_ADDR_I) + SZ('21') + DT('00 00 00 00 00 00 00')
                         ]
         },
         'CUSTOM_AUX_B_VOLT': {
@@ -2540,8 +2547,8 @@ ObdMessage = {
             'Unit': 'V',
             'Header': ECU_ADDR_I,
             'Response': [
-                        ECU_R_ADDR_I + ' 03 61 13 95 \r',
-                        ECU_R_ADDR_I + ' 03 61 13 96 \r'
+                        HD(ECU_R_ADDR_I) + SZ('03') + DT('61 13 95'),
+                        HD(ECU_R_ADDR_I) + SZ('03') + DT('61 13 96')
                         ]
         },
         'CUSTOM_FUEL_LEVEL': {
@@ -2553,15 +2560,15 @@ ObdMessage = {
             'Unit': 'Liter',
             'Header': ECU_ADDR_I,
             'Response': [
-                        ECU_R_ADDR_I + ' 03 61 29 02 \r',
-                        ECU_R_ADDR_I + ' 03 61 29 0A \r',
-                        ECU_R_ADDR_I + ' 03 61 29 06 \r'
+                        HD(ECU_R_ADDR_I) + SZ('03') + DT('61 29 02'),
+                        HD(ECU_R_ADDR_I) + SZ('03') + DT('61 29 0A'),
+                        HD(ECU_R_ADDR_I) + SZ('03') + DT('61 29 06')
                         ]
         },
         'CUSTOM_SUB_TANK': {
             'Request': '^212A' + ELM_MAX_RESP,
             'Descr': 'Sub tank level',
-            'Response': ECU_R_ADDR_I + ' 03 7F 21 12 \r',
+            'Response': HD(ECU_R_ADDR_I) + SZ('03') + DT('7F 21 12'),
             'Header': ECU_ADDR_I
         },
         'CUSTOM_OIL_CHG_DIST': {
@@ -2572,7 +2579,7 @@ ObdMessage = {
             'Max': '41038',
             'Unit': 'km',
             'Header': ECU_ADDR_I,
-            'Response': ECU_R_ADDR_I + ' 03 7F 21 12 \r'
+            'Response': HD(ECU_R_ADDR_I) + SZ('03') + DT('7F 21 12')
         },
         'CUSTOM_RHEOSTAT': {
             'Request': '^2168' + ELM_MAX_RESP,
@@ -2582,7 +2589,7 @@ ObdMessage = {
             'Max': '255',
             'Unit': 'Number',
             'Header': ECU_ADDR_I,
-            'Response': ECU_R_ADDR_I + ' 03 7F 21 12 \r'
+            'Response': HD(ECU_R_ADDR_I) + SZ('03') + DT('7F 21 12')
         },
         'CUSTOM_SBB_QUERY': {
             'Request': '^21A7' + ELM_MAX_RESP,
@@ -2592,7 +2599,7 @@ ObdMessage = {
             'Max': '192',
             'Unit': 'Number',
             'Header': ECU_ADDR_I,
-            'Response': ECU_R_ADDR_I + ' 03 61 A7 20 \r'
+            'Response': HD(ECU_R_ADDR_I) + SZ('03') + DT('61 A7 20')
         },
         'CUSTOM_RB_QUERY': {
             'Request': '^21AC' + ELM_MAX_RESP,
@@ -2602,7 +2609,7 @@ ObdMessage = {
             'Max': '64',
             'Unit': 'Number',
             'Header': ECU_ADDR_I,
-            'Response': ECU_R_ADDR_I + ' 03 61 AC 40 \r'
+            'Response': HD(ECU_R_ADDR_I) + SZ('03') + DT('61 AC 40')
         },
         'CUSTOM_ROOM': {
             'Request': '^2121' + ELM_MAX_RESP,
@@ -2613,14 +2620,14 @@ ObdMessage = {
             'Unit': 'C',
             'Header': ECU_ADDR_P,
             'Response': [
-                        ECU_R_ADDR_P + ' 03 61 21 54 \r',
-                        ECU_R_ADDR_P + ' 03 61 21 50 \r',
-                        ECU_R_ADDR_P + ' 03 61 21 52 \r',
-                        ECU_R_ADDR_P + ' 03 61 21 53 \r',
-                        ECU_R_ADDR_P + ' 03 61 21 51 \r',
-                        ECU_R_ADDR_P + ' 03 61 21 56 \r',
-                        ECU_R_ADDR_P + ' 03 61 21 55 \r',
-                        ECU_R_ADDR_P + ' 03 61 21 58 \r'
+                        HD(ECU_R_ADDR_P) + SZ('03') + DT('61 21 54'),
+                        HD(ECU_R_ADDR_P) + SZ('03') + DT('61 21 50'),
+                        HD(ECU_R_ADDR_P) + SZ('03') + DT('61 21 52'),
+                        HD(ECU_R_ADDR_P) + SZ('03') + DT('61 21 53'),
+                        HD(ECU_R_ADDR_P) + SZ('03') + DT('61 21 51'),
+                        HD(ECU_R_ADDR_P) + SZ('03') + DT('61 21 56'),
+                        HD(ECU_R_ADDR_P) + SZ('03') + DT('61 21 55'),
+                        HD(ECU_R_ADDR_P) + SZ('03') + DT('61 21 58')
                         ]
         },
         'CUSTOM_AMBIENT': {
@@ -2632,12 +2639,12 @@ ObdMessage = {
             'Unit': 'C',
             'Header': ECU_ADDR_P,
             'Response': [
-                        ECU_R_ADDR_P + ' 03 61 22 60 \r',
-                        ECU_R_ADDR_P + ' 03 61 22 62 \r',
-                        ECU_R_ADDR_P + ' 03 61 22 5F \r',
-                        ECU_R_ADDR_P + ' 03 61 22 63 \r',
-                        ECU_R_ADDR_P + ' 03 61 22 61 \r',
-                        ECU_R_ADDR_P + ' 03 61 22 5E \r'
+                        HD(ECU_R_ADDR_P) + SZ('03') + DT('61 22 60'),
+                        HD(ECU_R_ADDR_P) + SZ('03') + DT('61 22 62'),
+                        HD(ECU_R_ADDR_P) + SZ('03') + DT('61 22 5F'),
+                        HD(ECU_R_ADDR_P) + SZ('03') + DT('61 22 63'),
+                        HD(ECU_R_ADDR_P) + SZ('03') + DT('61 22 61'),
+                        HD(ECU_R_ADDR_P) + SZ('03') + DT('61 22 5E')
                         ]
         },
         'CUSTOM_SOLAR_D': {
@@ -2649,8 +2656,8 @@ ObdMessage = {
             'Unit': 'Number',
             'Header': ECU_ADDR_P,
             'Response': [
-                        ECU_R_ADDR_P + ' 03 61 24 01 \r',
-                        ECU_R_ADDR_P + ' 03 61 24 00 \r'
+                        HD(ECU_R_ADDR_P) + SZ('03') + DT('61 24 01'),
+                        HD(ECU_R_ADDR_P) + SZ('03') + DT('61 24 00')
                         ]
         },
         'CUSTOM_COOLANT': {
@@ -2662,27 +2669,27 @@ ObdMessage = {
             'Unit': 'C',
             'Header': ECU_ADDR_P,
             'Response': [
-                        ECU_R_ADDR_P + ' 03 61 26 5E \r',
-                        ECU_R_ADDR_P + ' 03 61 26 98 \r',
-                        ECU_R_ADDR_P + ' 03 61 26 6B \r',
-                        ECU_R_ADDR_P + ' 03 61 26 A4 \r',
-                        ECU_R_ADDR_P + ' 03 61 26 7E \r',
-                        ECU_R_ADDR_P + ' 03 61 26 B0 \r',
-                        ECU_R_ADDR_P + ' 03 61 26 4C \r',
-                        ECU_R_ADDR_P + ' 03 61 26 91 \r',
-                        ECU_R_ADDR_P + ' 03 61 26 8E \r',
-                        ECU_R_ADDR_P + ' 03 61 26 55 \r',
-                        ECU_R_ADDR_P + ' 03 61 26 81 \r',
-                        ECU_R_ADDR_P + ' 03 61 26 AF \r',
-                        ECU_R_ADDR_P + ' 03 61 26 84 \r',
-                        ECU_R_ADDR_P + ' 03 61 26 75 \r',
-                        ECU_R_ADDR_P + ' 03 61 26 4B \r'
+                        HD(ECU_R_ADDR_P) + SZ('03') + DT('61 26 5E'),
+                        HD(ECU_R_ADDR_P) + SZ('03') + DT('61 26 98'),
+                        HD(ECU_R_ADDR_P) + SZ('03') + DT('61 26 6B'),
+                        HD(ECU_R_ADDR_P) + SZ('03') + DT('61 26 A4'),
+                        HD(ECU_R_ADDR_P) + SZ('03') + DT('61 26 7E'),
+                        HD(ECU_R_ADDR_P) + SZ('03') + DT('61 26 B0'),
+                        HD(ECU_R_ADDR_P) + SZ('03') + DT('61 26 4C'),
+                        HD(ECU_R_ADDR_P) + SZ('03') + DT('61 26 91'),
+                        HD(ECU_R_ADDR_P) + SZ('03') + DT('61 26 8E'),
+                        HD(ECU_R_ADDR_P) + SZ('03') + DT('61 26 55'),
+                        HD(ECU_R_ADDR_P) + SZ('03') + DT('61 26 81'),
+                        HD(ECU_R_ADDR_P) + SZ('03') + DT('61 26 AF'),
+                        HD(ECU_R_ADDR_P) + SZ('03') + DT('61 26 84'),
+                        HD(ECU_R_ADDR_P) + SZ('03') + DT('61 26 75'),
+                        HD(ECU_R_ADDR_P) + SZ('03') + DT('61 26 4B')
                         ]
         },
         'CUSTOM_SET_TEMP_D': {
             'Request': '^2129[012]?$',
             'Descr': 'Set Temperature (D side)',
-            'Response': ECU_R_ADDR_P + ' 03 7F 21 12 \r',
+            'Response': HD(ECU_R_ADDR_P) + SZ('03') + DT('7F 21 12'),
             'Header': ECU_ADDR_P
         },
         'CUSTOM_BLOWER_LEVEL': {
@@ -2694,14 +2701,14 @@ ObdMessage = {
             'Unit': 'Number',
             'Header': ECU_ADDR_P,
             'Response': [
-                        ECU_R_ADDR_P + ' 03 61 3C 04 \r',
-                        ECU_R_ADDR_P + ' 03 61 3C 0B \r',
-                        ECU_R_ADDR_P + ' 03 61 3C 0F \r',
-                        ECU_R_ADDR_P + ' 03 61 3C 0E \r',
-                        ECU_R_ADDR_P + ' 03 61 3C 09 \r',
-                        ECU_R_ADDR_P + ' 03 61 3C 05 \r',
-                        ECU_R_ADDR_P + ' 03 61 3C 10 \r',
-                        ECU_R_ADDR_P + ' 03 61 3C 00 \r'
+                        HD(ECU_R_ADDR_P) + SZ('03') + DT('61 3C 04'),
+                        HD(ECU_R_ADDR_P) + SZ('03') + DT('61 3C 0B'),
+                        HD(ECU_R_ADDR_P) + SZ('03') + DT('61 3C 0F'),
+                        HD(ECU_R_ADDR_P) + SZ('03') + DT('61 3C 0E'),
+                        HD(ECU_R_ADDR_P) + SZ('03') + DT('61 3C 09'),
+                        HD(ECU_R_ADDR_P) + SZ('03') + DT('61 3C 05'),
+                        HD(ECU_R_ADDR_P) + SZ('03') + DT('61 3C 10'),
+                        HD(ECU_R_ADDR_P) + SZ('03') + DT('61 3C 00')
                         ]
         },
         'CUSTOM_ADJAMBIENT': {
@@ -2713,13 +2720,13 @@ ObdMessage = {
             'Unit': 'C',
             'Header': ECU_ADDR_P,
             'Response': [
-                        ECU_R_ADDR_P + ' 03 61 3D 81 \r',
-                        ECU_R_ADDR_P + ' 03 61 3D 83 \r',
-                        ECU_R_ADDR_P + ' 03 61 3D 85 \r',
-                        ECU_R_ADDR_P + ' 03 61 3D 80 \r',
-                        ECU_R_ADDR_P + ' 03 61 3D 7F \r',
-                        ECU_R_ADDR_P + ' 03 61 3D 82 \r',
-                        ECU_R_ADDR_P + ' 03 61 3D 84 \r'
+                        HD(ECU_R_ADDR_P) + SZ('03') + DT('61 3D 81'),
+                        HD(ECU_R_ADDR_P) + SZ('03') + DT('61 3D 83'),
+                        HD(ECU_R_ADDR_P) + SZ('03') + DT('61 3D 85'),
+                        HD(ECU_R_ADDR_P) + SZ('03') + DT('61 3D 80'),
+                        HD(ECU_R_ADDR_P) + SZ('03') + DT('61 3D 7F'),
+                        HD(ECU_R_ADDR_P) + SZ('03') + DT('61 3D 82'),
+                        HD(ECU_R_ADDR_P) + SZ('03') + DT('61 3D 84')
                         ]
         },
         'CUSTOM_A/O_SP_D': {
@@ -2731,8 +2738,8 @@ ObdMessage = {
             'Unit': 'Number',
             'Header': ECU_ADDR_P,
             'Response': [
-                        ECU_R_ADDR_P + ' 06 61 43 09 09 00 00 \r',
-                        ECU_R_ADDR_P + ' 06 61 43 05 05 00 00 \r'
+                        HD(ECU_R_ADDR_P) + SZ('06') + DT('61 43 09 09 00 00'),
+                        HD(ECU_R_ADDR_P) + SZ('06') + DT('61 43 05 05 00 00')
                         ]
         },
         'CUSTOM_A/I_DTP': {
@@ -2743,7 +2750,7 @@ ObdMessage = {
             'Max': '255',
             'Unit': 'Number',
             'Header': ECU_ADDR_P,
-            'Response': ECU_R_ADDR_P + ' 06 61 44 07 07 00 00 \r'
+            'Response': HD(ECU_R_ADDR_P) + SZ('06') + DT('61 44 07 07 00 00')
         },
         'CUSTOM_COMP_SPD': {
             'Request': '^2149' + ELM_MAX_RESP,
@@ -2753,7 +2760,7 @@ ObdMessage = {
             'Max': '10000',
             'Unit': 'RPM',
             'Header': ECU_ADDR_P,
-            'Response': ECU_R_ADDR_P + ' 04 61 49 00 00 \r'
+            'Response': HD(ECU_R_ADDR_P) + SZ('04') + DT('61 49 00 00')
         },
         'CUSTOM_COMP_T_SPD': {
             'Request': '^214A' + ELM_MAX_RESP,
@@ -2763,7 +2770,7 @@ ObdMessage = {
             'Max': '10000',
             'Unit': 'RPM',
             'Header': ECU_ADDR_P,
-            'Response': ECU_R_ADDR_P + ' 04 61 4A 00 00 \r'
+            'Response': HD(ECU_R_ADDR_P) + SZ('04') + DT('61 4A 00 00')
         },
         'CUSTOM_EVAP_FIN': {
             'Request': '^214B' + ELM_MAX_RESP,
@@ -2774,12 +2781,12 @@ ObdMessage = {
             'Unit': 'C',
             'Header': ECU_ADDR_P,
             'Response': [
-                        ECU_R_ADDR_P + ' 03 61 4B 77 \r',
-                        ECU_R_ADDR_P + ' 03 61 4B 76 \r',
-                        ECU_R_ADDR_P + ' 03 61 4B 79 \r',
-                        ECU_R_ADDR_P + ' 03 61 4B 7A \r',
-                        ECU_R_ADDR_P + ' 03 61 4B 7B \r',
-                        ECU_R_ADDR_P + ' 03 61 4B 78 \r'
+                        HD(ECU_R_ADDR_P) + SZ('03') + DT('61 4B 77'),
+                        HD(ECU_R_ADDR_P) + SZ('03') + DT('61 4B 76'),
+                        HD(ECU_R_ADDR_P) + SZ('03') + DT('61 4B 79'),
+                        HD(ECU_R_ADDR_P) + SZ('03') + DT('61 4B 7A'),
+                        HD(ECU_R_ADDR_P) + SZ('03') + DT('61 4B 7B'),
+                        HD(ECU_R_ADDR_P) + SZ('03') + DT('61 4B 78')
                         ]
         },
         'CUSTOM_EVAP_TGT': {
@@ -2790,7 +2797,7 @@ ObdMessage = {
             'Max': '59.55',
             'Unit': 'C',
             'Header': ECU_ADDR_P,
-            'Response': ECU_R_ADDR_P + ' 04 61 4C 84 4C \r'
+            'Response': HD(ECU_R_ADDR_P) + SZ('04') + DT('61 4C 84 4C')
         },
         'CUSTOM_REG_PRES': {
             'Request': '^2153' + ELM_MAX_RESP,
@@ -2801,9 +2808,9 @@ ObdMessage = {
             'Unit': 'MPaG',
             'Header': ECU_ADDR_P,
             'Response': [
-                        ECU_R_ADDR_P + ' 03 61 53 39 \r',
-                        ECU_R_ADDR_P + ' 03 61 53 37 \r',
-                        ECU_R_ADDR_P + ' 03 61 53 38 \r'
+                        HD(ECU_R_ADDR_P) + SZ('03') + DT('61 53 39'),
+                        HD(ECU_R_ADDR_P) + SZ('03') + DT('61 53 37'),
+                        HD(ECU_R_ADDR_P) + SZ('03') + DT('61 53 38')
                         ]
         },
         'CUSTOM_FR_WS': {
@@ -2815,20 +2822,20 @@ ObdMessage = {
             'Unit': 'km/h',
             'Header': ECU_ADDR_S,
             'Response': [
-                        ECU_R_ADDR_S + ' 06 61 03 3E 3E 3D 3D \r',
-                        ECU_R_ADDR_S + ' 06 61 03 06 06 06 06 \r',
-                        ECU_R_ADDR_S + ' 06 61 03 33 33 32 32 \r',
-                        ECU_R_ADDR_S + ' 06 61 03 31 31 31 31 \r',
-                        ECU_R_ADDR_S + ' 06 61 03 02 02 02 02 \r',
-                        ECU_R_ADDR_S + ' 06 61 03 19 19 19 19 \r',
-                        ECU_R_ADDR_S + ' 06 61 03 28 28 27 27 \r',
-                        ECU_R_ADDR_S + ' 06 61 03 4D 4D 4D 4D \r',
-                        ECU_R_ADDR_S + ' 06 61 03 16 14 16 14 \r',
-                        ECU_R_ADDR_S + ' 06 61 03 29 29 29 29 \r',
-                        ECU_R_ADDR_S + ' 06 61 03 4A 4A 4B 4B \r',
-                        ECU_R_ADDR_S + ' 06 61 03 38 38 37 37 \r',
-                        ECU_R_ADDR_S + ' 06 61 03 00 00 00 00 \r',
-                        ECU_R_ADDR_S + ' 06 61 03 13 12 12 12 \r'
+                        HD(ECU_R_ADDR_S) + SZ('06') + DT('61 03 3E 3E 3D 3D'),
+                        HD(ECU_R_ADDR_S) + SZ('06') + DT('61 03 06 06 06 06'),
+                        HD(ECU_R_ADDR_S) + SZ('06') + DT('61 03 33 33 32 32'),
+                        HD(ECU_R_ADDR_S) + SZ('06') + DT('61 03 31 31 31 31'),
+                        HD(ECU_R_ADDR_S) + SZ('06') + DT('61 03 02 02 02 02'),
+                        HD(ECU_R_ADDR_S) + SZ('06') + DT('61 03 19 19 19 19'),
+                        HD(ECU_R_ADDR_S) + SZ('06') + DT('61 03 28 28 27 27'),
+                        HD(ECU_R_ADDR_S) + SZ('06') + DT('61 03 4D 4D 4D 4D'),
+                        HD(ECU_R_ADDR_S) + SZ('06') + DT('61 03 16 14 16 14'),
+                        HD(ECU_R_ADDR_S) + SZ('06') + DT('61 03 29 29 29 29'),
+                        HD(ECU_R_ADDR_S) + SZ('06') + DT('61 03 4A 4A 4B 4B'),
+                        HD(ECU_R_ADDR_S) + SZ('06') + DT('61 03 38 38 37 37'),
+                        HD(ECU_R_ADDR_S) + SZ('06') + DT('61 03 00 00 00 00'),
+                        HD(ECU_R_ADDR_S) + SZ('06') + DT('61 03 13 12 12 12')
                         ]
         },
         'CUSTOM_YR1': {
@@ -2840,17 +2847,17 @@ ObdMessage = {
             'Unit': 'degrees/s',
             'Header': ECU_ADDR_S,
             'Response': [
-                        ECU_R_ADDR_S + ' 06 61 06 80 80 8A 5F \r',
-                        ECU_R_ADDR_S + ' 06 61 06 80 80 80 0F \r',
-                        ECU_R_ADDR_S + ' 06 61 06 7E 7E 7F D3 \r',
-                        ECU_R_ADDR_S + ' 06 61 06 7E 7E 7F 01 \r',
-                        ECU_R_ADDR_S + ' 06 61 06 7D 7D 7F 97 \r',
-                        ECU_R_ADDR_S + ' 06 61 06 80 80 80 2D \r',
-                        ECU_R_ADDR_S + ' 06 61 06 80 80 80 00 \r',
-                        ECU_R_ADDR_S + ' 06 61 06 82 82 86 09 \r',
-                        ECU_R_ADDR_S + ' 06 61 06 99 99 85 82 \r',
-                        ECU_R_ADDR_S + ' 06 61 06 80 80 80 1E \r',
-                        ECU_R_ADDR_S + ' 06 61 06 8C 8C 83 57 \r'
+                        HD(ECU_R_ADDR_S) + SZ('06') + DT('61 06 80 80 8A 5F'),
+                        HD(ECU_R_ADDR_S) + SZ('06') + DT('61 06 80 80 80 0F'),
+                        HD(ECU_R_ADDR_S) + SZ('06') + DT('61 06 7E 7E 7F D3'),
+                        HD(ECU_R_ADDR_S) + SZ('06') + DT('61 06 7E 7E 7F 01'),
+                        HD(ECU_R_ADDR_S) + SZ('06') + DT('61 06 7D 7D 7F 97'),
+                        HD(ECU_R_ADDR_S) + SZ('06') + DT('61 06 80 80 80 2D'),
+                        HD(ECU_R_ADDR_S) + SZ('06') + DT('61 06 80 80 80 00'),
+                        HD(ECU_R_ADDR_S) + SZ('06') + DT('61 06 82 82 86 09'),
+                        HD(ECU_R_ADDR_S) + SZ('06') + DT('61 06 99 99 85 82'),
+                        HD(ECU_R_ADDR_S) + SZ('06') + DT('61 06 80 80 80 1E'),
+                        HD(ECU_R_ADDR_S) + SZ('06') + DT('61 06 8C 8C 83 57')
                         ]
         },
         'CUSTOM_WC_PRES': {
@@ -2862,9 +2869,9 @@ ObdMessage = {
             'Unit': 'V',
             'Header': ECU_ADDR_S,
             'Response': [
-                        ECU_R_ADDR_S + ' 03 61 07 1B \r',
-                        ECU_R_ADDR_S + ' 03 61 07 1C \r',
-                        ECU_R_ADDR_S + ' 03 61 07 19 \r'
+                        HD(ECU_R_ADDR_S) + SZ('03') + DT('61 07 1B'),
+                        HD(ECU_R_ADDR_S) + SZ('03') + DT('61 07 1C'),
+                        HD(ECU_R_ADDR_S) + SZ('03') + DT('61 07 19')
                         ]
         },
         'CUSTOM_LATERAL_G': {
@@ -2876,21 +2883,21 @@ ObdMessage = {
             'Unit': 'm/s2',
             'Header': ECU_ADDR_S,
             'Response': [
-                        ECU_R_ADDR_S + ' 07 61 47 F5 00 65 70 79 \r',
-                        ECU_R_ADDR_S + ' 07 61 47 0C FF A0 8C 80 \r',
-                        ECU_R_ADDR_S + ' 07 61 47 FD F8 7B 7F 13 \r',
-                        ECU_R_ADDR_S + ' 07 61 47 F8 FB 75 7D EE \r',
-                        ECU_R_ADDR_S + ' 07 61 47 FE FA 7E 7F CC \r',
-                        ECU_R_ADDR_S + ' 07 61 47 00 FF 80 89 24 \r',
-                        ECU_R_ADDR_S + ' 07 61 47 FC 0A 7B 7F 30 \r',
-                        ECU_R_ADDR_S + ' 07 61 47 01 00 80 80 0B \r',
-                        ECU_R_ADDR_S + ' 07 61 47 FD 09 7D 7F 91 \r',
-                        ECU_R_ADDR_S + ' 07 61 47 00 F4 80 80 0B \r',
-                        ECU_R_ADDR_S + ' 07 61 47 00 FF 80 8A 5F \r',
-                        ECU_R_ADDR_S + ' 07 61 47 00 FC 80 80 0B \r',
-                        ECU_R_ADDR_S + ' 07 61 47 FE FE 7F 7F D9 \r',
-                        ECU_R_ADDR_S + ' 07 61 47 03 00 83 80 84 \r',
-                        ECU_R_ADDR_S + ' 07 61 47 00 FE 80 80 07 \r'
+                        HD(ECU_R_ADDR_S) + SZ('07') + DT('61 47 F5 00 65 70 79'),
+                        HD(ECU_R_ADDR_S) + SZ('07') + DT('61 47 0C FF A0 8C 80'),
+                        HD(ECU_R_ADDR_S) + SZ('07') + DT('61 47 FD F8 7B 7F 13'),
+                        HD(ECU_R_ADDR_S) + SZ('07') + DT('61 47 F8 FB 75 7D EE'),
+                        HD(ECU_R_ADDR_S) + SZ('07') + DT('61 47 FE FA 7E 7F CC'),
+                        HD(ECU_R_ADDR_S) + SZ('07') + DT('61 47 00 FF 80 89 24'),
+                        HD(ECU_R_ADDR_S) + SZ('07') + DT('61 47 FC 0A 7B 7F 30'),
+                        HD(ECU_R_ADDR_S) + SZ('07') + DT('61 47 01 00 80 80 0B'),
+                        HD(ECU_R_ADDR_S) + SZ('07') + DT('61 47 FD 09 7D 7F 91'),
+                        HD(ECU_R_ADDR_S) + SZ('07') + DT('61 47 00 F4 80 80 0B'),
+                        HD(ECU_R_ADDR_S) + SZ('07') + DT('61 47 00 FF 80 8A 5F'),
+                        HD(ECU_R_ADDR_S) + SZ('07') + DT('61 47 00 FC 80 80 0B'),
+                        HD(ECU_R_ADDR_S) + SZ('07') + DT('61 47 FE FE 7F 7F D9'),
+                        HD(ECU_R_ADDR_S) + SZ('07') + DT('61 47 03 00 83 80 84'),
+                        HD(ECU_R_ADDR_S) + SZ('07') + DT('61 47 00 FE 80 80 07')
                         ]
         },
         'CUSTOM_REGENCOOP': {
@@ -2902,8 +2909,8 @@ ObdMessage = {
             'Unit': 'Off/On',
             'Header': ECU_ADDR_S,
             'Response': [
-                        ECU_R_ADDR_S + ' 03 61 58 00 \r',
-                        ECU_R_ADDR_S + ' 03 61 58 80 \r'
+                        HD(ECU_R_ADDR_S) + SZ('03') + DT('61 58 00'),
+                        HD(ECU_R_ADDR_S) + SZ('03') + DT('61 58 80')
                         ]
         },
         'CUSTOM_SLA_CURR': {
@@ -2915,18 +2922,18 @@ ObdMessage = {
             'Unit': 'A',
             'Header': ECU_ADDR_S,
             'Response': [
-                        ECU_R_ADDR_S + ' 10 08 61 A3 25 00 24 33 \r' +
-                        ECU_R_ADDR_S + ' 21 4A 4A 00 00 00 00 00 \r',
-                        ECU_R_ADDR_S + ' 10 08 61 A3 00 25 24 33 \r' +
-                        ECU_R_ADDR_S + ' 21 4A 4A 00 00 00 00 00 \r',
-                        ECU_R_ADDR_S + ' 10 08 61 A3 30 00 24 34 \r' +
-                        ECU_R_ADDR_S + ' 21 4A 4A 00 00 00 00 00 \r',
-                        ECU_R_ADDR_S + ' 10 08 61 A3 00 00 24 33 \r' +
-                        ECU_R_ADDR_S + ' 21 00 00 00 00 00 00 00 \r',
-                        ECU_R_ADDR_S + ' 10 08 61 A3 00 00 24 34 \r' +
-                        ECU_R_ADDR_S + ' 21 00 00 00 00 00 00 00 \r',
-                        ECU_R_ADDR_S + ' 10 08 61 A3 18 00 24 33 \r' +
-                        ECU_R_ADDR_S + ' 21 4A 4A 00 00 00 00 00 \r'
+                        HD(ECU_R_ADDR_S) + SZ('10') + DT('08 61 A3 25 00 24 33') +
+                        HD(ECU_R_ADDR_S) + SZ('21') + DT('4A 4A 00 00 00 00 00'),
+                        HD(ECU_R_ADDR_S) + SZ('10') + DT('08 61 A3 00 25 24 33') +
+                        HD(ECU_R_ADDR_S) + SZ('21') + DT('4A 4A 00 00 00 00 00'),
+                        HD(ECU_R_ADDR_S) + SZ('10') + DT('08 61 A3 30 00 24 34') +
+                        HD(ECU_R_ADDR_S) + SZ('21') + DT('4A 4A 00 00 00 00 00'),
+                        HD(ECU_R_ADDR_S) + SZ('10') + DT('08 61 A3 00 00 24 33') +
+                        HD(ECU_R_ADDR_S) + SZ('21') + DT('00 00 00 00 00 00 00'),
+                        HD(ECU_R_ADDR_S) + SZ('10') + DT('08 61 A3 00 00 24 34') +
+                        HD(ECU_R_ADDR_S) + SZ('21') + DT('00 00 00 00 00 00 00'),
+                        HD(ECU_R_ADDR_S) + SZ('10') + DT('08 61 A3 18 00 24 33') +
+                        HD(ECU_R_ADDR_S) + SZ('21') + DT('4A 4A 00 00 00 00 00')
                         ]
         },
         'CUSTOM_INSP_MODE': {
@@ -2937,7 +2944,7 @@ ObdMessage = {
             'Max': '1',
             'Unit': 'Off/On',
             'Header': ECU_ADDR_S,
-            'Response': ECU_R_ADDR_S + ' 03 61 A6 00 \r'
+            'Response': HD(ECU_R_ADDR_S) + SZ('03') + DT('61 A6 00')
         },
         'CUSTOM_HAZ_HIST': {
             'Request': '^21BC' + ELM_MAX_RESP,
@@ -2947,7 +2954,7 @@ ObdMessage = {
             'Max': '1',
             'Unit': 'Off/On',
             'Header': ECU_ADDR_S,
-            'Response': ECU_R_ADDR_S + ' 03 61 BC 00 \r'
+            'Response': HD(ECU_R_ADDR_S) + SZ('03') + DT('61 BC 00')
         },
         'CUSTOM_FRS_OPEN': {
             'Request': '^21BE' + ELM_MAX_RESP,
@@ -2957,7 +2964,7 @@ ObdMessage = {
             'Max': '1',
             'Unit': 'Off/On',
             'Header': ECU_ADDR_S,
-            'Response': ECU_R_ADDR_S + ' 05 61 BE 00 00 00 \r'
+            'Response': HD(ECU_R_ADDR_S) + SZ('05') + DT('61 BE 00 00 00')
         },
     # New custom OBD Commands
         'CUSTOM_FSS1': {
@@ -2969,12 +2976,12 @@ ObdMessage = {
             'Unit': '',
             'Header': ECU_ADDR_E,
             'Response': [
-                        ECU_R_ADDR_E + ' 10 0A 61 03 01 00 80 7C \r' +
-                        ECU_R_ADDR_E + ' 21 9F 00 00 01 00 00 00 \r',
-                        ECU_R_ADDR_E + ' 10 0A 61 03 00 00 80 7D \r' +
-                        ECU_R_ADDR_E + ' 21 8A 00 00 01 00 00 00 \r',
-                        ECU_R_ADDR_E + ' 10 0A 61 03 02 00 84 7C \r' +
-                        ECU_R_ADDR_E + ' 21 A2 00 00 01 00 00 00 \r'
+                        HD(ECU_R_ADDR_E) + SZ('10') + DT('0A 61 03 01 00 80 7C') +
+                        HD(ECU_R_ADDR_E) + SZ('21') + DT('9F 00 00 01 00 00 00'),
+                        HD(ECU_R_ADDR_E) + SZ('10') + DT('0A 61 03 00 00 80 7D') +
+                        HD(ECU_R_ADDR_E) + SZ('21') + DT('8A 00 00 01 00 00 00'),
+                        HD(ECU_R_ADDR_E) + SZ('10') + DT('0A 61 03 02 00 84 7C') +
+                        HD(ECU_R_ADDR_E) + SZ('21') + DT('A2 00 00 01 00 00 00')
                         ]
         },
         'CUSTOM_TAFR': {
@@ -2986,15 +2993,15 @@ ObdMessage = {
             'Unit': '',
             'Header': ECU_ADDR_E,
             'Response': [
-                        ECU_R_ADDR_E + ' 10 0E 61 04 7F F2 7F 73 \r' +
-                        ECU_R_ADDR_E + ' 21 6A 11 7F 73 80 01 00 \r' +
-                        ECU_R_ADDR_E + ' 22 FF 00 00 00 00 00 00 \r',
-                        ECU_R_ADDR_E + ' 10 0E 61 04 7F F2 68 1C \r' +
-                        ECU_R_ADDR_E + ' 21 27 04 68 1C 7F 39 00 \r' +
-                        ECU_R_ADDR_E + ' 22 FF 00 00 00 00 00 00 \r',
-                        ECU_R_ADDR_E + ' 10 0E 61 04 60 17 7F FB \r' +
-                        ECU_R_ADDR_E + ' 21 6A D9 7F FB 80 03 00 \r' +
-                        ECU_R_ADDR_E + ' 22 FF 00 00 00 00 00 00 \r'
+                        HD(ECU_R_ADDR_E) + SZ('10') + DT('0E 61 04 7F F2 7F 73') +
+                        HD(ECU_R_ADDR_E) + SZ('21') + DT('6A 11 7F 73 80 01 00') +
+                        HD(ECU_R_ADDR_E) + SZ('22') + DT('FF 00 00 00 00 00 00'),
+                        HD(ECU_R_ADDR_E) + SZ('10') + DT('0E 61 04 7F F2 68 1C') +
+                        HD(ECU_R_ADDR_E) + SZ('21') + DT('27 04 68 1C 7F 39 00') +
+                        HD(ECU_R_ADDR_E) + SZ('22') + DT('FF 00 00 00 00 00 00'),
+                        HD(ECU_R_ADDR_E) + SZ('10') + DT('0E 61 04 60 17 7F FB') +
+                        HD(ECU_R_ADDR_E) + SZ('21') + DT('6A D9 7F FB 80 03 00') +
+                        HD(ECU_R_ADDR_E) + SZ('22') + DT('FF 00 00 00 00 00 00')
                         ]
         },
         'CUSTOM_CAT_B1S1_SG': {
@@ -3006,16 +3013,16 @@ ObdMessage = {
             'Unit': 'C',
             'Header': ECU_ADDR_E,
             'Response': [
-                        ECU_R_ADDR_E + ' 06 61 05 0F 26 0B 79 \r',
-                        ECU_R_ADDR_E + ' 06 61 05 0F 54 0B A7 \r',
-                        ECU_R_ADDR_E + ' 06 61 05 0F 2D 0B 80 \r',
-                        ECU_R_ADDR_E + ' 06 61 05 0F 46 0B 99 \r',
-                        ECU_R_ADDR_E + ' 06 61 05 0F 3D 0B 90 \r',
-                        ECU_R_ADDR_E + ' 06 61 05 0F 4D 0B A0 \r',
-                        ECU_R_ADDR_E + ' 06 61 05 0F 28 0B 6D \r',
-                        ECU_R_ADDR_E + ' 06 61 05 0F 1E 0B 71 \r',
-                        ECU_R_ADDR_E + ' 06 61 05 0F 91 0B 95 \r',
-                        ECU_R_ADDR_E + ' 06 61 05 0F 35 0B 88 \r'
+                        HD(ECU_R_ADDR_E) + SZ('06') + DT('61 05 0F 26 0B 79'),
+                        HD(ECU_R_ADDR_E) + SZ('06') + DT('61 05 0F 54 0B A7'),
+                        HD(ECU_R_ADDR_E) + SZ('06') + DT('61 05 0F 2D 0B 80'),
+                        HD(ECU_R_ADDR_E) + SZ('06') + DT('61 05 0F 46 0B 99'),
+                        HD(ECU_R_ADDR_E) + SZ('06') + DT('61 05 0F 3D 0B 90'),
+                        HD(ECU_R_ADDR_E) + SZ('06') + DT('61 05 0F 4D 0B A0'),
+                        HD(ECU_R_ADDR_E) + SZ('06') + DT('61 05 0F 28 0B 6D'),
+                        HD(ECU_R_ADDR_E) + SZ('06') + DT('61 05 0F 1E 0B 71'),
+                        HD(ECU_R_ADDR_E) + SZ('06') + DT('61 05 0F 91 0B 95'),
+                        HD(ECU_R_ADDR_E) + SZ('06') + DT('61 05 0F 35 0B 88')
                         ]
         },
         'CUSTOM_MIL': {
@@ -3026,8 +3033,8 @@ ObdMessage = {
             'Max': '1',
             'Unit': 'Off/On',
             'Header': ECU_ADDR_E,
-            'Response': ECU_R_ADDR_E + ' 10 0C 61 06 00 07 A1 00 \r' +
-                        ECU_R_ADDR_E + ' 21 03 06 00 00 00 00 00 \r'
+            'Response': HD(ECU_R_ADDR_E) + SZ('10') + DT('0C 61 06 00 07 A1 00') +
+                        HD(ECU_R_ADDR_E) + SZ('21') + DT('03 06 00 00 00 00 00')
         },
         'CUSTOM_HV_COMM': {
             'Request': '^2124' + ELM_MAX_RESP,
@@ -3037,7 +3044,7 @@ ObdMessage = {
             'Max': '1',
             'Unit': 'Off/On',
             'Header': ECU_ADDR_E,
-            'Response': ECU_R_ADDR_E + ' 03 61 24 28 \r'
+            'Response': HD(ECU_R_ADDR_E) + SZ('03') + DT('61 24 28')
         },
         'CUSTOM_INIT_ECT': {
             'Request': '^2137' + ELM_MAX_RESP,
@@ -3048,15 +3055,15 @@ ObdMessage = {
             'Unit': 'C',
             'Header': ECU_ADDR_E,
             'Response': [
-                        ECU_R_ADDR_E + ' 10 11 61 37 59 58 83 46 \r' +
-                        ECU_R_ADDR_E + ' 21 7F A0 80 00 00 00 00 \r' +
-                        ECU_R_ADDR_E + ' 22 00 1A DC 00 00 00 00 \r',
-                        ECU_R_ADDR_E + ' 10 11 61 37 59 58 83 46 \r' +
-                        ECU_R_ADDR_E + ' 21 7F A0 80 00 00 00 00 \r' +
-                        ECU_R_ADDR_E + ' 22 00 1A DC 04 00 00 00 \r',
-                        ECU_R_ADDR_E + ' 10 11 61 37 59 58 83 46 \r' +
-                        ECU_R_ADDR_E + ' 21 7F A0 80 00 00 00 00 \r' +
-                        ECU_R_ADDR_E + ' 22 00 1A DC 44 00 00 00 \r'
+                        HD(ECU_R_ADDR_E) + SZ('10') + DT('11 61 37 59 58 83 46') +
+                        HD(ECU_R_ADDR_E) + SZ('21') + DT('7F A0 80 00 00 00 00') +
+                        HD(ECU_R_ADDR_E) + SZ('22') + DT('00 1A DC 00 00 00 00'),
+                        HD(ECU_R_ADDR_E) + SZ('10') + DT('11 61 37 59 58 83 46') +
+                        HD(ECU_R_ADDR_E) + SZ('21') + DT('7F A0 80 00 00 00 00') +
+                        HD(ECU_R_ADDR_E) + SZ('22') + DT('00 1A DC 04 00 00 00'),
+                        HD(ECU_R_ADDR_E) + SZ('10') + DT('11 61 37 59 58 83 46') +
+                        HD(ECU_R_ADDR_E) + SZ('21') + DT('7F A0 80 00 00 00 00') +
+                        HD(ECU_R_ADDR_E) + SZ('22') + DT('00 1A DC 44 00 00 00')
                         ]
         },
         'CUSTOM_INJ_VOL': {
@@ -3068,9 +3075,9 @@ ObdMessage = {
             'Unit': 'ml',
             'Header': ECU_ADDR_E,
             'Response': [
-                        ECU_R_ADDR_E + ' 07 61 3C 09 82 09 43 80 \r',
-                        ECU_R_ADDR_E + ' 07 61 3C 15 8F 10 D1 80 \r',
-                        ECU_R_ADDR_E + ' 07 61 3C 08 65 07 B3 80 \r'
+                        HD(ECU_R_ADDR_E) + SZ('07') + DT('61 3C 09 82 09 43 80'),
+                        HD(ECU_R_ADDR_E) + SZ('07') + DT('61 3C 15 8F 10 D1 80'),
+                        HD(ECU_R_ADDR_E) + SZ('07') + DT('61 3C 08 65 07 B3 80')
                         ]
         },
         'CUSTOM_EGR_STEP': {
@@ -3081,7 +3088,7 @@ ObdMessage = {
             'Max': '120',
             'Unit': 'step',
             'Header': ECU_ADDR_E,
-            'Response': ECU_R_ADDR_E + ' 03 61 47 00 \r'
+            'Response': HD(ECU_R_ADDR_E) + SZ('03') + DT('61 47 00')
         },
         'CUSTOM_REQENGTORQ': {
             'Request': '^2149' + ELM_MAX_RESP,
@@ -3092,15 +3099,15 @@ ObdMessage = {
             'Unit': 'kW',
             'Header': ECU_ADDR_E,
             'Response': [
-                        ECU_R_ADDR_E + ' 10 0E 61 49 00 00 37 80 \r' +
-                        ECU_R_ADDR_E + ' 21 00 FF 77 1D 00 08 A9 \r' +
-                        ECU_R_ADDR_E + ' 22 62 00 00 00 00 00 00 \r',
-                        ECU_R_ADDR_E + ' 10 0E 61 49 00 14 34 80 \r' +
-                        ECU_R_ADDR_E + ' 21 32 FF 77 1D 00 08 A9 \r' +
-                        ECU_R_ADDR_E + ' 22 42 00 00 00 00 00 00 \r',
-                        ECU_R_ADDR_E + ' 10 0E 61 49 00 00 00 80 \r' +
-                        ECU_R_ADDR_E + ' 21 00 FF 77 1D 00 08 A9 \r' +
-                        ECU_R_ADDR_E + ' 22 0A 00 00 00 00 00 00 \r'
+                        HD(ECU_R_ADDR_E) + SZ('10') + DT('0E 61 49 00 00 37 80') +
+                        HD(ECU_R_ADDR_E) + SZ('21') + DT('00 FF 77 1D 00 08 A9') +
+                        HD(ECU_R_ADDR_E) + SZ('22') + DT('62 00 00 00 00 00 00'),
+                        HD(ECU_R_ADDR_E) + SZ('10') + DT('0E 61 49 00 14 34 80') +
+                        HD(ECU_R_ADDR_E) + SZ('21') + DT('32 FF 77 1D 00 08 A9') +
+                        HD(ECU_R_ADDR_E) + SZ('22') + DT('42 00 00 00 00 00 00'),
+                        HD(ECU_R_ADDR_E) + SZ('10') + DT('0E 61 49 00 00 00 80') +
+                        HD(ECU_R_ADDR_E) + SZ('21') + DT('00 FF 77 1D 00 08 A9') +
+                        HD(ECU_R_ADDR_E) + SZ('22') + DT('0A 00 00 00 00 00 00')
                         ]
         },
         'CUSTOM_MCODE_7E0': {
@@ -3111,10 +3118,10 @@ ObdMessage = {
             'Max': '0',
             'Unit': '',
             'Header': ECU_ADDR_E,
-            'Response': ECU_R_ADDR_E + ' 10 15 61 C1 5A 57 45 31 \r' +
-                        ECU_R_ADDR_E + ' 21 38 23 20 32 5A 52 46 \r' +
-                        ECU_R_ADDR_E + ' 22 58 45 04 00 57 74 21 \r' +
-                        ECU_R_ADDR_E + ' 23 00 00 00 00 00 00 00 \r'
+            'Response': HD(ECU_R_ADDR_E) + SZ('10') + DT('15 61 C1 5A 57 45 31') +
+                        HD(ECU_R_ADDR_E) + SZ('21') + DT('38 23 20 32 5A 52 46') +
+                        HD(ECU_R_ADDR_E) + SZ('22') + DT('58 45 04 00 57 74 21') +
+                        HD(ECU_R_ADDR_E) + SZ('23') + DT('00 00 00 00 00 00 00')
         },
         'CUSTOM_CLOAD_7E2': {
             'Request': '^2101' + ELM_MAX_RESP,
@@ -3125,46 +3132,46 @@ ObdMessage = {
             'Unit': '%',
             'Header': ECU_ADDR_H,
             'Response': [
-                        ECU_R_ADDR_H + ' 10 18 61 01 00 63 55 36 \r' +
-                        ECU_R_ADDR_H + ' 21 63 4B 00 00 00 05 BC \r' +
-                        ECU_R_ADDR_H + ' 22 2B 28 51 FF E2 FB FF \r' +
-                        ECU_R_ADDR_H + ' 23 FF 38 FD 9E 00 00 00 \r',
-                        ECU_R_ADDR_H + ' 10 18 61 01 00 63 55 36 \r' +
-                        ECU_R_ADDR_H + ' 21 63 4B 00 00 00 05 A0 \r' +
-                        ECU_R_ADDR_H + ' 22 2B 28 51 FF E2 FB FF \r' +
-                        ECU_R_ADDR_H + ' 23 FF 39 11 9E 00 00 00 \r',
-                        ECU_R_ADDR_H + ' 10 18 61 01 00 63 55 36 \r' +
-                        ECU_R_ADDR_H + ' 21 63 4B 00 00 00 05 8C \r' +
-                        ECU_R_ADDR_H + ' 22 2B 28 51 FF E2 FB FF \r' +
-                        ECU_R_ADDR_H + ' 23 FF 39 11 9F 00 00 00 \r',
-                        ECU_R_ADDR_H + ' 10 18 61 01 00 63 55 36 \r' +
-                        ECU_R_ADDR_H + ' 21 63 4B 00 00 00 05 92 \r' +
-                        ECU_R_ADDR_H + ' 22 2B 28 51 FF E2 FB FF \r' +
-                        ECU_R_ADDR_H + ' 23 FF 38 FD 9F 00 00 00 \r',
-                        ECU_R_ADDR_H + ' 10 18 61 01 00 63 55 36 \r' +
-                        ECU_R_ADDR_H + ' 21 63 4B 00 00 00 05 B5 \r' +
-                        ECU_R_ADDR_H + ' 22 2B 28 51 FF E2 FB FF \r' +
-                        ECU_R_ADDR_H + ' 23 FF 39 11 9E 00 00 00 \r',
-                        ECU_R_ADDR_H + ' 10 18 61 01 DA 26 55 36 \r' +
-                        ECU_R_ADDR_H + ' 21 63 4B 17 00 00 05 C3 \r' +
-                        ECU_R_ADDR_H + ' 22 2D 3F 68 FF E2 FB FF \r' +
-                        ECU_R_ADDR_H + ' 23 FF 38 FD 9D 00 00 00 \r',
-                        ECU_R_ADDR_H + ' 10 18 61 01 00 63 55 36 \r' +
-                        ECU_R_ADDR_H + ' 21 63 4B 00 00 00 05 99 \r' +
-                        ECU_R_ADDR_H + ' 22 2B 28 51 FF E2 FB FF \r' +
-                        ECU_R_ADDR_H + ' 23 FF 39 11 9F 00 00 00 \r',
-                        ECU_R_ADDR_H + ' 10 18 61 01 A1 37 4B 36 \r' +
-                        ECU_R_ADDR_H + ' 21 63 4B 14 80 00 05 CA \r' +
-                        ECU_R_ADDR_H + ' 22 32 28 51 FF E2 FB FF \r' +
-                        ECU_R_ADDR_H + ' 23 FF 39 11 9E 00 00 00 \r',
-                        ECU_R_ADDR_H + ' 10 18 61 01 00 63 55 36 \r' +
-                        ECU_R_ADDR_H + ' 21 63 4B 00 00 00 05 AE \r' +
-                        ECU_R_ADDR_H + ' 22 2B 28 51 FF E2 FB FF \r' +
-                        ECU_R_ADDR_H + ' 23 FF 39 11 9E 00 00 00 \r',
-                        ECU_R_ADDR_H + ' 10 18 61 01 00 63 55 36 \r' +
-                        ECU_R_ADDR_H + ' 21 63 4B 00 00 00 05 A7 \r' +
-                        ECU_R_ADDR_H + ' 22 2B 28 51 FF E2 FB FF \r' +
-                        ECU_R_ADDR_H + ' 23 FF 39 11 9E 00 00 00 \r'
+                        HD(ECU_R_ADDR_H) + SZ('10') + DT('18 61 01 00 63 55 36') +
+                        HD(ECU_R_ADDR_H) + SZ('21') + DT('63 4B 00 00 00 05 BC') +
+                        HD(ECU_R_ADDR_H) + SZ('22') + DT('2B 28 51 FF E2 FB FF') +
+                        HD(ECU_R_ADDR_H) + SZ('23') + DT('FF 38 FD 9E 00 00 00'),
+                        HD(ECU_R_ADDR_H) + SZ('10') + DT('18 61 01 00 63 55 36') +
+                        HD(ECU_R_ADDR_H) + SZ('21') + DT('63 4B 00 00 00 05 A0') +
+                        HD(ECU_R_ADDR_H) + SZ('22') + DT('2B 28 51 FF E2 FB FF') +
+                        HD(ECU_R_ADDR_H) + SZ('23') + DT('FF 39 11 9E 00 00 00'),
+                        HD(ECU_R_ADDR_H) + SZ('10') + DT('18 61 01 00 63 55 36') +
+                        HD(ECU_R_ADDR_H) + SZ('21') + DT('63 4B 00 00 00 05 8C') +
+                        HD(ECU_R_ADDR_H) + SZ('22') + DT('2B 28 51 FF E2 FB FF') +
+                        HD(ECU_R_ADDR_H) + SZ('23') + DT('FF 39 11 9F 00 00 00'),
+                        HD(ECU_R_ADDR_H) + SZ('10') + DT('18 61 01 00 63 55 36') +
+                        HD(ECU_R_ADDR_H) + SZ('21') + DT('63 4B 00 00 00 05 92') +
+                        HD(ECU_R_ADDR_H) + SZ('22') + DT('2B 28 51 FF E2 FB FF') +
+                        HD(ECU_R_ADDR_H) + SZ('23') + DT('FF 38 FD 9F 00 00 00'),
+                        HD(ECU_R_ADDR_H) + SZ('10') + DT('18 61 01 00 63 55 36') +
+                        HD(ECU_R_ADDR_H) + SZ('21') + DT('63 4B 00 00 00 05 B5') +
+                        HD(ECU_R_ADDR_H) + SZ('22') + DT('2B 28 51 FF E2 FB FF') +
+                        HD(ECU_R_ADDR_H) + SZ('23') + DT('FF 39 11 9E 00 00 00'),
+                        HD(ECU_R_ADDR_H) + SZ('10') + DT('18 61 01 DA 26 55 36') +
+                        HD(ECU_R_ADDR_H) + SZ('21') + DT('63 4B 17 00 00 05 C3') +
+                        HD(ECU_R_ADDR_H) + SZ('22') + DT('2D 3F 68 FF E2 FB FF') +
+                        HD(ECU_R_ADDR_H) + SZ('23') + DT('FF 38 FD 9D 00 00 00'),
+                        HD(ECU_R_ADDR_H) + SZ('10') + DT('18 61 01 00 63 55 36') +
+                        HD(ECU_R_ADDR_H) + SZ('21') + DT('63 4B 00 00 00 05 99') +
+                        HD(ECU_R_ADDR_H) + SZ('22') + DT('2B 28 51 FF E2 FB FF') +
+                        HD(ECU_R_ADDR_H) + SZ('23') + DT('FF 39 11 9F 00 00 00'),
+                        HD(ECU_R_ADDR_H) + SZ('10') + DT('18 61 01 A1 37 4B 36') +
+                        HD(ECU_R_ADDR_H) + SZ('21') + DT('63 4B 14 80 00 05 CA') +
+                        HD(ECU_R_ADDR_H) + SZ('22') + DT('32 28 51 FF E2 FB FF') +
+                        HD(ECU_R_ADDR_H) + SZ('23') + DT('FF 39 11 9E 00 00 00'),
+                        HD(ECU_R_ADDR_H) + SZ('10') + DT('18 61 01 00 63 55 36') +
+                        HD(ECU_R_ADDR_H) + SZ('21') + DT('63 4B 00 00 00 05 AE') +
+                        HD(ECU_R_ADDR_H) + SZ('22') + DT('2B 28 51 FF E2 FB FF') +
+                        HD(ECU_R_ADDR_H) + SZ('23') + DT('FF 39 11 9E 00 00 00'),
+                        HD(ECU_R_ADDR_H) + SZ('10') + DT('18 61 01 00 63 55 36') +
+                        HD(ECU_R_ADDR_H) + SZ('21') + DT('63 4B 00 00 00 05 A7') +
+                        HD(ECU_R_ADDR_H) + SZ('22') + DT('2B 28 51 FF E2 FB FF') +
+                        HD(ECU_R_ADDR_H) + SZ('23') + DT('FF 39 11 9E 00 00 00')
                         ]
         },
         'CUSTOM_CCS_SPD': {
@@ -3192,17 +3199,17 @@ ObdMessage = {
                           # {E:3}=SET/COAST Switch, 0/1=Off/On
                           # {E:2}=Cancel Switch, 0/1=Off/On
                           #                        A  B  C  D  E
-                        ECU_R_ADDR_H + ' 07 61 21 00 00 81 00 00 \r', # Park + No brakes
-                        ECU_R_ADDR_H + ' 07 61 21 00 00 81 3F 00 \r', # Cruise on (transitory)
-                        ECU_R_ADDR_H + ' 07 61 21 00 00 7D 00 00 \r', # "R" shift (reverse)
-                        ECU_R_ADDR_H + ' 07 61 21 00 00 81 80 00 \r', # "D" shift (ahead)
-                        ECU_R_ADDR_H + ' 07 61 21 00 00 81 03 00 \r',
-                        ECU_R_ADDR_H + ' 07 61 21 00 00 81 00 E0 \r', # Park + Brakes
-                        ECU_R_ADDR_H + ' 07 61 21 00 00 81 00 60 \r', # Park + Light brakes
-                        ECU_R_ADDR_H + ' 07 61 21 00 00 81 00 04 \r', # Cruise control Cancel
-                        ECU_R_ADDR_H + ' 07 61 21 00 00 81 00 10 \r', # Cruise control Up
-                        ECU_R_ADDR_H + ' 07 61 21 00 00 81 00 08 \r', # Cruise control Down
-                        ECU_R_ADDR_H + ' 07 61 21 00 00 81 3C 00 \r'  # Cruise on
+                        HD(ECU_R_ADDR_H) + SZ('07') + DT('61 21 00 00 81 00 00'), # Park + No brakes
+                        HD(ECU_R_ADDR_H) + SZ('07') + DT('61 21 00 00 81 3F 00'), # Cruise on (transitory)
+                        HD(ECU_R_ADDR_H) + SZ('07') + DT('61 21 00 00 7D 00 00'), # "R" shift (reverse)
+                        HD(ECU_R_ADDR_H) + SZ('07') + DT('61 21 00 00 81 80 00'), # "D" shift (ahead)
+                        HD(ECU_R_ADDR_H) + SZ('07') + DT('61 21 00 00 81 03 00'),
+                        HD(ECU_R_ADDR_H) + SZ('07') + DT('61 21 00 00 81 00 E0'), # Park + Brakes
+                        HD(ECU_R_ADDR_H) + SZ('07') + DT('61 21 00 00 81 00 60'), # Park + Light brakes
+                        HD(ECU_R_ADDR_H) + SZ('07') + DT('61 21 00 00 81 00 04'), # Cruise control Cancel
+                        HD(ECU_R_ADDR_H) + SZ('07') + DT('61 21 00 00 81 00 10'), # Cruise control Up
+                        HD(ECU_R_ADDR_H) + SZ('07') + DT('61 21 00 00 81 00 08'), # Cruise control Down
+                        HD(ECU_R_ADDR_H) + SZ('07') + DT('61 21 00 00 81 3C 00')  # Cruise on
                         ]
         },
         'CUSTOM_P': {
@@ -3214,9 +3221,9 @@ ObdMessage = {
             'Unit': 'Off/On',
             'Header': ECU_ADDR_H,
             'Response': [
-                        ECU_R_ADDR_H + ' 04 61 25 00 40 \r',
-                        ECU_R_ADDR_H + ' 04 61 25 02 00 \r',
-                        ECU_R_ADDR_H + ' 04 61 25 00 00 \r'
+                        HD(ECU_R_ADDR_H) + SZ('04') + DT('61 25 00 40'),
+                        HD(ECU_R_ADDR_H) + SZ('04') + DT('61 25 02 00'),
+                        HD(ECU_R_ADDR_H) + SZ('04') + DT('61 25 00 00')
                         ]
         },
         'CUSTOM_ODO': {
@@ -3227,7 +3234,7 @@ ObdMessage = {
             'Max': '16777215',
             'Unit': 'km',
             'Header': ECU_ADDR_H,
-            'Response': ECU_R_ADDR_H + ' 05 61 28 00 EA 5C \r'
+            'Response': HD(ECU_R_ADDR_H) + SZ('05') + DT('61 28 00 EA 5C')
         },
         'CUSTOM_SHIFT_J': {
             'Request': '^2141' + ELM_MAX_RESP,
@@ -3240,36 +3247,36 @@ ObdMessage = {
                         # Second group:     AA BB
                         # AA = 36, 38, 3A
                         # BB = (Park button pressed) 3A, 3B, 3C, 43, 75 (off), 88, 89, 90 (Park released)
-                        ECU_R_ADDR_H + ' 10 08 61 41 6D 6D 4A 4A \r' + # default position (center, right)
-                        ECU_R_ADDR_H + ' 21 38 89 00 00 00 00 00 \r',  # park button released
-                        ECU_R_ADDR_H + ' 10 08 61 41 6D 6D 4A 4A \r' + # default position
-                        ECU_R_ADDR_H + ' 21 38 3B 00 00 00 00 00 \r',  # park button pressed
-                        ECU_R_ADDR_H + ' 10 08 61 41 6D 6D 4A 49 \r' + # center, middle
-                        ECU_R_ADDR_H + ' 21 38 89 00 00 00 00 00 \r',
-                        ECU_R_ADDR_H + ' 10 08 61 41 6D 6D 4A B3 \r' + # center, middle
-                        ECU_R_ADDR_H + ' 21 38 89 00 00 00 00 00 \r',
-                        ECU_R_ADDR_H + ' 10 08 61 41 6D 6D B5 B2 \r' + # moved to "N" position (center, left)
-                        ECU_R_ADDR_H + ' 21 38 89 00 00 00 00 00 \r',
-                        ECU_R_ADDR_H + ' 10 08 61 41 BE BE 4A 4A \r' + # moved to "B" position (down, right)
-                        ECU_R_ADDR_H + ' 21 38 89 00 00 00 00 00 \r',
-                        ECU_R_ADDR_H + ' 10 08 61 41 C5 C6 B5 B2 \r' + # moved to "D" position (down, left)
-                        ECU_R_ADDR_H + ' 21 38 89 00 00 00 00 00 \r',
-                        ECU_R_ADDR_H + ' 10 08 61 41 1A 1B B5 B2 \r' + # moved to "R" position (up, left)
-                        ECU_R_ADDR_H + ' 21 38 89 00 00 00 00 00 \r',
-                        ECU_R_ADDR_H + ' 10 08 61 41 6D 6D 4B 4A \r' + # default (center, right)
-                        ECU_R_ADDR_H + ' 21 36 89 00 00 00 00 00 \r',
-                        ECU_R_ADDR_H + ' 10 08 61 41 C4 C4 4A 49 \r' + # moved to "B" position (down, right)
-                        ECU_R_ADDR_H + ' 21 38 89 00 00 00 00 00 \r',
-                        ECU_R_ADDR_H + ' 10 08 61 41 1B 1B B5 B2 \r' + # moved to "R" position (up, left)
-                        ECU_R_ADDR_H + ' 21 38 89 00 00 00 00 00 \r',
-                        ECU_R_ADDR_H + ' 10 08 61 41 C4 C4 B5 B2 \r' + # moved to "D" position (down, left)
-                        ECU_R_ADDR_H + ' 21 38 89 00 00 00 00 00 \r',
-                        ECU_R_ADDR_H + ' 10 08 61 41 70 70 B5 B2 \r' + # moved to "N" position (center, left)
-                        ECU_R_ADDR_H + ' 21 38 89 00 00 00 00 00 \r',
-                        ECU_R_ADDR_H + ' 10 08 61 41 6E 6E B5 B2 \r' + # moved to "N" position (center, left)
-                        ECU_R_ADDR_H + ' 21 38 89 00 00 00 00 00 \r',
-                        ECU_R_ADDR_H + ' 10 08 61 41 6E 6E 4A 4A \r' + # default (center, right)
-                        ECU_R_ADDR_H + ' 21 38 89 00 00 00 00 00 \r'
+                        HD(ECU_R_ADDR_H) + SZ('10') + DT('08 61 41 6D 6D 4A 4A') + # default position (center, right)
+                        HD(ECU_R_ADDR_H) + SZ('21') + DT('38 89 00 00 00 00 00'),  # park button released
+                        HD(ECU_R_ADDR_H) + SZ('10') + DT('08 61 41 6D 6D 4A 4A') + # default position
+                        HD(ECU_R_ADDR_H) + SZ('21') + DT('38 3B 00 00 00 00 00'),  # park button pressed
+                        HD(ECU_R_ADDR_H) + SZ('10') + DT('08 61 41 6D 6D 4A 49') + # center, middle
+                        HD(ECU_R_ADDR_H) + SZ('21') + DT('38 89 00 00 00 00 00'),
+                        HD(ECU_R_ADDR_H) + SZ('10') + DT('08 61 41 6D 6D 4A B3') + # center, middle
+                        HD(ECU_R_ADDR_H) + SZ('21') + DT('38 89 00 00 00 00 00'),
+                        HD(ECU_R_ADDR_H) + SZ('10') + DT('08 61 41 6D 6D B5 B2') + # moved to "N" position (center, left)
+                        HD(ECU_R_ADDR_H) + SZ('21') + DT('38 89 00 00 00 00 00'),
+                        HD(ECU_R_ADDR_H) + SZ('10') + DT('08 61 41 BE BE 4A 4A') + # moved to "B" position (down, right)
+                        HD(ECU_R_ADDR_H) + SZ('21') + DT('38 89 00 00 00 00 00'),
+                        HD(ECU_R_ADDR_H) + SZ('10') + DT('08 61 41 C5 C6 B5 B2') + # moved to "D" position (down, left)
+                        HD(ECU_R_ADDR_H) + SZ('21') + DT('38 89 00 00 00 00 00'),
+                        HD(ECU_R_ADDR_H) + SZ('10') + DT('08 61 41 1A 1B B5 B2') + # moved to "R" position (up, left)
+                        HD(ECU_R_ADDR_H) + SZ('21') + DT('38 89 00 00 00 00 00'),
+                        HD(ECU_R_ADDR_H) + SZ('10') + DT('08 61 41 6D 6D 4B 4A') + # default (center, right)
+                        HD(ECU_R_ADDR_H) + SZ('21') + DT('36 89 00 00 00 00 00'),
+                        HD(ECU_R_ADDR_H) + SZ('10') + DT('08 61 41 C4 C4 4A 49') + # moved to "B" position (down, right)
+                        HD(ECU_R_ADDR_H) + SZ('21') + DT('38 89 00 00 00 00 00'),
+                        HD(ECU_R_ADDR_H) + SZ('10') + DT('08 61 41 1B 1B B5 B2') + # moved to "R" position (up, left)
+                        HD(ECU_R_ADDR_H) + SZ('21') + DT('38 89 00 00 00 00 00'),
+                        HD(ECU_R_ADDR_H) + SZ('10') + DT('08 61 41 C4 C4 B5 B2') + # moved to "D" position (down, left)
+                        HD(ECU_R_ADDR_H) + SZ('21') + DT('38 89 00 00 00 00 00'),
+                        HD(ECU_R_ADDR_H) + SZ('10') + DT('08 61 41 70 70 B5 B2') + # moved to "N" position (center, left)
+                        HD(ECU_R_ADDR_H) + SZ('21') + DT('38 89 00 00 00 00 00'),
+                        HD(ECU_R_ADDR_H) + SZ('10') + DT('08 61 41 6E 6E B5 B2') + # moved to "N" position (center, left)
+                        HD(ECU_R_ADDR_H) + SZ('21') + DT('38 89 00 00 00 00 00'),
+                        HD(ECU_R_ADDR_H) + SZ('10') + DT('08 61 41 6E 6E 4A 4A') + # default (center, right)
+                        HD(ECU_R_ADDR_H) + SZ('21') + DT('38 89 00 00 00 00 00')
                         ]
         },
         'CUSTOM_SMRP': {
@@ -3280,7 +3287,7 @@ ObdMessage = {
             'Max': '1',
             'Unit': 'Off/On',
             'Header': ECU_ADDR_H,
-            'Response': ECU_R_ADDR_H + ' 05 61 44 60 00 60 \r'
+            'Response': HD(ECU_R_ADDR_H) + SZ('05') + DT('61 44 60 00 60')
         },
         'CUSTOM_MG2_TORQ': {
             'Request': '^2168' + ELM_MAX_RESP,
@@ -3291,10 +3298,10 @@ ObdMessage = {
             'Unit': 'Nm',
             'Header': ECU_ADDR_H,
             'Response': [
-                        ECU_R_ADDR_H + ' 07 61 68 80 00 80 00 00 \r',
-                        ECU_R_ADDR_H + ' 07 61 68 7F 9B 7F AA 00 \r',
-                        ECU_R_ADDR_H + ' 07 61 68 80 00 7F FC 00 \r',
-                        ECU_R_ADDR_H + ' 07 61 68 80 2F 80 34 00 \r'
+                        HD(ECU_R_ADDR_H) + SZ('07') + DT('61 68 80 00 80 00 00'),
+                        HD(ECU_R_ADDR_H) + SZ('07') + DT('61 68 7F 9B 7F AA 00'),
+                        HD(ECU_R_ADDR_H) + SZ('07') + DT('61 68 80 00 7F FC 00'),
+                        HD(ECU_R_ADDR_H) + SZ('07') + DT('61 68 80 2F 80 34 00')
                         ]
         },
         'CUSTOM_KPH_7C0': {
@@ -3305,7 +3312,7 @@ ObdMessage = {
             'Max': '199',
             'Unit': 'km/h',
             'Header': ECU_ADDR_I,
-            'Response': ECU_R_ADDR_I + ' 03 61 21 00 \r'
+            'Response': HD(ECU_R_ADDR_I) + SZ('03') + DT('61 21 00')
         },
         'CUSTOM_COOLANT_7C0': {
             'Request': '^2123' + ELM_MAX_RESP,
@@ -3315,7 +3322,7 @@ ObdMessage = {
             'Max': '127.5',
             'Unit': 'C',
             'Header': ECU_ADDR_I,
-            'Response': ECU_R_ADDR_I + ' 03 61 23 47 \r'
+            'Response': HD(ECU_R_ADDR_I) + SZ('03') + DT('61 23 47')
         },
         'CUSTOM_H_S_I': {
             'Request': '^212B' + ELM_MAX_RESP,
@@ -3325,7 +3332,7 @@ ObdMessage = {
             'Max': '511',
             'Unit': '%',
             'Header': ECU_ADDR_I,
-            'Response': ECU_R_ADDR_I + ' 04 61 2B 02 00 \r'
+            'Response': HD(ECU_R_ADDR_I) + SZ('04') + DT('61 2B 02 00')
         },
         'CUSTOM_KEYBUZ': {
             'Request': '^21A1' + ELM_MAX_RESP,
@@ -3335,7 +3342,7 @@ ObdMessage = {
             'Max': '255',
             'Unit': '',
             'Header': ECU_ADDR_I,
-            'Response': ECU_R_ADDR_I + ' 03 61 A1 18 \r'
+            'Response': HD(ECU_R_ADDR_I) + SZ('03') + DT('61 A1 18')
         },
         'CUSTOM_A/M_STP_D': {
             'Request': '^2141' + ELM_MAX_RESP,
@@ -3345,7 +3352,7 @@ ObdMessage = {
             'Max': '383',
             'Unit': '',
             'Header': ECU_ADDR_P,
-            'Response': ECU_R_ADDR_P + ' 06 61 41 1A 1A 00 00 \r'
+            'Response': HD(ECU_R_ADDR_P) + SZ('06') + DT('61 41 1A 1A 00 00')
         },
         'CUSTOM_STROKE': {
             'Request': '^2104' + ELM_MAX_RESP,
@@ -3356,11 +3363,11 @@ ObdMessage = {
             'Unit': 'V',
             'Header': ECU_ADDR_S,
             'Response': [
-                        ECU_R_ADDR_S + ' 06 61 04 29 D6 BF 19 \r',
-                        ECU_R_ADDR_S + ' 06 61 04 29 D6 B8 19 \r',
-                        ECU_R_ADDR_S + ' 06 61 04 29 D6 BE 19 \r',
-                        ECU_R_ADDR_S + ' 06 61 04 3F BF B4 41 \r',
-                        ECU_R_ADDR_S + ' 06 61 04 29 D6 B9 19 \r'
+                        HD(ECU_R_ADDR_S) + SZ('06') + DT('61 04 29 D6 BF 19'),
+                        HD(ECU_R_ADDR_S) + SZ('06') + DT('61 04 29 D6 B8 19'),
+                        HD(ECU_R_ADDR_S) + SZ('06') + DT('61 04 29 D6 BE 19'),
+                        HD(ECU_R_ADDR_S) + SZ('06') + DT('61 04 3F BF B4 41'),
+                        HD(ECU_R_ADDR_S) + SZ('06') + DT('61 04 29 D6 B9 19')
                         ]
         },
         'CUSTOM_DECELSEN': {
@@ -3372,9 +3379,9 @@ ObdMessage = {
             'Unit': 'm/s2',
             'Header': ECU_ADDR_S,
             'Response': [
-                        ECU_R_ADDR_S + ' 05 61 05 7F 80 1F \r',
-                        ECU_R_ADDR_S + ' 05 61 05 7F 80 00 \r',
-                        ECU_R_ADDR_S + ' 05 61 05 7E 80 00 \r'
+                        HD(ECU_R_ADDR_S) + SZ('05') + DT('61 05 7F 80 1F'),
+                        HD(ECU_R_ADDR_S) + SZ('05') + DT('61 05 7F 80 00'),
+                        HD(ECU_R_ADDR_S) + SZ('05') + DT('61 05 7E 80 00')
                         ]
         },
         'CUSTOM_BRKFLUID': {
@@ -3386,8 +3393,8 @@ ObdMessage = {
             'Unit': 'Off/On',
             'Header': ECU_ADDR_S,
             'Response': [
-                        ECU_R_ADDR_S + ' 03 61 1D 00 \r',
-                        ECU_R_ADDR_S + ' 03 61 1D 20 \r'
+                        HD(ECU_R_ADDR_S) + SZ('03') + DT('61 1D 00'),
+                        HD(ECU_R_ADDR_S) + SZ('03') + DT('61 1D 20')
                         ]
         },
         'CUSTOM_STPSW': {
@@ -3399,8 +3406,8 @@ ObdMessage = {
             'Unit': 'Off/On',
             'Header': ECU_ADDR_S,
             'Response': [
-                        ECU_R_ADDR_S + ' 03 61 1F 00 \r',
-                        ECU_R_ADDR_S + ' 03 61 1F 80 \r'
+                        HD(ECU_R_ADDR_S) + SZ('03') + DT('61 1F 00'),
+                        HD(ECU_R_ADDR_S) + SZ('03') + DT('61 1F 80')
                         ]
         },
         'CUSTOM_KPH_7B0': {
@@ -3411,7 +3418,7 @@ ObdMessage = {
             'Max': '200',
             'Unit': 'km/h',
             'Header': ECU_ADDR_S,
-            'Response': ECU_R_ADDR_S + ' 03 61 21 00 \r'
+            'Response': HD(ECU_R_ADDR_S) + SZ('03') + DT('61 21 00')
         },
         'CUSTOM_STPRELAY': {
             'Request': '^213C' + ELM_MAX_RESP,
@@ -3421,7 +3428,7 @@ ObdMessage = {
             'Max': '1',
             'Unit': 'Off/On',
             'Header': ECU_ADDR_S,
-            'Response': ECU_R_ADDR_S + ' 03 61 3C 00 \r'
+            'Response': HD(ECU_R_ADDR_S) + SZ('03') + DT('61 3C 00')
         },
         'CUSTOM_ABS': {
             'Request': '^213D' + ELM_MAX_RESP,
@@ -3431,7 +3438,7 @@ ObdMessage = {
             'Max': '1',
             'Unit': 'Off/On',
             'Header': ECU_ADDR_S,
-            'Response': ECU_R_ADDR_S + ' 04 61 3D 00 00 \r'
+            'Response': HD(ECU_R_ADDR_S) + SZ('04') + DT('61 3D 00 00')
         },
         'CUSTOM_FR_WA': {
             'Request': '^2142' + ELM_MAX_RESP,
@@ -3441,7 +3448,7 @@ ObdMessage = {
             'Max': '10',
             'Unit': 'm/s2',
             'Header': ECU_ADDR_S,
-            'Response': ECU_R_ADDR_S + ' 06 61 42 00 00 00 00 \r'
+            'Response': HD(ECU_R_ADDR_S) + SZ('06') + DT('61 42 00 00 00 00')
         },
         'CUSTOM_0DECEL': {
             'Request': '^2146' + ELM_MAX_RESP,
@@ -3451,8 +3458,8 @@ ObdMessage = {
             'Max': '24.91',
             'Unit': 'm/s2',
             'Header': ECU_ADDR_S,
-            'Response': ECU_R_ADDR_S + ' 10 09 61 46 00 00 80 80 \r' +
-                        ECU_R_ADDR_S + ' 21 00 01 14 00 00 00 00 \r'
+            'Response': HD(ECU_R_ADDR_S) + SZ('10') + DT('09 61 46 00 00 80 80') +
+                        HD(ECU_R_ADDR_S) + SZ('21') + DT('00 01 14 00 00 00 00')
         },
         'CUSTOM_REGENREQ': {
             'Request': '^2148' + ELM_MAX_RESP,
@@ -3462,7 +3469,7 @@ ObdMessage = {
             'Max': '400',
             'Unit': 'Nm',
             'Header': ECU_ADDR_S,
-            'Response': ECU_R_ADDR_S + ' 06 61 48 00 00 00 00 \r'
+            'Response': HD(ECU_R_ADDR_S) + SZ('06') + DT('61 48 00 00 00 00')
         },
         'CUSTOM_TRAC': {
             'Request': '^215A' + ELM_MAX_RESP,
@@ -3473,9 +3480,9 @@ ObdMessage = {
             'Unit': 'Off/On',
             'Header': ECU_ADDR_S,
             'Response': [
-                        ECU_R_ADDR_S + ' 04 61 5A 00 00 \r',
-                        ECU_R_ADDR_S + ' 04 61 5A 18 00 \r',
-                        ECU_R_ADDR_S + ' 04 61 5A 10 00 \r'
+                        HD(ECU_R_ADDR_S) + SZ('04') + DT('61 5A 00 00'),
+                        HD(ECU_R_ADDR_S) + SZ('04') + DT('61 5A 18 00'),
+                        HD(ECU_R_ADDR_S) + SZ('04') + DT('61 5A 10 00')
                         ]
         },
         'CUSTOM_FR_ABS': {
@@ -3486,7 +3493,7 @@ ObdMessage = {
             'Max': '1',
             'Unit': 'Off/On',
             'Header': ECU_ADDR_S,
-            'Response': ECU_R_ADDR_S + ' 04 61 5F 00 00 \r'
+            'Response': HD(ECU_R_ADDR_S) + SZ('04') + DT('61 5F 00 00')
         },
         'CUSTOM_0YAW2': {
             'Request': '^21A1' + ELM_MAX_RESP,
@@ -3496,7 +3503,7 @@ ObdMessage = {
             'Max': '127',
             'Unit': 'degrees/s',
             'Header': ECU_ADDR_S,
-            'Response': ECU_R_ADDR_S + ' 03 61 A1 80 \r'
+            'Response': HD(ECU_R_ADDR_S) + SZ('03') + DT('61 A1 80')
         },
     }
 }

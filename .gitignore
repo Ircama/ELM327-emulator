@@ -131,3 +131,7 @@ dmypy.json
 *.iml
 .idea/inspectionProfiles/profiles_settings.xml
 .idea/inspectionProfiles/Project_Default.xml
+
+Untitled*.ipynb
+comm_log.txt
+scantool.py

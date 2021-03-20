@@ -377,9 +377,20 @@ def obd_dictionary():
 
     # Print header information
     print("\n".join([ecu[k] + ' = "' + k + '"' for k in ecu]))
-    print('ELM_R_OK = "OK\\r"\n'
-          'ELM_R_UNKNOWN = "?\\r"\n'
-          'ELM_MAX_RESP = "[0123456]?$"\n')
+    print("""
+ELM_R_OK = "OK\\r"
+ELM_R_UNKNOWN = "?\\r"
+ELM_MAX_RESP = "[0123456]?$"
+
+def SZ(size):
+    return ('<size>' + size + '</size>')
+
+def HD(header):
+    return ('<header>' + header + '</header>')
+
+def DT(data):
+    return ('<data>' + data + '</data>')
+""")
     print("ObdMessage = {")
     print("    '" + args.car_name + "': {")
 
@@ -412,11 +423,12 @@ def obd_dictionary():
                 for r in i.raw().splitlines():
                     h = r[:3]  # header
                     if len(r) > 4 and h in ecu and re.match('^[0-9a-fA-F\r\n]*$', r):
-                        s = r[3:]  # bytes
-                        p = " ".join(s[i:i + 2]
-                                     for i in range(0, len(s), 2))  # spaced bytes
+                        s = r[3:5]  # size bytes
+                        d = r[5:]  # data bytes
+                        p = " ".join(d[i:i + 2]
+                                     for i in range(0, len(d), 2))  # spaced bytes
                         p_resp += (" +\n                        " if p_resp
-                                   else '') + ecu[h] + " + ' " + p + " \\r'"
+                                   else '') + 'HD(' + ecu[h] + ") + SZ('" + s + "') + DT('" + p + "')"
                     else: # word (not string of bytes)
                         p_resp += (" +\n                        "
                                    if p_resp else '') + "'" + r\

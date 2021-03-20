@@ -55,6 +55,12 @@ class Elm:
     ELM_SET_PROTO   = r"ATSPA?[0-9A-C]$"
     ELM_ERASE_PROTO = r"ATSP00$"
 
+    def SZ(self, size):
+        return(size)
+
+    def HD(self, header):
+        return(header)
+
     class THREAD:
         STOPPED = 0
         STARTING = 1
@@ -71,14 +77,17 @@ class Elm:
         return (" ".join(s[i:i + 2] for i in range(0, len(s), 2)))
 
     def reset(self, sleep):
-        """ returns all settings to their defaults """
+        """ returns all settings to their defaults.
+            Called each time the interface is opened.
+        """
         logging.debug("Resetting counters and sleeping for %s seconds", sleep)
         time.sleep(sleep)
         for i in [k for k in self.counters if k.startswith('cmd_')]:
             del (self.counters[i])
         self.counters['ELM_PIDS_A'] = 0
         self.counters['ELM_MIDS_A'] = 0
-        self.counters["cmd_header"] = ECU_ADDR_E
+        self.counters['cmd_header'] = ECU_ADDR_E
+        self.counters.update(self.presets)
 
     def set_defaults(self):
         self.scenario = 'default'
@@ -86,6 +95,7 @@ class Elm:
         self.max_req_timeout = 1440
         self.answer = {}
         self.counters = {}
+        self.counters.update(self.presets)
 
     def setSortedOBDMsg(self):
         if 'default' in self.ObdMessage and 'AT' in self.ObdMessage:
@@ -102,6 +112,7 @@ class Elm:
             self.sortedOBDMsg.items(), key=lambda x: x[1]['Priority'] if 'Priority' in x[1] else 10)
 
     def __init__(self, batch_mode=False, serial_port=""):
+        self.presets = {}
         self.ObdMessage = ObdMessage
         self.ELM_R_UNKNOWN = ELM_R_UNKNOWN
         self.set_defaults()
@@ -284,6 +295,15 @@ class Elm:
     def write(self, resp):
         """ write a response to the port """
 
+        if ("cmd_use_header" in self.counters and
+                self.counters["cmd_use_header"]):
+            resp = re.sub(r"(?s)<header>(.*?)</header>", r"\1", resp)
+            resp = re.sub(r"(?s)<size>(.*?)</size>", r" \1 ", resp)
+        else:
+            resp = re.sub(r"(?s)<header>(.*?)</header>", r"", resp)
+            resp = re.sub(r"(?s)<size>(.*?)</size>", r"", resp)
+        resp = re.sub(r"(?s)<data>(.*?)</data>", r"\1 \r", resp)
+
         n = "\r"
         if 'cmd_linefeeds' in self.counters:
             if self.counters['cmd_linefeeds'] == 1:
@@ -446,12 +466,22 @@ class Elm:
         if cmd == '':
             logging.info("No ELM command")
             return ""
+        if self.is_hex_sp(cmd):
+            if "cmd_header" in self.counters:
+                logging.info("Unknown request: %s, header=%s",
+                             repr(cmd), self.counters["cmd_header"])
+            else:
+                logging.info("Unknown request: %s", repr(cmd))
+            return 'NO DATA'
         if "cmd_header" in self.counters:
             logging.info("Unknown ELM command: %s, header=%s",
                          repr(cmd), self.counters["cmd_header"])
         else:
             logging.info("Unknown ELM command: %s", repr(cmd))
         return self.ELM_R_UNKNOWN
+
+    def is_hex_sp(self, s):
+        return re.match(r"^[0-9a-fA-F \t\r\n]*$", s or "") is not None
 
     def sanitize(self, cmd):
         cmd = cmd.replace(" ", "")
