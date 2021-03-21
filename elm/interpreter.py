@@ -204,11 +204,16 @@ class Interpreter(Cmd):
                     logging.getLogger().handlers[0].level)
 
     def do_tty(self, arg):
-        "Print the used pseudo-tty."
+        "Print the used TCP/IP port or the pseudo-tty, "\
+        "depending on the selected interface."
         if arg:
             print ("Invalid format")
             return
-        print(self.emulator.slave_name)
+        if self.emulator.sock_inet:
+            msg = 'TCP network port ' + str(self.emulator.net_port)
+        else:
+            msg = 'Serial pty device ' + self.emulator.slave_name
+        print(msg)
 
     def do_counters(self, arg):
         "Print the number of each executed PID (upper case names), the values\n"\
@@ -480,6 +485,16 @@ def main():
         nargs = 1,
         metavar = 'SCENARIO'
     )
+    parser.add_argument(
+        '-n', '--net',
+        dest = 'net_port',
+        type=int,
+        choices=range(1024, 65535),
+        help = "Set the INET socket port used by ELM327-emulator.",
+        default = None,
+        nargs = 1,
+        metavar = 'INET_SOCKET'
+    )
     args = parser.parse_args()
 
     if args.version:
@@ -495,8 +510,9 @@ def main():
         args.daemon_mode = False
         args.terminate = False
 
-    emulator = Elm(args.batch_mode or args.daemon_mode,
-        args.serial_port[0])
+    emulator = Elm(batch_mode=args.batch_mode or args.daemon_mode,
+        serial_port=args.serial_port[0],
+        net_port=args.net_port[0] if args.net_port else None)
 
     if os.name != 'nt':
         if os.getuid() == 0:
@@ -580,14 +596,18 @@ def main():
         print(f'Warning: lockfile "{daemon_pid_fname}" reports pid {pid}.')
 
     p_elm = None
+    pty_name = None
     try:
         with emulator as session:
             while session.threadState == session.THREAD.STARTING:
                 time.sleep(0.1)
-            pty_name = session.get_pty()
-            if args.batch_mode:
-                print(pty_name)
-            sys.stdout.flush()
+            if args.net_port:
+                pty_name = "TCP network port " + str(args.net_port[0]) + "."
+            else:
+                pty_name = session.get_pty()
+                if args.batch_mode:
+                    print(pty_name)
+                sys.stdout.flush()
             if args.scenario[0]:
                 set_scenario(session, args.scenario[0])
             if pty_name == None:

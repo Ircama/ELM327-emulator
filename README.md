@@ -3,7 +3,7 @@ ELM327-emulator
 
 __A Python emulator of the ELM327 OBD-II adapter connected to a vehicle.__
 
-*ELM327-emulator* provides a virtual serial communication port to client applications (via [pseudo-terminal](https://en.wikipedia.org/wiki/Pseudoterminal) function on UNIX/Linux, or via [pyserial](https://pypi.org/project/pyserial/) library on Windows) and simulates an [ELM327](https://en.wikipedia.org/wiki/ELM327) adapter connected to a vehicle through the [OBD-II](https://en.wikipedia.org/wiki/On-board_diagnostics) protocol. It includes a command-line interface for extensive monitoring and controlling.
+*ELM327-emulator* provides a virtual serial communication port to client applications via TCP/IP networking, or serial communication (using the [pseudo-terminal](https://en.wikipedia.org/wiki/Pseudoterminal) function on UNIX/Linux, or the [pyserial](https://pypi.org/project/pyserial/) library on Windows) and simulates an [ELM327](https://en.wikipedia.org/wiki/ELM327) adapter connected to a vehicle through the [OBD-II](https://en.wikipedia.org/wiki/On-board_diagnostics) protocol. It includes a command-line interface for extensive monitoring and controlling.
 
 *ELM327-emulator* is agnostic of the client application accessing the serial port and has been tested with [python-OBD](https://github.com/brendan-w/python-OBD).
 
@@ -58,9 +58,15 @@ or simply:
 elm
 ```
 
-After starting the program, the emulator is ready to use. To enable the preconfigured set of PIDs of a Toyota Auris Hybrid car, enter `scenario car`.
+After starting the program, the emulator is ready to use. To enable the preconfigured set of PIDs of a Toyota Auris Hybrid car, enter `scenario car` (or, alternatively, run the emulator with the `-s car` option, i.e `python3 -m elm -s car`).
 
-The external application interfacing the emulator just needs to connect to the virtual device shown by the emulator and interact with the vehicle as if it was accessing a real ELM327 adapter.
+By default *ELM327-emulator* uses the serial communication. The external application interfacing the emulator just needs to connect to the virtual device shown by the emulator and interact with the vehicle as if it was accessing a real ELM327 adapter.
+
+Alternatively to the serial communication, *ELM327-emulator* supports TCP/IP networking through the `-n` option, followed by the port number (wich in most cases is 35000). Example:
+
+```shell
+python3 -m elm -n 35000
+```
 
 All subsequent information are not needed for a basic usage of the tool and allow mastering *ELM327-emulator*, exploiting it to test specific features including the simulation of communication exceptions, which are not always easy to be reproduced with a real link.
 
@@ -68,7 +74,7 @@ All subsequent information are not needed for a basic usage of the tool and allo
 
 *ELM327-emulator* has been tested with Python 3.5, 3.6 and 3.7. Python 2 is not supported.
 
-With UNIX OSs, this code uses pty pseudo-terminals. With Windows, you should first install [com0com](https://sourceforge.net/projects/com0com) (a kernel-mode virtual serial port driver), or [other virtual serial port software](http://com0com.sourceforge.net/); alternatively, [cygwin](http://www.cygwin.com/) and [Windows Subsystem for Linux](https://docs.microsoft.com/en-us/windows/wsl) (WSL) are supported.
+When using serial communication, with UNIX OSs, this code uses pty pseudo-terminals. With Windows, you should first install [com0com](https://sourceforge.net/projects/com0com) (a kernel-mode virtual serial port driver), or [other virtual serial port software](http://com0com.sourceforge.net/); alternatively, [cygwin](http://www.cygwin.com/) and [Windows Subsystem for Linux](https://docs.microsoft.com/en-us/windows/wsl) (WSL) are supported.
 
 # Running on Windows
 
@@ -129,7 +135,7 @@ In `'ResponseFooter'`, `'ResponseHeader'` and `'Response'`, spaces are stripped 
 At the `CMD> ` prompt, the emulator accepts the following commands:
 
 - `help` = List available commands (or detailed help with "help cmd").
-- `tty` = Print the used pseudo-tty.
+- `tty` = Print the used TCP/IP port or the pseudo-tty, depending on the selected interface.
 - `loglevel` = If an argument is given, set the logging level, otherwise show the current one. Valid numbers: CRITICAL=50, ERROR=40, WARNING=30, INFO=20, DEBUG=10.
 - `quit` (or end-of-file/Control-D, or break/Control-C) = quit the program
 - `counters` = print the number of each executed PIDs (upper case names), the values associated to some 'AT' PIDs (*cmd_...*), the unknown requests, the emulator response delay, the total number of executed commands (*commands*) and the current scenario (*scenario*). The related dictionary is `emulator.counters`.
@@ -153,7 +159,7 @@ At the command prompt, cursors and [keyboard shortcuts](https://github.com/chzye
 
 ## Special setters
 
-The counters starting with *cmd_...* are special setters. They include `cmd_echo`, `cmd_linefeeds`, `cmd_spaces`, `cmd_header`, `cmd_use_header`.
+The counters starting with *cmd_...* are special setters. They include `cmd_echo`, `cmd_linefeeds`, `cmd_spaces`, `cmd_header`, `cmd_use_header`, `cmd_last_cmd`.
 
 *echo* and *linefeed* settings are both disabled by default. They can be configured via related AT commands (*ATE1* and *ATL1*). The special setters `cmd_echo` and `cmd_linefeeds` allow enabling them via command line. Example:
 
@@ -176,6 +182,8 @@ Space characters are inserted by default in the ECU response as per specificatio
 By default the header is not included in the ECU response. To add it, use the AT command *ATH1* or `emulator.counters['cmd_use_header'] = True`.
 
 The default ECU header is ECU_ADDR_E (e.g., "7E0", producing answer "7E8"; ref. *obd_message.py*). Use `cmd_header` to customize it.
+
+The last executed command is stored in `cmd_last_cmd`. This is used to repeat the command when the 'fast' option is set (command repetition, through a newline).
 
 Each time the interface is reset by an *ATZ* command, the special setters are restored to their default settings and any specific customization needs to be issued again. Use `emulator.presets` in order to preset the special setters so that they are applied as default values each time the interface is opened by an application. Example:
 
@@ -481,7 +489,7 @@ python3 -m obd_dictionary -i /dev/ttyUSB0 -B 38400 -r 2>&1 | lnav
 
 When the tests provide successful connection, the `-r` option can be removed and the additional *obd_dictionary* options can be added.
 
-*obd_dictionary* can be also used to test *elm*. Run `python3 -m elm`; select `scenario car`. Read the pseudotty, say */dev/pts/2*. Run *obd_dictionary*:
+*obd_dictionary* can be also used to test *elm*. Run `python3 -m elm -s car`. Read the pseudo-tty, say */dev/pts/2* (this mode uses the serial communication). Run *obd_dictionary*:
 
 ```shell
 python3 -m obd_dictionary -i /dev/pts/2 2>&1 | lnav
@@ -518,24 +526,24 @@ obd_dictionary -i /dev/ttyUSB0 -c auris.csv -o AurisOutput.py -n default -t elm/
 The description of the *ELM327-emulator* command-line option is the following:
 
 ```
-usage: elm [-h] [-V] [-t] [-d] [-b FILE] [-p PORT] [-s SCENARIO]
+usage: elm [-h] [-V] [-t] [-d] [-b FILE] [-p PORT] [-s SCENARIO] [-n INET_SOCKET]
 
 optional arguments:
   -h, --help            show this help message and exit
   -V, --version         print ELM327-emulator version and exit
-  -t, --terminate       terminate a daemon process sending SIGTERM
+  -t, --terminate       terminate the daemon process sending SIGTERM
   -d, --daemon          Run ELM327-emulator in daemon mode.
   -b FILE, --batch FILE
-                        Run ELM327-emulator in batch mode. Argument is the
-                        output file. The first line in that file will be the
-                        virtual serial device
-  -p PORT, --port PORT  Set the com0com serial port listened by
-                        ELM327-emulator when running under windows OS. Default
-                        is COM3.
+                        Run ELM327-emulator in batch mode. Argument is the output file. The first line in
+                        that file will be the virtual serial device
+  -p PORT, --port PORT  Set the com0com serial port listened by ELM327-emulator when running under windows
+                        OS. Default is COM3.
   -s SCENARIO, --scenario SCENARIO
                         Set the scenario used by ELM327-emulator.
+  -n INET_SOCKET, --net INET_SOCKET
+                        Set the INET socket port used by ELM327-emulator.
 
-ELM327-emulator v0.1.1 - ELM327 OBDII adapter emulator
+ELM327-emulator v2.0.0 - ELM327 OBDII adapter emulator
 ```
 
 *elm* offers four operation modes:
@@ -622,6 +630,33 @@ When not using the Context Manager, no background thread is created and the pipe
 
 # Testing OBD-II applications
 
+## Simple testing
+
+With UNIX, the serial communication can be tested with *screen*.
+
+```shell
+python3 -m elm
+```
+
+In another terminal:
+
+```shell
+sudo apt-get install screen
+screen /dev/pts/3
+```
+
+The TCP/IP networking can be tested via *telnet*.
+
+```shell
+python3 -m elm -n 35000
+```
+In another terminal:
+
+```shell
+sudo apt-get install telnet
+telnet localhost 35000
+```
+
 ## OBD Auto Doctor
 
 One of the most useful applications which can be used to test *ELM327-emulator* is [OBD Auto Doctor](https://www.obdautodoctor.com/). It supports different operating systems, including Windows, Mac, Linux, Android, iOS and enables communicating with OBDII to get summary information, trouble codes, advanced diagnostics, real time graphical monitoring and many other in-depth data on the EQUs.
@@ -635,13 +670,20 @@ Install with `sudo dpkg -i obd-auto-doctor....deb`.
 Run *ELM327-emulator* and select the *car* scenario:
 
 ```shell
-python -m elm
-scenario car
+python -m elm -s car
 ```
 
-Copy the pseudo-tty device reported by *ELM327-emulator*.
+This mode uses the serial communication. Copy the pseudo-tty device reported by *ELM327-emulator*.
 
-Run OBD Auto Doctor with `obdautodoctor`. Then select File, Open connection, Use manual settings. Paste the pseudo-tty device in the COM port box. Press Connect.
+Run *OBD Auto Doctor* with `obdautodoctor`. Then select File, Open connection, Connection method: Serial port. Use manual settings. Paste the pseudo-tty device in the COM port box. Press Connect.
+
+*OBD Auto Doctor* also supports TCP/IP communication. Run *ELM327-emulator* using TCP/IP networking:
+
+```shell
+python -m elm -s car -n 35000
+```
+
+Run *OBD Auto Doctor* with `obdautodoctor`. Then select File, Open connection, Connection method: WiFi. IP address: 127.0.0.1. Port: 35000. Press Connect.
 
 ## scantool
 
