@@ -587,7 +587,8 @@ from elm import Elm
 
 emulator = Elm(
     batch_mode=False,           # optional flag to indicate different logging for batch mode
-    serial_port="")             # optional serial port used with Windows (ignored with non Windows O.S.)
+    serial_port="",             # optional serial port used with Windows (ignored with non Windows O.S.)
+    net_port==None)             # number for the optional TCP/IP network port, alternative to serial_port
 ```
 
 `get_pty()` returns the used port.
@@ -604,6 +605,16 @@ with Elm() as session:
     # interactive monitoring
     pty = session.get_pty()
     print(f"Used port: {pty}")
+    time.sleep(40) # example
+```
+
+Example of TCP/IP network usage:
+
+```python
+from elm import Elm
+import time
+
+with Elm(net_port=35000) as session:
     time.sleep(40) # example
 ```
 

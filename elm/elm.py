@@ -245,9 +245,15 @@ class Elm:
         self.choice = choice
 
         if self.sock_inet:
-            msg = 'at port ' + str(self.net_port)
+            if self.net_port:
+                msg = 'at port ' + str(self.net_port)
+            else:
+                msg = 'with no open TCP/IP port.'
         else:
-            msg = 'on pty "' + self.slave_name + '"'
+            if self.slave_name:
+                msg = 'on pty "' + self.slave_name + '"'
+            else:
+                msg = 'with no available serial device.'
         if self.batch_mode:
             logging.debug(
                 'ELM327 OBD-II adapter emulator v%s started '
