@@ -592,7 +592,7 @@ class Elm:
                              repr(cmd), self.counters["cmd_header"])
             else:
                 logging.info("Unknown request: %s", repr(cmd))
-            return 'NO DATA'
+            return 'NO^DATA'
         if "cmd_header" in self.counters:
             logging.info("Unknown ELM command: %s, header=%s",
                          repr(cmd), self.counters["cmd_header"])
