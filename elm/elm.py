@@ -200,7 +200,7 @@ class Elm:
         self.sock_conn = None
         self.sock_addr = None
         errmsg = "Unknown error"
-        HOST = None
+        HOST = "0.0.0.0"
         for res in socket.getaddrinfo(HOST, self.net_port,
                                       socket.AF_UNSPEC,
                                       socket.SOCK_STREAM, 0,
