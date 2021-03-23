@@ -434,7 +434,7 @@ class Elm:
                 proxy_data = self.fw_sock_inet.recv(1024)
                 logging.info(
                     "Read forward data: %s", repr(proxy_data))
-                return proxy_data.decode()
+                return proxy_data.decode("utf-8", "ignore")
             except socket.timeout:
                 logging.info(
                     "No forward data received.")
@@ -542,7 +542,7 @@ class Elm:
             c = self.read_from_device(1)
             if c is None:
                 return None
-            c = c.decode()
+            c = c.decode("utf-8", "ignore")
             if prev_time + req_timeout < time.time() and first == False:
                 buffer = ""
                 logging.debug("'req_timeout' timeout while reading data: %s", c)
