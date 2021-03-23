@@ -38,7 +38,7 @@ try:
         readline = None
     from .obd_message import ObdMessage, ECU_ADDR_E, ELM_R_OK
 except ImportError as detail:
-    print("ELM327 OBDII adapter emulator error:\n " + str(detail))
+    print("ELM327 OBD-II adapter emulator error:\n " + str(detail))
     sys.exit(1)
 
 DAEMON_PIDFILE_DIR_ROOT = '/var/run/'
@@ -442,7 +442,7 @@ def main():
     # Option handling
     parser = argparse.ArgumentParser(
         epilog='ELM327-emulator v' + __version__ +
-        ' - ELM327 OBDII adapter emulator')
+        ' - ELM327 OBD-II adapter emulator')
     parser.prog = "elm"
     parser.add_argument(
         '-V',
@@ -511,7 +511,7 @@ def main():
         '-H', '--forward_host',
         dest = 'forward_net_host',
         help = "Set the INET host used by ELM327-emulator."
-            "when forwarding the client interaction to a remote OBDII port.",
+            "when forwarding the client interaction to a remote OBD-II port.",
         default = None,
         nargs = 1,
         metavar = 'INET_FORWARD_HOST'
@@ -521,7 +521,7 @@ def main():
         dest = 'forward_net_port',
         type=int,
         help = "Set the INET socket port used by ELM327-emulator "
-            "when forwarding the client interaction to a remote OBDII port.",
+            "when forwarding the client interaction to a remote OBD-II port.",
         default = None,
         nargs = 1,
         metavar = 'INET_FORWARD_PORT'
@@ -697,7 +697,7 @@ def main():
                     'Begin batch commands.')
             else:
                 p_elm.cmdloop_with_keyboard_interrupt(
-                    'Welcome to the ELM327 OBDII adapter emulator.\n'
+                    'Welcome to the ELM327 OBD-II adapter emulator.\n'
                     'ELM327-emulator is running on %s\n'
                     'Type help or ? to list commands.\n' % pty_name)
     except (KeyboardInterrupt, SystemExit):
