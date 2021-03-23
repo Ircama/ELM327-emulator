@@ -14,9 +14,8 @@ import yaml
 import re
 import os
 import socket
-if os.name == 'nt':
-    import serial
-else:
+import serial
+if not os.name == 'nt':
     import pty
 import threading
 import time
@@ -27,6 +26,8 @@ from random import randint, choice
 from .obd_message import ObdMessage, ECU_ADDR_E, ELM_R_OK, ELM_R_UNKNOWN
 from .__version__ import __version__
 
+FORWARD_READ_TIMEOUT = 5.0 # seconds
+SERIAL_BAUDRATE = 38400 # bps
 
 def setup_logging(
         default_path=Path(__file__).stem + '.yaml',
@@ -66,6 +67,7 @@ class Elm:
         STARTING = 1
         ACTIVE = 2
         PAUSED = 3
+        TERMINATED = 4
 
     def Sequence(self, pid, base, max, factor, n_bytes):
         c = self.counters[pid]
@@ -78,7 +80,7 @@ class Elm:
 
     def reset(self, sleep):
         """ returns all settings to their defaults.
-            Called each time the interface is opened.
+            Called by ATZ and ATD.
         """
         logging.debug("Resetting counters and sleeping for %s seconds", sleep)
         time.sleep(sleep)
@@ -111,7 +113,17 @@ class Elm:
         self.sortedOBDMsg = sorted(
             self.sortedOBDMsg.items(), key=lambda x: x[1]['Priority'] if 'Priority' in x[1] else 10)
 
-    def __init__(self, batch_mode=False, serial_port="", net_port=None):
+    def __init__(
+            self,
+            batch_mode=False,
+            serial_port="",
+            serial_baudrate="",
+            net_port=None,
+            forward_net_host=None,
+            forward_net_port=None,
+            forward_serial_port=None,
+            forward_serial_baudrate = None,
+            forward_timeout=None):
         self.presets = {}
         self.ObdMessage = ObdMessage
         self.ELM_R_UNKNOWN = ELM_R_UNKNOWN
@@ -119,12 +131,20 @@ class Elm:
         self.setSortedOBDMsg()
         self.batch_mode = batch_mode
         self.serial_port = serial_port
+        self.serial_baudrate = serial_baudrate
         self.net_port = net_port
+        self.forward_net_host = forward_net_host
+        self.forward_net_port = forward_net_port
+        self.forward_serial_port = forward_serial_port
+        self.forward_serial_baudrate = forward_serial_baudrate
+        self.forward_timeout = forward_timeout
         self.reset(0)
         self.slave_name = None
         self.master_fd = None
         self.slave_fd = None
         self.sock_inet = None
+        self.fw_sock_inet = None
+        self.fw_serial_fd = None
         self.sock_conn = None
         self.sock_addr = None
         self.thread = None
@@ -145,14 +165,16 @@ class Elm:
     def terminate(self):
         """ termination procedure """
         logging.debug("Start termination procedure.")
-        if self.thread and self.threadState != self.THREAD.STOPPED:
+        if (self.thread and
+                self.threadState != self.THREAD.STOPPED and
+                self.threadState != self.THREAD.TERMINATED):
             time.sleep(0.1)
             try:
                 self.thread.join(1)
             except:
                 logging.debug("Cannot join current thread.")
             self.thread = None
-        self.threadState = self.THREAD.STOPPED
+        self.threadState = self.THREAD.TERMINATED
         try:
             if self.slave_fd:
                 os.close(self.slave_fd)
@@ -186,6 +208,8 @@ class Elm:
             af, socktype, proto, canonname, sa = res
             try:
                 self.sock_inet = socket.socket(af, socktype, proto)
+                self.sock_inet.setsockopt(
+                    socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
             except OSError as msg:
                 errmsg = msg
                 self.sock_inet = None
@@ -205,7 +229,9 @@ class Elm:
             break
 
         if self.sock_inet is None:
-            logging.error("Local socket creation failed: %s.", errmsg)
+            logging.error(
+                "Local socket %s creation failed: %s.",
+                self.net_port, errmsg)
             return False
 
         return True
@@ -217,7 +243,7 @@ class Elm:
             try:
                 self.master_fd = serial.Serial(
                     port=self.serial_port,
-                    baudrate=38400)
+                    baudrate=self.serial_baudrate or SERIAL_BAUDRATE)
             except Exception as e:
                 logging.critical("Error while opening %s:\n%s",
                                  repr(self.serial_port), e)
@@ -233,13 +259,21 @@ class Elm:
         return self.slave_name
 
     def run(self):  # daemon thread
+        """
+        This is the core procedure.
+
+        Can be run directly or by the Context Manager through
+        the thread: ref. __enter__()
+
+        No return code.
+        """
         setup_logging()
         self.logger = logging.getLogger()
         if self.net_port:
             if not self.socket_server():
-                logging.debug("Net connection failed.")
-                self.threadState = self.THREAD.STOPPED
+                logging.critical("Net connection failed.")
                 self.terminate()
+                return
         else:
             self.get_pty()
         self.choice = choice
@@ -265,15 +299,16 @@ class Elm:
         """ the ELM's main IO loop """
 
         self.threadState = self.THREAD.ACTIVE
-        while self.threadState != self.THREAD.STOPPED:
-
+        while (self.threadState != self.THREAD.STOPPED and
+               self.threadState != self.THREAD.TERMINATED):
             if self.threadState == self.THREAD.PAUSED:
                 time.sleep(0.1)
                 continue
 
             # get the latest command
             self.cmd = self.read()
-            if self.threadState == self.THREAD.STOPPED:
+            if (self.threadState == self.THREAD.STOPPED or
+                    self.threadState == self.THREAD.TERMINATED):
                 return True
             if self.cmd is None:
                 continue
@@ -314,18 +349,112 @@ class Elm:
             logging.debug("Connected by %s", self.sock_addr)
         return True
 
+    def serial_client(self):
+        if self.fw_serial_fd:
+            return
+        self.fw_serial_fd = serial.Serial(
+            port=self.forward_serial_port,
+            baudrate=int(self.forward_serial_baudrate)
+                if self.forward_serial_baudrate else SERIAL_BAUDRATE,
+            timeout=self.forward_timeout or FORWARD_READ_TIMEOUT)
+
+    def net_client(self):
+        if (self.fw_sock_inet
+                or self.forward_net_host is None
+                or self.forward_net_port is None):
+            return
+        s = None
+        for res in socket.getaddrinfo(
+                self.forward_net_host, self.forward_net_port,
+                socket.AF_UNSPEC, socket.SOCK_STREAM):
+            af, socktype, proto, canonname, sa = res
+            try:
+                s = socket.socket(af, socktype, proto)
+                self.sock_inet.setsockopt(
+                    socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
+            except OSError as msg:
+                s = None
+                continue
+            try:
+                s.connect(sa)
+                s.settimeout(self.forward_timeout or FORWARD_READ_TIMEOUT)
+            except OSError as msg:
+                s.close()
+                s = None
+                continue
+            break
+        if s is None:
+            logging.critical(
+                "Cannot connect to host %s with port %s",
+                self.forward_net_host, self.forward_net_port)
+            self.terminate()
+            return False
+        self.fw_sock_inet = s
+        return True
+
+    def send_receive_forward(self, i):
+        """
+            if a forwarder is active, send data if i is not None
+            and try receiving data until a timeout.
+            Then received data are logged and returned.
+            return False: no connection
+            return None: no data
+            return data: decoded string
+        """
+
+
+        if self.forward_serial_port:
+            if self.fw_serial_fd is None:
+                self.serial_client()
+            if self.fw_serial_fd:
+                if i:
+                    self.fw_serial_fd.write(i)
+                    logging.info(
+                        "Write forward data: %s", repr(i))
+                proxy_data = self.fw_serial_fd.read(1024)
+                logging.info(
+                    "Read forward data: %s", repr(proxy_data))
+                return repr(proxy_data)
+            return False
+
+        if not self.forward_net_host or not self.forward_net_port:
+            return False
+        if self.fw_sock_inet is None:
+            self.net_client()
+        if self.fw_sock_inet:
+            if i:
+                try:
+                    self.fw_sock_inet.sendall(i)
+                    logging.info(
+                        "Write forward data: %s", repr(i))
+                except BrokenPipeError:
+                    logging.error(
+                        "The network link of the OBDII interface dropped.")
+            try:
+                proxy_data = self.fw_sock_inet.recv(1024)
+                logging.info(
+                    "Read forward data: %s", repr(proxy_data))
+                return proxy_data.decode()
+            except socket.timeout:
+                logging.info(
+                    "No forward data received.")
+                return None
+        return False
+
     def read_from_device(self, bytes):
         """
             read from the port; returns up to bytes characters
             (generally 1)
             and processes echo; returns None in case of error
         """
+
+        # Process inet
         c = None
         if self.sock_inet:
             if not self.accept_connection():
                 return None
             try:
-                c = self.sock_conn.recv(bytes).decode()
+                c = self.sock_conn.recv(bytes)
                 if len(c) == 0:
                     logging.debug(
                         "TCP/IP communication terminated by the client.")
@@ -349,32 +478,38 @@ class Elm:
                     "Error while reading from network: %s", msg)
                 return None
             if 'cmd_echo' in self.counters and self.counters['cmd_echo'] == 1:
-                self.sock_conn.sendall(c.encode())
+                self.sock_conn.sendall(c)
             return c
 
+        # Process serial
         try:
+            if not self.master_fd:
+                self.terminate()
+                return None
             if os.name == 'nt':
                 try:
-                    c = self.master_fd.read(bytes).decode()
+                    c = self.master_fd.read(bytes)
                 except Exception:
                     logging.debug(
                         "Error while reading from com0com serial port")
                     return None
                 if 'cmd_echo' in self.counters and self.counters['cmd_echo'] == 1:
-                    self.master_fd.write(c.encode())
+                    self.master_fd.write(c)
             else:
-                c = os.read(self.master_fd, bytes).decode()
+                c = os.read(self.master_fd, bytes)
                 if 'cmd_echo' in self.counters and self.counters['cmd_echo'] == 1:
                     try:
-                        os.write(self.master_fd, c.encode())
+                        os.write(self.master_fd, c)
                     except OSError as e:
                         if e.errno == errno.EBADF or e.errno == errno.EIO:  # [Errno 9] Bad file descriptor/[Errno 5] Input/output error
                             logging.debug("Read interrupted. Terminating.")
                             self.terminate()
+                            return None
                         else:
                             logging.critical("PANIC - Internal OSError in read(): %s", e,
                                              exc_info=True)
                             self.terminate()
+                            return None
         except UnicodeDecodeError as e:
             logging.warning("Invalid character received: %s", e)
             return None
@@ -407,8 +542,7 @@ class Elm:
             c = self.read_from_device(1)
             if c is None:
                 return None
-            if c is None:
-                return ""
+            c = c.decode()
             if prev_time + req_timeout < time.time() and first == False:
                 buffer = ""
                 logging.debug("'req_timeout' timeout while reading data: %s", c)
@@ -419,30 +553,42 @@ class Elm:
             first = False
             buffer += c
 
+        self.send_receive_forward((buffer + '\r').encode())
         return buffer
 
     def write_to_device(self, i):
         """ write a response to the port (no data returned) """
 
+        # Process inet
         if self.sock_inet:
             if not self.accept_connection():
                 self.terminate()
-            self.sock_conn.sendall(i.encode())
+                return
+            try:
+                self.sock_conn.sendall(i)
+            except BrokenPipeError:
+                logging.error("Connection dropped.")
             return
 
+        # Process serial
+        if not self.master_fd:
+            self.terminate()
+            return
         if os.name == 'nt':
-            self.master_fd.write(i.encode())
+            self.master_fd.write(i)
         else:
             try:
-                os.write(self.master_fd, i.encode())
+                os.write(self.master_fd, i)
             except OSError as e:
                 if e.errno == errno.EBADF or e.errno == errno.EIO:  # [Errno 9] Bad file descriptor/[Errno 5] Input/output error
                     logging.debug("Read interrupted. Terminating.")
                     self.terminate()
+                    return
                 else:
                     logging.critical("PANIC - Internal OSError in write(): %s", e,
                                      exc_info=True)
                     self.terminate()
+                    return
 
     def write(self, resp):
         """ process write operation """
@@ -483,7 +629,7 @@ class Elm:
                         evalmsg = re.sub(r'[ \t]+', '', evalmsg)
                     logging.debug("Evaluated command: %s", msg)
                     if evalmsg != None:
-                        self.write_to_device(evalmsg)
+                        self.write_to_device(evalmsg.encode())
                         logging.debug("Written evaluated command: %s",
                                       repr(evalmsg))
                 except Exception:
@@ -498,7 +644,7 @@ class Elm:
                     i = re.sub(r' +', '', i)
                 i = i.replace('^', ' ')
                 logging.debug("Write: %s", repr(i))
-                self.write_to_device(i)
+                self.write_to_device(i.encode())
             j += 1
 
     def validate(self, cmd):
@@ -586,12 +732,22 @@ class Elm:
                         "Internal error - Missing response for %s, PID %s",
                         cmd, pid)
                     return ELM_R_OK
-        if "unknown_" + cmd not in self.counters:
-            self.counters["unknown_" + cmd] = 0
-        self.counters["unknown_" + cmd] += 1
+        if "unknown_" + repr(cmd) not in self.counters:
+            self.counters["unknown_" + repr(cmd)] = 0
+        self.counters["unknown_" + repr(cmd)] += 1
         if cmd == '':
             logging.info("No ELM command")
             return ""
+        fw_data = self.send_receive_forward((cmd + '\r').encode())
+        if fw_data is not False:
+            self.counters["unknown_" + repr(cmd) + "_R"] = repr(fw_data)
+        if (fw_data is not False and
+                re.match(r"^NO DATA *\r", fw_data or "") is None and
+                re.match(r"^\? *\r", fw_data or "") is None and
+                self.counters["unknown_" + repr(cmd)] == 1):
+            logging.warning(
+                'Missing data in dictionary: %s. Answer:\n%s',
+                repr(cmd), repr(fw_data))
         if self.is_hex_sp(cmd):
             if "cmd_header" in self.counters:
                 logging.info("Unknown request: %s, header=%s",

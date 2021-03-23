@@ -70,7 +70,9 @@ class Interpreter(Cmd):
         Cmd.__init__(self)
 
     def __set_ps_string(self, ps_string):
-        self.ps_color = '\x01\033[01;32m\x02' + ps_string + '>\x01\033[00m\x02 '
+        self.ps_color = ('\x01\033[01;32m\x02'
+                         + ps_string
+                         + '>\x01\033[00m\x02 ')
         if os.name == 'nt':
             self.ps_color = '\033[01;32m' + ps_string + '>\033[00m '
         self.ps_nocolor = ps_string + '> '
@@ -204,7 +206,7 @@ class Interpreter(Cmd):
                     logging.getLogger().handlers[0].level)
 
     def do_tty(self, arg):
-        "Print the used TCP/IP port or the pseudo-tty, "\
+        "Print the used TCP/IP port or the serial pseudo-tty, "\
         "depending on the selected interface."
         if arg:
             print ("Invalid format")
@@ -383,6 +385,8 @@ class Interpreter(Cmd):
                 ] + rl + [self.rlc(text, x) for x in range(400) if self.rlc(text, x)]
 
     def preloop(self):
+        if self.emulator.threadState == self.emulator.THREAD.TERMINATED:
+            sys.exit(0)
         if readline and os.path.exists(self.histfile) and not self.args.batch_mode:
             try:
                 readline.read_history_file(self.histfile)
@@ -478,6 +482,15 @@ def main():
         metavar = 'PORT'
     )
     parser.add_argument(
+        '-a', '--baudrate',
+        dest = 'serial_baudrate',
+        type=int,
+        help = "Set the serial device baud rate used by ELM327-emulator.",
+        default = None,
+        nargs = 1,
+        metavar = 'BAUDRATE'
+    )
+    parser.add_argument(
         '-s', '--scenario',
         dest = 'scenario',
         help = "Set the scenario used by ELM327-emulator.",
@@ -489,11 +502,58 @@ def main():
         '-n', '--net',
         dest = 'net_port',
         type=int,
-        choices=range(1024, 65535),
         help = "Set the INET socket port used by ELM327-emulator.",
         default = None,
         nargs = 1,
-        metavar = 'INET_SOCKET'
+        metavar = 'INET_PORT'
+    )
+    parser.add_argument(
+        '-H', '--forward_host',
+        dest = 'forward_net_host',
+        help = "Set the INET host used by ELM327-emulator."
+            "when forwarding the client interaction to a remote OBDII port.",
+        default = None,
+        nargs = 1,
+        metavar = 'INET_FORWARD_HOST'
+    )
+    parser.add_argument(
+        '-N', '--forward_port',
+        dest = 'forward_net_port',
+        type=int,
+        help = "Set the INET socket port used by ELM327-emulator "
+            "when forwarding the client interaction to a remote OBDII port.",
+        default = None,
+        nargs = 1,
+        metavar = 'INET_FORWARD_PORT'
+    )
+    parser.add_argument(
+        '-S', '--forward_serial_port',
+        dest = 'forward_serial_port',
+        help = "Set the serial device port used by ELM327-emulator "
+            "when forwarding the client interaction to a serial device.",
+        default = None,
+        nargs = 1,
+        metavar = 'FORWARD_SERIAL_PORT'
+    )
+    parser.add_argument(
+        '-B', '--forward_serial_baudrate',
+        dest = 'forward_serial_baudrate',
+        type=int,
+        help = "Set the device baud rate used by ELM327-emulator "
+            "when forwarding the client interaction to a serial device.",
+        default = None,
+        nargs = 1,
+        metavar = 'FORWARD_SERIAL_BAUDRATE'
+    )
+    parser.add_argument(
+        '-T', '--forward_timeout',
+        dest = 'forward_timeout',
+        type=float,
+        help = "Set forward timeout as floating number "
+            "(default is 5 seconds).",
+        default = None,
+        nargs = 1,
+        metavar = 'FORWARD_TIMEOUT'
     )
     args = parser.parse_args()
 
@@ -510,9 +570,23 @@ def main():
         args.daemon_mode = False
         args.terminate = False
 
-    emulator = Elm(batch_mode=args.batch_mode or args.daemon_mode,
+    emulator = Elm(
+        batch_mode=args.batch_mode or args.daemon_mode,
         serial_port=args.serial_port[0],
-        net_port=args.net_port[0] if args.net_port else None)
+        serial_baudrate=args.serial_baudrate[0]
+            if args.serial_baudrate else None,
+        net_port=args.net_port[0]
+            if args.net_port else None,
+        forward_net_host=args.forward_net_host[0]
+            if args.forward_net_host else None,
+        forward_net_port=args.forward_net_port[0]
+            if args.forward_net_port else None,
+        forward_serial_port=args.forward_serial_port[0]
+            if args.forward_serial_port else None,
+        forward_serial_baudrate = args.forward_serial_baudrate[0]
+            if args.forward_serial_baudrate else None,
+        forward_timeout = args.forward_timeout[0]
+            if args.forward_timeout else None)
 
     if os.name != 'nt':
         if os.getuid() == 0:
@@ -608,6 +682,9 @@ def main():
                 if args.batch_mode:
                     print(pty_name)
                 sys.stdout.flush()
+            if session.threadState == session.THREAD.TERMINATED:
+                print('\nELM327-emulator cannot run. Exiting.\n')
+                os._exit(1)  # does not raise SystemExit
             if args.scenario[0]:
                 set_scenario(session, args.scenario[0])
             if pty_name == None:

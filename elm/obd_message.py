@@ -62,6 +62,13 @@ ObdMessage = {
             'Log': '"set CAF ON/OFF : %s", self.counters["cmd_caf"]',
             'Response': ELM_R_OK
         },
+        'AT_DEFAULT': {
+            'Request': '^ATD$',
+            'Descr': 'AT DEFAULT',
+            'Log': '"Set all configuration to defaults"',
+            'Exec': 'self.reset(0.1)',
+            'Response': ELM_R_OK
+        },
         'AT_DESCRIBE_PROTO': {
             'Request': '^ATDP' + ELM_MAX_RESP,
             'Descr': 'set DESCRIBE_PROTO',
@@ -1319,20 +1326,26 @@ ObdMessage = {
             'Header': ECU_ADDR_E,
             'Response': HD(ECU_R_ADDR_E) + SZ('03') + DT('41 51 01')
         },
+        'BATT_REM_CHARGE': {
+            'Request': '^015B' + ELM_MAX_RESP,
+            'Descr': 'Hybrid/EV Battery Pack Remaining Charge',
+            'Header': ECU_ADDR_E,
+            'Response': 'NO^DATA\r'
+        },
         'PIDS_D': {
             'Request': '^0160' + ELM_MAX_RESP,
             'Descr': 'Supported PIDs [61-80]',
-            'Response': 'NO^DATA\r',
+            'Response': 'NO^DATA\r'
         },
         'PIDS_E': {
             'Request': '^0180' + ELM_MAX_RESP,
             'Descr': 'Supported PIDs [81-A0]',
-            'Response': 'NO^DATA\r',
+            'Response': 'NO^DATA\r'
         },
         'PIDS_F': {
             'Request': '^01A0' + ELM_MAX_RESP,
             'Descr': 'Supported PIDs [A1-C0]',
-            'Response': 'NO^DATA\r',
+            'Response': 'NO^DATA\r'
         },
         # MODE 2 - freeze frame (or instantaneous) data of a fault
         'DTC_STATUS': {
