@@ -446,42 +446,50 @@ obd_dictionary --help
 Command line arguments:
 
 ```
-usage: elm [-h] [-V] [-t] [-d] [-b FILE] [-p PORT] [-a BAUDRATE] [-s SCENARIO] [-n INET_PORT]
-           [-H INET_FORWARD_HOST] [-N INET_FORWARD_PORT] [-S FORWARD_SERIAL_PORT]
-           [-B FORWARD_SERIAL_BAUDRATE] [-T FORWARD_TIMEOUT]
+usage: obd_dictionary [-h] -i DEVICE [-c CSV_FILE] [-o FILE] [-v] [-V] [-p PROBES] [-B BAUDRATE]
+                      [-T TIMEOUT] [-C] [-F] [-P PROTOCOL] [-d DELAY] [-D DELAY_COMMANDS] [-n CAR_NAME]
+                      [-b] [-r] [-x] [-t [FILE]] [-m]
 
 optional arguments:
   -h, --help            show this help message and exit
-  -V, --version         print ELM327-emulator version and exit
-  -t, --terminate       terminate the daemon process sending SIGTERM
-  -d, --daemon          Run ELM327-emulator in daemon mode.
-  -b FILE, --batch FILE
-                        Run ELM327-emulator in batch mode. Argument is the output file. The first line in
-                        that file will be the virtual serial device
-  -p PORT, --port PORT  Set the com0com serial port listened by ELM327-emulator when running under windows
-                        OS. Default is COM3.
-  -a BAUDRATE, --baudrate BAUDRATE
-                        Set the serial device baud rate used by ELM327-emulator.
-  -s SCENARIO, --scenario SCENARIO
-                        Set the scenario used by ELM327-emulator.
-  -n INET_PORT, --net INET_PORT
-                        Set the INET socket port used by ELM327-emulator.
-  -H INET_FORWARD_HOST, --forward_host INET_FORWARD_HOST
-                        Set the INET host used by ELM327-emulator.when forwarding the client interaction
-                        to a remote OBDII port.
-  -N INET_FORWARD_PORT, --forward_port INET_FORWARD_PORT
-                        Set the INET socket port used by ELM327-emulator when forwarding the client
-                        interaction to a remote OBDII port.
-  -S FORWARD_SERIAL_PORT, --forward_serial_port FORWARD_SERIAL_PORT
-                        Set the serial device port used by ELM327-emulator when forwarding the client
-                        interaction to a serial device.
-  -B FORWARD_SERIAL_BAUDRATE, --forward_serial_baudrate FORWARD_SERIAL_BAUDRATE
-                        Set the device baud rate used by ELM327-emulator when forwarding the client
-                        interaction to a serial device.
-  -T FORWARD_TIMEOUT, --forward_timeout FORWARD_TIMEOUT
-                        Set forward timeout as floating number (default is 5 seconds).
+  -i DEVICE             python-OBD interface: serial port connected to the ELM327 adapter (required
+                        argument).
+  -c CSV_FILE, --csv CSV_FILE
+                        input csv file including custom PIDs (Torque CSV Format: https://torque-
+                        bhp.com/wiki/PIDs) '-' reads data from the standard input
+  -o FILE, --out FILE   output dictionary file generated after processing input data (replaced if
+                        existing). Default is to print data to the standard output
+  -v, --verbosity       print process information
+  -V, --verbosity_debug
+                        print debug information
+  -p PROBES, --probes PROBES
+                        number of probes (each probe includes querying all PIDs to the OBDII adapter)
+  -B BAUDRATE, --baudrate BAUDRATE
+                        python-OBD interface: baudrate at which to set the serial connection.
+  -T TIMEOUT, --timeout TIMEOUT
+                        python-OBD interface: specifies the connection timeout in seconds.
+  -C, --no_check_voltage
+                        python-OBD interface: skip detection of the car supply voltage.
+  -F, --fast            python-OBD interface: allows command optimization (CR to repeat, response limit).
+  -P PROTOCOL, --protocol PROTOCOL
+                        python-OBD interface: forces using the given protocol when communicating with the
+                        adapter.
+  -d DELAY, --delay DELAY
+                        delay (in seconds) between probes
+  -D DELAY_COMMANDS, --delay_commands DELAY_COMMANDS
+                        delay (in seconds) between each PID query within all probes
+  -n CAR_NAME, --name CAR_NAME
+                        name of the car (dictionary label; default is "car")
+  -b, --blacklist       include blacklisted PIDs within probes
+  -r, --dry-run         test the python-OBD interface in debug mode.
+  -x, --noautopid       do not autopopulate the pid list with the set of built-in commands supported by
+                        the vehicle; only use csv file.
+  -t [FILE], --at [FILE]
+                        include AT Commands within probes. If a dictionary file is given, also extract AT
+                        Commands from the input file and add them to the output
+  -m, --missing         add in-line comment to dictionary for PIDs with missing response
 
-ELM327-emulator v2.0.1 - ELM327 OBDII adapter emulator
+ObdMessage Dictionary Generator for "ELM327-emulator".
 ```
 
 Sample usage: `obd_dictionary -i /dev/ttyUSB0 -c car.csv -o AurisOutput.py -v -p 10 -d 1 -n mycar`
@@ -565,16 +573,16 @@ optional arguments:
                         Set the INET socket port used by ELM327-emulator.
   -H INET_FORWARD_HOST, --forward_host INET_FORWARD_HOST
                         Set the INET host used by ELM327-emulator.when forwarding the client interaction
-                        to a remote host.
+                        to a remote OBDII port.
   -N INET_FORWARD_PORT, --forward_port INET_FORWARD_PORT
                         Set the INET socket port used by ELM327-emulator when forwarding the client
-                        interaction to a remote host.
+                        interaction to a remote OBDII port.
   -S FORWARD_SERIAL_PORT, --forward_serial_port FORWARD_SERIAL_PORT
                         Set the serial device port used by ELM327-emulator when forwarding the client
-                        interaction to a device.
+                        interaction to a serial device.
   -B FORWARD_SERIAL_BAUDRATE, --forward_serial_baudrate FORWARD_SERIAL_BAUDRATE
-                        Set the serial device baud rate used by ELM327-emulator when forwarding the client
-                        interaction to a device.
+                        Set the device baud rate used by ELM327-emulator when forwarding the client
+                        interaction to a serial device.
   -T FORWARD_TIMEOUT, --forward_timeout FORWARD_TIMEOUT
                         Set forward timeout as floating number (default is 5 seconds).
 
