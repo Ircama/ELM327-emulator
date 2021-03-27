@@ -40,6 +40,12 @@ def DT(data):
 ObdMessage = {
     # AT Commands
     'AT' : {
+        'AT_LONG_MSG': {
+            'Request': '^ATAL$',
+            'Descr': 'Allow long messages',
+            'Log': '"Set long messages %s", cmd[4:]',
+            'Response': ELM_R_OK # ignored at the moment: just answer OK (to be revised)
+        },
         'AT_DESCR': {
             'Request': '^AT@1' + ELM_MAX_RESP,
             'Descr': 'Device description',
@@ -55,6 +61,12 @@ ObdMessage = {
             'Descr': 'Store the device identifier',
             'Response': "?\r"
         },
+        'AT_ADAPTIVE_TIMING': {
+            'Request': '^ATAT[012]$',
+            'Descr': 'Set adaptive timing mode',
+            'Log': '"Set adaptive timing %s", cmd[4:]',
+            'Response': ELM_R_OK # ignored at the moment: just answer OK (to be revised)
+        },
         'AT_CAF': {
             'Request': '^ATCAF[01]$',
             'Descr': 'AT CAF',
@@ -68,6 +80,12 @@ ObdMessage = {
             'Log': '"Set all configuration to defaults"',
             'Exec': 'self.reset(0.1)',
             'Response': ELM_R_OK
+        },
+        'AT_DLC': {
+            'Request': '^ATD[01]$',
+            'Descr': 'Display of the DLC on/off',
+            'Log': '"Set DLC %s", cmd[3:]',
+            'Response': ELM_R_OK # ignored at the moment: just answer OK (to be revised)
         },
         'AT_DESCRIBE_PROTO': {
             'Request': '^ATDP' + ELM_MAX_RESP,
@@ -179,6 +197,22 @@ ObdMessage = {
             'Exec': 'self.counters["cmd_timeout"] = int(cmd[4:], 16)',
             'Log': '"Set timeout %s", cmd[4:]',
             'Response': ELM_R_OK
+        },
+    # ST Extensions used to configure the STN11xx family of OBD interpreters
+        'ST_DI': {
+            'Request': '^STDI$',
+            'Descr': 'Print device hardware ID string',
+            'Response': "OBDLink^r1.7\r"
+        },
+        'ST_ID': {
+            'Request': '^STI$',
+            'Descr': 'Print firmware ID string',
+            'Response': "STN1100^v1.2.3\r"
+        },
+        'ST_SET_BAUD_RATE': {
+            'Request': '^STSBR *[1-9][0-9]*$',
+            'Descr': 'Set baud rate',
+            'Response': "STN1101^v2.1.0\r"
         },
     },
     # OBD Commands
@@ -480,6 +514,11 @@ ObdMessage = {
             'Request': '^0903' + ELM_MAX_RESP,
             'Descr': 'Calibration ID message count for PID 04',
             'Response': HD(ECU_R_ADDR_E) + SZ('03') + DT('49 03 01')
+        },
+        'PERF_TRACKING_COMPRESSION': {
+            'Request': '^090B' + ELM_MAX_RESP,
+            'Descr': 'In-use performance tracking (compression ignition)',
+            'Response': HD(ECU_R_ADDR_E) + SZ('04') + DT('00 00 00 00') # improper value at the moment (to be revised)
         }
     },
 # Pids of a Toyota Auris Hybrid car

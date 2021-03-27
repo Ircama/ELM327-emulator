@@ -44,7 +44,7 @@ To uninstall:
 python3 -m pip uninstall -y ELM327-emulator
 ```
 
-# Usage
+# Basic use
 
 The emulator allows batch and interactive mode. The latter is the default and can be executed as follows:
 
@@ -82,6 +82,49 @@ When natively running on Windows (to be used when connecting a Windows applicati
 
 ```shell
 python3 -m elm -p COM5
+```
+
+# Usage
+
+The description of the *ELM327-emulator* command-line option is the following:
+
+```
+usage: elm [-h] [-V] [-t] [-d] [-b FILE] [-p PORT] [-a BAUDRATE] [-s SCENARIO] [-n INET_PORT]
+           [-H INET_FORWARD_HOST] [-N INET_FORWARD_PORT] [-S FORWARD_SERIAL_PORT]
+           [-B FORWARD_SERIAL_BAUDRATE] [-T FORWARD_TIMEOUT]
+
+optional arguments:
+  -h, --help            show this help message and exit
+  -V, --version         print ELM327-emulator version and exit
+  -t, --terminate       terminate the daemon process sending SIGTERM
+  -d, --daemon          Run ELM327-emulator in daemon mode.
+  -b FILE, --batch FILE
+                        Run ELM327-emulator in batch mode. Argument is the output file. The first line in
+                        that file will be the virtual serial device
+  -p PORT, --port PORT  Set the com0com serial port listened by ELM327-emulator when running under windows
+                        OS. Default is COM3.
+  -a BAUDRATE, --baudrate BAUDRATE
+                        Set the serial device baud rate used by ELM327-emulator.
+  -s SCENARIO, --scenario SCENARIO
+                        Set the scenario used by ELM327-emulator.
+  -n INET_PORT, --net INET_PORT
+                        Set the INET socket port used by ELM327-emulator.
+  -H INET_FORWARD_HOST, --forward_host INET_FORWARD_HOST
+                        Set the INET host used by ELM327-emulator.when forwarding the client interaction
+                        to a remote OBD-II port.
+  -N INET_FORWARD_PORT, --forward_port INET_FORWARD_PORT
+                        Set the INET socket port used by ELM327-emulator when forwarding the client
+                        interaction to a remote OBD-II port.
+  -S FORWARD_SERIAL_PORT, --forward_serial_port FORWARD_SERIAL_PORT
+                        Set the serial device port used by ELM327-emulator when forwarding the client
+                        interaction to a serial device.
+  -B FORWARD_SERIAL_BAUDRATE, --forward_serial_baudrate FORWARD_SERIAL_BAUDRATE
+                        Set the device baud rate used by ELM327-emulator when forwarding the client
+                        interaction to a serial device.
+  -T FORWARD_TIMEOUT, --forward_timeout FORWARD_TIMEOUT
+                        Set forward timeout as floating number (default is 5 seconds).
+
+ELM327-emulator v2.0.1 - ELM327 OBD-II adapter emulator
 ```
 
 # Description
@@ -135,7 +178,7 @@ In `'ResponseFooter'`, `'ResponseHeader'` and `'Response'`, spaces are stripped 
 At the `CMD> ` prompt, the emulator accepts the following commands:
 
 - `help` = List available commands (or detailed help with "help cmd").
-- `tty` = Print the used TCP/IP port or the pseudo-tty, depending on the selected interface.
+- `port` = Print the used TCP/IP port, or the used device, or the serial COM port, or the serial pseudo-tty, depending on the selected interface.
 - `loglevel` = If an argument is given, set the logging level, otherwise show the current one. Valid numbers: CRITICAL=50, ERROR=40, WARNING=30, INFO=20, DEBUG=10.
 - `quit` (or end-of-file/Control-D, or break/Control-C) = quit the program
 - `counters` = print the number of each executed PIDs (upper case names), the values associated to some 'AT' PIDs (*cmd_...*), the unknown requests, the emulator response delay, the total number of executed commands (*commands*) and the current scenario (*scenario*). The related dictionary is `emulator.counters`.
@@ -547,47 +590,6 @@ obd_dictionary -i /dev/ttyUSB0 -c auris.csv -o AurisOutput.py -n default -t elm/
 ## ELM327-emulator batch mode
 
 *ELM327-emulator* can be run in batch mode to allow automating tests and background execution. The `-b FILE` option allows this mode and writes the output to FILE. When using serial communication, the first line in that file will be the virtual serial device, which can be read to a shell variable through `read variable_name < output_file`. Commands can be piped in (e.g., within a bash script) to configure the emulator (e.g., via `echo -e`). The appropriate way to kill a background instance of the emulator is with the SIGINT signal (`kill -2`). To ensure that the external application is started only after correct setup of the emulator, the input commands can be terminated with a string (e.g., "RUNNING") that can then be recognised before starting the application.
-
-The description of the *ELM327-emulator* command-line option is the following:
-
-```
-usage: elm [-h] [-V] [-t] [-d] [-b FILE] [-p PORT] [-a BAUDRATE] [-s SCENARIO] [-n INET_PORT]
-           [-H INET_FORWARD_HOST] [-N INET_FORWARD_PORT] [-S FORWARD_SERIAL_PORT]
-           [-B FORWARD_SERIAL_BAUDRATE] [-T FORWARD_TIMEOUT]
-
-optional arguments:
-  -h, --help            show this help message and exit
-  -V, --version         print ELM327-emulator version and exit
-  -t, --terminate       terminate the daemon process sending SIGTERM
-  -d, --daemon          Run ELM327-emulator in daemon mode.
-  -b FILE, --batch FILE
-                        Run ELM327-emulator in batch mode. Argument is the output file. The first line in
-                        that file will be the virtual serial device
-  -p PORT, --port PORT  Set the com0com serial port listened by ELM327-emulator when running under windows
-                        OS. Default is COM3.
-  -a BAUDRATE, --baudrate BAUDRATE
-                        Set the serial device baud rate used by ELM327-emulator.
-  -s SCENARIO, --scenario SCENARIO
-                        Set the scenario used by ELM327-emulator.
-  -n INET_PORT, --net INET_PORT
-                        Set the INET socket port used by ELM327-emulator.
-  -H INET_FORWARD_HOST, --forward_host INET_FORWARD_HOST
-                        Set the INET host used by ELM327-emulator.when forwarding the client interaction
-                        to a remote OBD-II port.
-  -N INET_FORWARD_PORT, --forward_port INET_FORWARD_PORT
-                        Set the INET socket port used by ELM327-emulator when forwarding the client
-                        interaction to a remote OBD-II port.
-  -S FORWARD_SERIAL_PORT, --forward_serial_port FORWARD_SERIAL_PORT
-                        Set the serial device port used by ELM327-emulator when forwarding the client
-                        interaction to a serial device.
-  -B FORWARD_SERIAL_BAUDRATE, --forward_serial_baudrate FORWARD_SERIAL_BAUDRATE
-                        Set the device baud rate used by ELM327-emulator when forwarding the client
-                        interaction to a serial device.
-  -T FORWARD_TIMEOUT, --forward_timeout FORWARD_TIMEOUT
-                        Set forward timeout as floating number (default is 5 seconds).
-
-ELM327-emulator v2.0.1 - ELM327 OBD-II adapter emulator
-```
 
 *elm* offers four operation modes:
 

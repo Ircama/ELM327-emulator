@@ -119,7 +119,7 @@ class Interpreter(Cmd):
         "(Control-C) can be used."
         print("Terminating...")
         if arg:
-            print ("Invalid format")
+            print ("Invalid format.")
             return
         sys.exit(0)
 
@@ -133,7 +133,7 @@ class Interpreter(Cmd):
         try:
             delay = 0.5 if len(arg) == 0 else float(arg.split()[0])
         except ValueError:
-            print ("Invalid format")
+            print ("Invalid format.")
             return
         if delay > 0:
             print("Delaying each command of %s seconds" % delay)
@@ -143,12 +143,13 @@ class Interpreter(Cmd):
             self.emulator.delay = 0
 
     def do_wait(self, arg):
-        "Perform an immediate sleep of the seconds specified in the argument.\n"\
+        "Perform an immediate sleep of the seconds specified "\
+        "in the argument.\n"\
         "(Floating point number; default is 10 seconds.)"
         try:
             delay = 10 if len(arg) == 0 else float(arg.split()[0])
         except ValueError:
-            print ("Invalid format")
+            print ("Invalid format.")
             return
         print("Sleeping for %s seconds" % delay)
         time.sleep(delay)
@@ -165,7 +166,7 @@ class Interpreter(Cmd):
     def do_color(self, arg):
         "Toggle color off/on."
         if arg:
-            print ("Invalid format")
+            print ("Invalid format.")
             return
         self.color_active = not self.color_active
         if not self.color_active:
@@ -187,7 +188,7 @@ class Interpreter(Cmd):
     def do_reset(self, arg):
         "Reset the emulator (counters and variables)"
         if arg:
-            print ("Invalid format")
+            print ("Invalid format.")
             return
         self.emulator.set_defaults()
         print("Reset done.")
@@ -205,24 +206,40 @@ class Interpreter(Cmd):
                 "Current logging level:",
                     logging.getLogger().handlers[0].level)
 
-    def do_tty(self, arg):
-        "Print the used TCP/IP port or the serial pseudo-tty, "\
+    def do_port(self, arg):
+        "Print the used TCP/IP port, or the used device, "\
+        "or the serial COM port,\nor the serial pseudo-tty, "\
         "depending on the selected interface."
         if arg:
-            print ("Invalid format")
+            print ("Invalid format.")
             return
         if self.emulator.sock_inet:
-            msg = 'TCP network port ' + str(self.emulator.net_port)
+            msg = 'TCP network port ' + str(self.emulator.net_port) + '".'
         else:
-            msg = 'Serial pty device ' + self.emulator.slave_name
+            if self.emulator.slave_name:
+                msg = 'Serial pty device "' + self.emulator.slave_name + '".'
+            elif self.emulator.master_fd and self.emulator.device_port:
+                msg = ('Communication device "' +
+                       self.emulator.device_port + '".')
+            elif self.emulator.serial_fd and self.emulator.serial_port:
+                if os.name == 'nt':
+                    msg = ('com0com serial port "' +
+                           self.emulator.serial_port + '".')
+                else:
+                    msg = ('Communication COM port "' +
+                           self.emulator.serial_port + '".')
+
         print(msg)
 
     def do_counters(self, arg):
-        "Print the number of each executed PID (upper case names), the values\n"\
-        "associated to some 'AT' PIDs, the unknown requests, the emulator response\n"\
-        "delay, the total number of executed commands and the current scenario."
+        "Print the number of each executed PID (upper case names), "\
+        "the values\n"\
+        "associated to some 'AT' PIDs, the unknown requests, "\
+        "the emulator response\n"\
+        "delay, the total number of executed commands and the "\
+        "current scenario."
         if arg:
-            print ("Invalid format")
+            print ("Invalid format.")
             return
         if self.emulator.counters:
             print("PID Counters:")
@@ -236,7 +253,7 @@ class Interpreter(Cmd):
     def do_pause(self, arg):
         "Pause the execution."
         if arg:
-            print ("Invalid format")
+            print ("Invalid format.")
             return
         self.emulator.threadState = self.emulator.THREAD.PAUSED
         print("Backend emulator paused")
@@ -244,7 +261,7 @@ class Interpreter(Cmd):
     def do_resume(self, arg):
         "Resume the execution after pausing; prints the used device."
         if arg:
-            print ("Invalid format")
+            print ("Invalid format.")
             return
         self.emulator.threadState = self.emulator.THREAD.ACTIVE
         print(
@@ -260,7 +277,7 @@ class Interpreter(Cmd):
         "Switch to the scenario specified in the argument; if the scenario is\n"\
         "missing or invalid, defaults to 'car'."
         if len(arg.split()) > 1:
-            print ("Invalid format")
+            print ("Invalid format.")
             return
         if len(arg.split()):
             set_scenario(self.emulator, arg.split()[0])
@@ -296,7 +313,7 @@ class Interpreter(Cmd):
     def do_engineoff(self, arg):
         "Switch to 'engineoff' scenario"
         if arg:
-            print ("Invalid format")
+            print ("Invalid format.")
             return
         self.emulator.scenario='engineoff'
         print("Emulator scenario switched to '%s'" % self.emulator.scenario)
@@ -304,7 +321,7 @@ class Interpreter(Cmd):
     def do_default(self, arg):
         "Reset to 'default' scenario"
         if arg:
-            print ("Invalid format")
+            print ("Invalid format.")
             return
         self.emulator.scenario='default'
         print("Emulator scenario reset to '%s'" % self.emulator.scenario)
@@ -318,7 +335,7 @@ class Interpreter(Cmd):
         try:
             n = 20 if len(arg) == 0 else int(arg.split()[0])
         except ValueError:
-            print ("Invalid format")
+            print ("Invalid format.")
             return
         num=readline.get_current_history_length() - n
         for i in range(num if num > 0 else 0,
@@ -475,11 +492,21 @@ def main():
     parser.add_argument(
         '-p', '--port',
         dest = 'serial_port',
-        help = "Set the com0com serial port listened by ELM327-emulator "
-               "when running under windows OS. Default is COM3.",
-        default = ['COM3'],
+        help = "Set a serial communication port instead of using "
+               "a pseudo-tty. When running under windows OS, set "
+               "the com0com serial port listened by ELM327-emulator.",
+        default = None,
         nargs = 1,
         metavar = 'PORT'
+    )
+    parser.add_argument(
+        '-P', '--device',
+        dest = 'device_port',
+        help = "Set the communication device to be opened instead of "
+               "using a pseudo-tty port.",
+        default = None,
+        nargs = 1,
+        metavar = 'DEVICE_PORT'
     )
     parser.add_argument(
         '-a', '--baudrate',
@@ -529,9 +556,12 @@ def main():
     parser.add_argument(
         '-S', '--forward_serial_port',
         dest = 'forward_serial_port',
-        help = "Set the serial device port used by ELM327-emulator "
-            "when forwarding the client interaction to a serial device.",
-        default = None,
+        help = ("Set the com0com serial port listened by ELM327-emulator; "
+                "default is COM3."
+                if os.name == 'nt' else
+                "Set the serial device port used by ELM327-emulator "
+                "when forwarding the client interaction to a serial device."),
+        default = ['COM3'] if os.name == 'nt' else None,
         nargs = 1,
         metavar = 'FORWARD_SERIAL_PORT'
     )
@@ -572,7 +602,10 @@ def main():
 
     emulator = Elm(
         batch_mode=args.batch_mode or args.daemon_mode,
-        serial_port=args.serial_port[0],
+        serial_port=args.serial_port[0]
+           if args.serial_port else None,
+        device_port=args.device_port[0]
+            if args.device_port else None,
         serial_baudrate=args.serial_baudrate[0]
             if args.serial_baudrate else None,
         net_port=args.net_port[0]
@@ -675,6 +708,9 @@ def main():
         with emulator as session:
             while session.threadState == session.THREAD.STARTING:
                 time.sleep(0.1)
+            if session.threadState == session.THREAD.TERMINATED:
+                print('\nELM327-emulator cannot run. Exiting.\n')
+                os._exit(1)  # does not raise SystemExit
             if args.net_port:
                 pty_name = "TCP network port " + str(args.net_port[0]) + "."
             else:
@@ -682,9 +718,6 @@ def main():
                 if args.batch_mode:
                     print(pty_name)
                 sys.stdout.flush()
-            if session.threadState == session.THREAD.TERMINATED:
-                print('\nELM327-emulator cannot run. Exiting.\n')
-                os._exit(1)  # does not raise SystemExit
             if args.scenario[0]:
                 set_scenario(session, args.scenario[0])
             if pty_name == None:

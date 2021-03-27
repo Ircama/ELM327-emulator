@@ -116,7 +116,8 @@ class Elm:
     def __init__(
             self,
             batch_mode=False,
-            serial_port="",
+            serial_port=None,
+            device_port=None,
             serial_baudrate="",
             net_port=None,
             forward_net_host=None,
@@ -131,6 +132,7 @@ class Elm:
         self.setSortedOBDMsg()
         self.batch_mode = batch_mode
         self.serial_port = serial_port
+        self.device_port = device_port
         self.serial_baudrate = serial_baudrate
         self.net_port = net_port
         self.forward_net_host = forward_net_host
@@ -139,15 +141,17 @@ class Elm:
         self.forward_serial_baudrate = forward_serial_baudrate
         self.forward_timeout = forward_timeout
         self.reset(0)
-        self.slave_name = None
-        self.master_fd = None
-        self.slave_fd = None
+        self.slave_name = None # pty port name, if pty is used
+        self.master_fd = None # pty port FD, if pty is used, or device com port FD (IO)
+        self.slave_fd = None # pty side used by the client application
+        self.serial_fd = None # serial COM port file descriptor (pySerial)
         self.sock_inet = None
         self.fw_sock_inet = None
         self.fw_serial_fd = None
         self.sock_conn = None
         self.sock_addr = None
         self.thread = None
+        self.aaa = device_port
 
     def __enter__(self):
         # start the read thread
@@ -155,7 +159,6 @@ class Elm:
         self.thread = threading.Thread(target=self.run)
         self.thread.daemon = True
         self.thread.start()
-
         return self
 
     def __exit__(self, exc_type, exc_value, traceback):
@@ -178,8 +181,10 @@ class Elm:
         try:
             if self.slave_fd:
                 os.close(self.slave_fd)
-            if self.master_fd:
+            if self.master_fd: # pty or device
                 os.close(self.master_fd)
+            if self.serial_fd: # serial COM - pySerial
+                self.serial_fd.close()
             if self.sock_inet:
                 self.sock_inet.shutdown(socket.SHUT_RDWR)
                 self.sock_inet.close()
@@ -236,26 +241,79 @@ class Elm:
 
         return True
 
-    def get_pty(self):
-        if self.slave_name:
-            return self.slave_name
-        if os.name == 'nt':
+    def connect_serial(self):
+        """
+        Shall be called after get_pty() and before a read operation.
+        It opens the serial port, if not yet opened.
+        It is expected to be blocking.
+        Returns True if the serial or pty port is opened,
+        or None in case of error.
+        """
+
+        # if the port is already opened, return True...
+        if self.slave_name or self.master_fd or self.serial_fd:
+            return True
+
+        # else open the port
+        if self.device_port: # os IO
             try:
-                self.master_fd = serial.Serial(
+                self.master_fd = os.open(self.device_port, os.O_RDWR)
+            except Exception as e:
+                logging.critical("Error while opening device %s:\n%s",
+                                 repr(self.device_port), e)
+                return None
+            return True
+        elif self.serial_port: # pySerial COM
+            try:
+                self.serial_fd = serial.Serial(
                     port=self.serial_port,
                     baudrate=self.serial_baudrate or SERIAL_BAUDRATE)
+                if os.name == 'nt':
+                    self.slave_name = (
+                            'com0com serial port pair reading from ' +
+                            self.serial_port)
             except Exception as e:
-                logging.critical("Error while opening %s:\n%s",
+                logging.critical("Error while opening serial COM %s:\n%s",
                                  repr(self.serial_port), e)
                 return None
-            self.slave_fd = None
-            self.slave_name = 'com0com serial port pair reading from ' + \
-                              self.serial_port
+            return True
         else:
-            # make a new pty
-            self.master_fd, self.slave_fd = pty.openpty()
-            self.slave_name = os.ttyname(self.slave_fd)
-        logging.debug("Pty name: %s", self.slave_name)
+            return False
+
+    def get_pty(self):
+        """
+        Return the opened pty port, or None if the pty port
+        cannot be opened (non UNIX system).
+        In case of UNIX system and if the port is not yet opened, open it.
+        It is not blocking.
+        """
+
+        # if the port is already opened, return the port name...
+        if self.slave_name:
+            return self.slave_name
+        elif self.master_fd and self.device_port:
+            return self.device_port
+        elif self.serial_fd and self.serial_port:
+            return self.serial_port
+        elif self.master_fd:
+            logging.critical("Internal error, no configured device port.")
+            return None
+        elif self.serial_fd:
+            logging.critical("Internal error, no configured COM port.")
+            return None
+
+        # ...else, with a UNIX system, make a new pty
+        self.slave_fd = None
+
+        if os.name == 'nt':
+            self.slave_fd = None
+            return None
+        else:
+            if not self.device_port and not self.serial_port:
+                self.master_fd, self.slave_fd = pty.openpty()
+                self.slave_name = os.ttyname(self.slave_fd)
+                logging.debug("Pty name: %s", self.slave_name)
+
         return self.slave_name
 
     def run(self):  # daemon thread
@@ -275,7 +333,12 @@ class Elm:
                 self.terminate()
                 return
         else:
-            self.get_pty()
+            if (not self.device_port and
+                    not self.serial_port and
+                    not self.get_pty()):
+                logging.critical("Pseudo-tty port connection failed.")
+                self.terminate()
+                return
         self.choice = choice
 
         if self.sock_inet:
@@ -286,6 +349,10 @@ class Elm:
         else:
             if self.slave_name:
                 msg = 'on pty "' + self.slave_name + '"'
+            elif self.device_port:
+                msg = 'on device "' + self.device_port + '"'
+            elif self.serial_port:
+                msg = 'on serial communication port "' + self.serial_port + '"'
             else:
                 msg = 'with no available serial device.'
         if self.batch_mode:
@@ -402,7 +469,6 @@ class Elm:
             return data: decoded string
         """
 
-
         if self.forward_serial_port:
             if self.fw_serial_fd is None:
                 self.serial_client()
@@ -481,23 +547,40 @@ class Elm:
                 self.sock_conn.sendall(c)
             return c
 
-        # Process serial
+        # Process serial (COM or device)
         try:
-            if not self.master_fd:
+            if not self.connect_serial():
                 self.terminate()
                 return None
-            if os.name == 'nt':
+
+            # Serial COM port (uses pySerial)
+            if self.serial_fd and self.serial_port:
                 try:
-                    c = self.master_fd.read(bytes)
+                    c = self.serial_fd.read(bytes)
                 except Exception:
-                    logging.debug(
-                        "Error while reading from com0com serial port")
+                    if os.name == 'nt':
+                        logging.debug(
+                            'Error while reading from com0com serial port "%s"',
+                            self.serial_port)
+                    else:
+                        logging.debug(
+                            'Error while reading from device port "%"',
+                            self.serial_port)
                     return None
-                if 'cmd_echo' in self.counters and self.counters['cmd_echo'] == 1:
-                    self.master_fd.write(c)
+                if ('cmd_echo' in self.counters and
+                        self.counters['cmd_echo'] == 1):
+                    self.serial_fd.write(c)
+
+            # Device port (use os IO)
             else:
+                if not self.master_fd:
+                    logging.critical(
+                        "PANIC - Internal error, missing device FD")
+                    self.terminate()
+                    return None
                 c = os.read(self.master_fd, bytes)
-                if 'cmd_echo' in self.counters and self.counters['cmd_echo'] == 1:
+                if ('cmd_echo' in self.counters and
+                        self.counters['cmd_echo'] == 1):
                     try:
                         os.write(self.master_fd, c)
                     except OSError as e:
@@ -506,8 +589,9 @@ class Elm:
                             self.terminate()
                             return None
                         else:
-                            logging.critical("PANIC - Internal OSError in read(): %s", e,
-                                             exc_info=True)
+                            logging.critical(
+                                "PANIC - Internal OSError in read(): %s",
+                                e, exc_info=True)
                             self.terminate()
                             return None
         except UnicodeDecodeError as e:
@@ -557,7 +641,10 @@ class Elm:
         return buffer
 
     def write_to_device(self, i):
-        """ write a response to the port (no data returned) """
+        """
+        write a response to the port (no data returned).
+        No return code.
+        """
 
         # Process inet
         if self.sock_inet:
@@ -571,12 +658,29 @@ class Elm:
             return
 
         # Process serial
-        if not self.master_fd:
-            self.terminate()
+        if self.serial_fd:
+
+            # Serial COM port (uses pySerial)
+            try:
+                self.serial_fd.write(i)
+            except Exception:
+                if os.name == 'nt':
+                    logging.debug(
+                        'Error while writing to com0com serial port "%s"',
+                        self.serial_port)
+                else:
+                    logging.debug(
+                        'Error while writing to device port "%"',
+                        self.serial_port)
             return
-        if os.name == 'nt':
-            self.master_fd.write(i)
+
         else:
+            # Device port (use os IO)
+            if not self.master_fd:
+                logging.critical(
+                    "PANIC - Internal error, missing device FD")
+                self.terminate()
+                return
             try:
                 os.write(self.master_fd, i)
             except OSError as e:
