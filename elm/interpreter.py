@@ -214,12 +214,16 @@ class Interpreter(Cmd):
             print ("Invalid format.")
             return
         if self.emulator.sock_inet:
-            msg = 'TCP network port ' + str(self.emulator.net_port) + '".'
+            msg = 'TCP network port ' + str(self.emulator.net_port) + '.'
         else:
             if self.emulator.slave_name:
-                msg = 'Serial pty device "' + self.emulator.slave_name + '".'
+                if os.name == 'nt':
+                    msg = self.emulator.slave_name + '.'
+                else:
+                    msg = ('Communication COM port "' +
+                           self.emulator.slave_name + '".')
             elif self.emulator.master_fd and self.emulator.device_port:
-                msg = ('Communication device "' +
+                msg = ('OS communication device "' +
                        self.emulator.device_port + '".')
             elif self.emulator.serial_fd and self.emulator.serial_port:
                 if os.name == 'nt':
@@ -492,10 +496,12 @@ def main():
     parser.add_argument(
         '-p', '--port',
         dest = 'serial_port',
-        help = "Set a serial communication port instead of using "
-               "a pseudo-tty. When running under windows OS, set "
-               "the com0com serial port listened by ELM327-emulator.",
-        default = None,
+        help = ("Set the com0com serial port listened by ELM327-emulator; "
+                "default is COM3."
+                if os.name == 'nt' else
+                "Set a serial communication port instead of using "
+               "a pseudo-tty."),
+        default = ['COM3'] if os.name == 'nt' else None,
         nargs = 1,
         metavar = 'PORT'
     )
@@ -556,12 +562,9 @@ def main():
     parser.add_argument(
         '-S', '--forward_serial_port',
         dest = 'forward_serial_port',
-        help = ("Set the com0com serial port listened by ELM327-emulator; "
-                "default is COM3."
-                if os.name == 'nt' else
-                "Set the serial device port used by ELM327-emulator "
-                "when forwarding the client interaction to a serial device."),
-        default = ['COM3'] if os.name == 'nt' else None,
+        help = "Set the serial device port used by ELM327-emulator "
+            "when forwarding the client interaction to a serial device.",
+        default = None,
         nargs = 1,
         metavar = 'FORWARD_SERIAL_PORT'
     )

@@ -343,16 +343,19 @@ class Elm:
 
         if self.sock_inet:
             if self.net_port:
-                msg = 'at port ' + str(self.net_port)
+                msg = 'at TCP/IP port ' + str(self.net_port)
             else:
                 msg = 'with no open TCP/IP port.'
         else:
             if self.slave_name:
-                msg = 'on pty "' + self.slave_name + '"'
+                if os.name == 'nt':
+                    msg = 'on ' + self.slave_name
+                else:
+                    msg = 'on pty "' + self.slave_name + '"'
             elif self.device_port:
-                msg = 'on device "' + self.device_port + '"'
+                msg = 'on OS device "' + self.device_port + '"'
             elif self.serial_port:
-                msg = 'on serial communication port "' + self.serial_port + '"'
+                msg = 'on serial COM port "' + self.serial_port + '"'
             else:
                 msg = 'with no available serial device.'
         if self.batch_mode:
