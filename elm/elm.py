@@ -273,7 +273,9 @@ class Elm:
                 if os.name == 'nt':
                     self.slave_name = (
                             'com0com serial port pair reading from ' +
-                            self.serial_port)
+                            self.serial_port +
+                            " with baud rate " +
+                            str(self.serial_baudrate) + '.')
             except Exception as e:
                 logging.critical("Error while opening serial COM %s:\n%s",
                                  repr(self.serial_port), e)
@@ -357,7 +359,10 @@ class Elm:
             elif self.device_port:
                 msg = 'on OS device "' + self.device_port + '"'
             elif self.serial_port:
-                msg = 'on serial COM port "' + self.serial_port + '"'
+                msg = ('on serial COM port "' +
+                        self.serial_port +
+                        '" with baud rate ' +
+                        str(self.serial_baudrate))
             else:
                 msg = 'with no available serial device.'
         if self.batch_mode:

@@ -388,9 +388,9 @@ emulator.counters["ELM_PIDS_A"] = 0
 
 *ELM327-emulator* allows the following interfaces:
 
-- serial communication using a pseudo-terminal, as default mode on UNIX/Linux,
-- TCP/IP networking, when using option `-n`,
-- serial COM port, when using  option `-p`, default mode with Windows,
+- serial communication using a pseudo-terminal, as default mode on UNIX/Linux;
+- TCP/IP networking, when using option `-n`;
+- serial COM port, when using  option `-p`, default mode with Windows; the `-a` option allows adding a baud rate;
 - standard communication, when using option `-P`.
 
 ### Usage of a pseudo-terminal on UNIX/Linux
@@ -407,15 +407,29 @@ python3 -m elm -s car -n 35000
 
 ### Usage of a serial COM port with Windows
 
-The `-S` option can be used with UNIX and Windows.
+The `-S` option can be used with UNIX and Windows. The `-a` option allows adding a baud rate (defaulted to 38400 bps). With Windows, the COM port is defaulted to COM3.
 
-To open a specific Windows port:
+To open a specific Windows port (which is the same as `python3 -m elm -s car`):
 
 ```cmd
-python3 -m elm -s car -S COM3
+python3 -m elm -s car -S COM3 -a 38400
 ```
 
-### Usage of Bluetooth
+### Usage of Bluetooth with Windows
+
+We need to pair the client device and add an incoming RFCOMM port.
+
+With Windows, run "Settings", "Bluetooth & other devices", "More Bluetooth options", "COM ports" tab, press "Add", select "Incoming", press "OK". For instance, this procedure creates a virtual COM4 port.
+
+Then run:
+
+```cmd
+python -m elm -p COM4 -s car
+```
+
+Note: adding the `-l` option may be needed in some cases and is important when the configuration changes the way command lines are sent, closing lines with a newline instead of a CR.
+
+### Usage of Bluetooth with UNIX
 
 After creating a Bluetooth special file on a Unix system, *ELM327-emulator* can access that file with the `-P` option.
 
@@ -472,7 +486,7 @@ Run *ELM327-emulator* with bluetooth interface:
 rfcomm watch /dev/rfcomm0 1 python3 -m elm -P /dev/rfcomm0 -l -s car
 ```
 
-Note: the `-l` option is important when the Bluetooth configuration changes the way command lines are sent, closing lines with a newline instead of a CR.
+Note: the `-l` option may be needed in some cases and is important when the Bluetooth configuration changes the way command lines are sent, closing lines with a newline instead of a CR.
 
 The */dev/rfcomm0* device driver can be manually created in order to avoid the error *"Can't open RFCOMM device: Permission denied"* when running *rfcomm* as a standard user (an not as root). First run *rfcomm* as superuser and connect a client:
 
