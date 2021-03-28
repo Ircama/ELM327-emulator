@@ -470,14 +470,21 @@ def main():
         "--version",
         dest='version',
         action='store_true',
-        help="print ELM327-emulator version and exit")
+        help="Print ELM327-emulator version and exit")
+    parser.add_argument(
+        '-l',
+        "--newline",
+        dest='newline',
+        action='store_true',
+        help="Use newline (<NL>) instead of carriage return <CR> "
+             "for detecting a line separator")
     if os.name != 'nt':
         parser.add_argument(
             '-t',
             "--terminate",
             dest='terminate',
             action='store_true',
-            help="terminate the daemon process sending SIGTERM")
+            help="Terminate the daemon process sending SIGTERM")
         parser.add_argument(
             "-d", "--daemon",
             dest = "daemon_mode",
@@ -605,6 +612,7 @@ def main():
 
     emulator = Elm(
         batch_mode=args.batch_mode or args.daemon_mode,
+        newline=args.newline,
         serial_port=args.serial_port[0]
            if args.serial_port else None,
         device_port=args.device_port[0]

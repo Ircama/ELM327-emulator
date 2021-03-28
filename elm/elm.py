@@ -116,6 +116,7 @@ class Elm:
     def __init__(
             self,
             batch_mode=False,
+            newline=False,
             serial_port=None,
             device_port=None,
             serial_baudrate="",
@@ -131,6 +132,7 @@ class Elm:
         self.set_defaults()
         self.setSortedOBDMsg()
         self.batch_mode = batch_mode
+        self.newline = newline
         self.serial_port = serial_port
         self.device_port = device_port
         self.serial_baudrate = serial_baudrate
@@ -634,8 +636,12 @@ class Elm:
                 buffer = ""
                 logging.debug("'req_timeout' timeout while reading data: %s", c)
             if c == '\r':
+                if self.newline:
+                    continue
                 break
             if c == '\n':
+                if self.newline:
+                    break
                 continue  # ignore newlines
             first = False
             buffer += c
