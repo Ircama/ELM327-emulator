@@ -213,27 +213,7 @@ class Interpreter(Cmd):
         if arg:
             print ("Invalid format.")
             return
-        if self.emulator.sock_inet:
-            msg = 'TCP network port ' + str(self.emulator.net_port) + '.'
-        else:
-            if self.emulator.slave_name:
-                if os.name == 'nt':
-                    msg = self.emulator.slave_name + '.'
-                else:
-                    msg = ('Communication COM port "' +
-                           self.emulator.slave_name + '".')
-            elif self.emulator.master_fd and self.emulator.device_port:
-                msg = ('OS communication device "' +
-                       self.emulator.device_port + '".')
-            elif self.emulator.serial_fd and self.emulator.serial_port:
-                if os.name == 'nt' and self.emulator.serial_port == 'COM3':
-                    msg = ('com0com serial port "' +
-                           self.emulator.serial_port + '".')
-                else:
-                    msg = ('Communication COM port "' +
-                           self.emulator.serial_port + '".')
-
-        print(msg)
+        print("Using " + self.emulator.get_port_name(extended=True))
 
     def do_counters(self, arg):
         "Print the number of each executed PID (upper case names), "\

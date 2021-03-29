@@ -270,19 +270,7 @@ class Elm:
                 self.serial_fd = serial.Serial(
                     port=self.serial_port,
                     baudrate=self.serial_baudrate or SERIAL_BAUDRATE)
-                if os.name == 'nt':
-                    if self.serial_port == 'COM3':
-                        self.slave_name = (
-                                'com0com serial port pair reading from ' +
-                                self.serial_port +
-                                " with baud rate " +
-                                str(self.serial_baudrate) + '.')
-                    else:
-                        self.slave_name = (
-                                'Serial port ' +
-                                self.serial_port +
-                                " with baud rate " +
-                                str(self.serial_baudrate) + '.')
+                self.slave_name = self.get_port_name(extended=True)
             except Exception as e:
                 logging.critical("Error while opening serial COM %s:\n%s",
                                  repr(self.serial_port), e)
@@ -354,24 +342,11 @@ class Elm:
 
         if self.sock_inet:
             if self.net_port:
-                msg = 'at TCP/IP port ' + str(self.net_port)
+                msg = 'at ' + self.get_port_name()
             else:
                 msg = 'with no open TCP/IP port.'
         else:
-            if self.slave_name:
-                if os.name == 'nt':
-                    msg = 'on ' + self.slave_name
-                else:
-                    msg = 'on pty "' + self.slave_name + '"'
-            elif self.device_port:
-                msg = 'on OS device "' + self.device_port + '"'
-            elif self.serial_port:
-                msg = ('on serial COM port "' +
-                        self.serial_port +
-                        '" with baud rate ' +
-                        str(self.serial_baudrate))
-            else:
-                msg = 'with no available serial device.'
+            msg = 'on ' + self.get_port_name()
         if self.batch_mode:
             logging.debug(
                 'ELM327 OBD-II adapter emulator v%s started '
@@ -379,7 +354,7 @@ class Elm:
         else:
             logging.info(
                 '\n\nELM327 OBD-II adapter emulator v%s started '
-                '%s.\n', __version__, msg)
+                '%s\n', __version__, msg)
         """ the ELM's main IO loop """
 
         self.threadState = self.THREAD.ACTIVE
@@ -423,7 +398,7 @@ class Elm:
             # Accept network connections
             try:
                 logging.debug(
-                    "Waiting for TCP connection at port %s", self.net_port)
+                    "Waiting for connection at %s", self.get_port_name())
                 (self.sock_conn, self.sock_addr) = self.sock_inet.accept()
             except OSError as msg:
                 if msg.errno == errno.EINVAL: # [Errno 22] invalid argument
@@ -524,6 +499,50 @@ class Elm:
                 return None
         return False
 
+    def get_port_name(self, extended=False):
+        if self.sock_inet:
+            if self.net_port:
+                return 'TCP/IP network port ' + str(self.net_port) + '.'
+            else:
+                return ('Unopened TCP/IP network port ' +
+                        str(self.net_port) + '.')
+
+        if self.device_port:
+            if os.name == 'nt':
+                return ('(invalid) OS communication device "' +
+                        self.device_port + '".')
+        else:
+                return ('OS communication device "' +
+                        self.device_port + '".')
+
+        if self.serial_port:
+            postfix = ''
+            baudrate = ''
+            if extended:
+                postfix = ' of com0com COM port pair'
+                if self.serial_baudrate:
+                    baudrate = " with baud rate " + str(
+                        self.serial_baudrate or SERIAL_BAUDRATE)
+
+            if os.name == 'nt':
+                if self.serial_port == 'COM3':
+                    return ('Windows serial COM port "' + self.serial_port + '"'
+                            + postfix + baudrate + '.')
+                else:
+                    return ('serial COM port "' + self.serial_port + '"'
+                            + baudrate + '.')
+            else:
+                return 'serial communication port "' + self.serial_port + '".'
+
+        if self.slave_name:
+            if os.name == 'nt':
+                return "(invalid) Windows PTY " + self.slave_name + '.'
+            else:
+                return ('communication COM port "' +
+                        self.slave_name + '".')
+
+        return 'unknown port.'
+
     def read_from_device(self, bytes):
         """
             read from the port; returns up to bytes characters
@@ -575,19 +594,8 @@ class Elm:
                 try:
                     c = self.serial_fd.read(bytes)
                 except Exception:
-                    if os.name == 'nt':
-                        if self.serial_port == 'COM3':
-                            logging.debug(
-                                'Error while reading from com0com serial port "%s"',
-                                self.serial_port)
-                        else:
-                            logging.debug(
-                                'Error while reading from serial port "%s"',
-                                self.serial_port)
-                    else:
-                        logging.debug(
-                            'Error while reading from device port "%"',
-                            self.serial_port)
+                    logging.debug(
+                        'Error while reading from %s', self.get_port_name())
                     return None
                 if ('cmd_echo' in self.counters and
                         self.counters['cmd_echo'] == 1):
@@ -690,19 +698,8 @@ class Elm:
             try:
                 self.serial_fd.write(i)
             except Exception:
-                if os.name == 'nt':
-                    if self.serial_port == 'COM3':
-                        logging.debug(
-                            'Error while writing to com0com serial port "%s"',
-                            self.serial_port)
-                    else:
-                        logging.debug(
-                            'Error while writing to serial port "%s"',
-                            self.serial_port)
-                else:
-                    logging.debug(
-                        'Error while writing to device port "%"',
-                        self.serial_port)
+                logging.debug(
+                    'Error while writing to %s', self.get_port_name())
             return
 
         else:
