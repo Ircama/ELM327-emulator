@@ -388,7 +388,7 @@ emulator.counters["ELM_PIDS_A"] = 0
 
 - serial communication using a pseudo-terminal, as default mode on non Windows operating systems (without options),
 - TCP/IP networking, when using option `-n`, followed by the TCP/IP port,
-- serial COM port, when using  option `-p`, default mode with Windows (the option is followed by the port name and allows setting a baud rate),
+- serial COM port, when using  option `-p`, default mode with Windows (the option is followed by the port name and allows setting a baud rate with the `-a` option),
 - standard communication, when using option `-P`.
 
 ### Usage of a pseudo-terminal

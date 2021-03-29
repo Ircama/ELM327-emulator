@@ -511,7 +511,7 @@ class Elm:
             if os.name == 'nt':
                 return ('(invalid) OS communication device "' +
                         self.device_port + '".')
-        else:
+            else:
                 return ('OS communication device "' +
                         self.device_port + '".')
 
@@ -538,7 +538,7 @@ class Elm:
             if os.name == 'nt':
                 return "(invalid) Windows PTY " + self.slave_name + '.'
             else:
-                return ('communication COM port "' +
+                return ('pseudo-tty port "' +
                         self.slave_name + '".')
 
         return 'unknown port.'
