@@ -335,7 +335,10 @@ class Elm:
             if (not self.device_port and
                     not self.serial_port and
                     not self.get_pty()):
-                logging.critical("Pseudo-tty port connection failed.")
+                if os.name == 'nt':
+                    logging.critical("Invalid setting for Windows.")
+                else:
+                    logging.critical("Pseudo-tty port connection failed.")
                 self.terminate()
                 return
         self.choice = choice
