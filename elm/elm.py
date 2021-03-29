@@ -271,11 +271,18 @@ class Elm:
                     port=self.serial_port,
                     baudrate=self.serial_baudrate or SERIAL_BAUDRATE)
                 if os.name == 'nt':
-                    self.slave_name = (
-                            'com0com serial port pair reading from ' +
-                            self.serial_port +
-                            " with baud rate " +
-                            str(self.serial_baudrate) + '.')
+                    if self.serial_port == 'COM3':
+                        self.slave_name = (
+                                'com0com serial port pair reading from ' +
+                                self.serial_port +
+                                " with baud rate " +
+                                str(self.serial_baudrate) + '.')
+                    else:
+                        self.slave_name = (
+                                'Serial port ' +
+                                self.serial_port +
+                                " with baud rate " +
+                                str(self.serial_baudrate) + '.')
             except Exception as e:
                 logging.critical("Error while opening serial COM %s:\n%s",
                                  repr(self.serial_port), e)
@@ -569,9 +576,14 @@ class Elm:
                     c = self.serial_fd.read(bytes)
                 except Exception:
                     if os.name == 'nt':
-                        logging.debug(
-                            'Error while reading from com0com serial port "%s"',
-                            self.serial_port)
+                        if self.serial_port == 'COM3':
+                            logging.debug(
+                                'Error while reading from com0com serial port "%s"',
+                                self.serial_port)
+                        else:
+                            logging.debug(
+                                'Error while reading from serial port "%s"',
+                                self.serial_port)
                     else:
                         logging.debug(
                             'Error while reading from device port "%"',
@@ -679,9 +691,14 @@ class Elm:
                 self.serial_fd.write(i)
             except Exception:
                 if os.name == 'nt':
-                    logging.debug(
-                        'Error while writing to com0com serial port "%s"',
-                        self.serial_port)
+                    if self.serial_port == 'COM3':
+                        logging.debug(
+                            'Error while writing to com0com serial port "%s"',
+                            self.serial_port)
+                    else:
+                        logging.debug(
+                            'Error while writing to serial port "%s"',
+                            self.serial_port)
                 else:
                     logging.debug(
                         'Error while writing to device port "%"',

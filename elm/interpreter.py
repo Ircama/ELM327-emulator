@@ -226,7 +226,7 @@ class Interpreter(Cmd):
                 msg = ('OS communication device "' +
                        self.emulator.device_port + '".')
             elif self.emulator.serial_fd and self.emulator.serial_port:
-                if os.name == 'nt':
+                if os.name == 'nt' and self.emulator.serial_port == 'COM3':
                     msg = ('com0com serial port "' +
                            self.emulator.serial_port + '".')
                 else:
@@ -503,8 +503,8 @@ def main():
     parser.add_argument(
         '-p', '--port',
         dest = 'serial_port',
-        help = ("Set the com0com serial port listened by ELM327-emulator; "
-                "default is COM3."
+        help = ("Set the serial port listened by ELM327-emulator; "
+                "default is COM3 (for com0com null-modem emulator)."
                 if os.name == 'nt' else
                 "Set a serial communication port instead of using "
                "a pseudo-tty."),
