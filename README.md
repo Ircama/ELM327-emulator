@@ -19,18 +19,41 @@ Check that the Python version is 3.6 or higher (`python3 -V`), then install *ELM
 python3 -m pip install ELM327-emulator
 ```
 
-To install from GitHub:
+Prerequisite components: *pyyaml*, *python-daemon*, *obd*; in addition, with Windows also *tendo*. All needed prerequisites are automatically installed with the package.
 
-```shell
-python3 -m pip install git+https://github.com/ircama/ELM327-emulator
-```
+The following steps allow installing the latest version from GitHub.
+
+- Optional preliminary configuration with Ubuntu (if not already done):
+
+  ```shell
+  sudo apt-get update
+  sudo apt-get -y upgrade
+  sudo add-apt-repository universe # this is only needed if "sudo apt install python3-pip" fails
+  sudo apt-get update
+  sudo apt install -y python3-pip
+  python3 -m pip install --upgrade pip
+  sudo apt install -y git
+  ```
+
+- Optional preliminary configuration with Windows:
+
+  - install the latest version of [Python](https://www.python.org/downloads/windows/)
+  - install [git](https://git-scm.com/downloads)
+  - open a CMD and run:
+  ```    
+  python3 -m pip install --upgrade pip
+  ```
+- Run this command:
+
+  ```shell
+  python3 -m pip install git+https://github.com/ircama/ELM327-emulator
+  ```
 
 Prerequisite components: *pyyaml*, *python-daemon*, *obd*; in addition, with Windows also *tendo*. All needed prerequisites are automatically installed with the package.
 
 *obd* (*python-OBD*) is needed for *obd_dictionary*.
 
 Important note: it is better to use an updated version of *python-OBD* package (e.g., the one installed from GitHub):
-
 
 ```shell
 python3 -m pip install git+https://github.com/brendan-w/python-OBD.git
