@@ -38,12 +38,10 @@ The following steps allow installing the latest version from GitHub.
 - Optional preliminary configuration with Windows:
 
   - install the latest version of [Python](https://www.python.org/downloads/windows/)
-  - install [git](https://git-scm.com/downloads)
-  - open a CMD and run:
-  ```    
-  python3 -m pip install --upgrade pip
-  ```
-- Run this command:
+  - install *git* from [Git-scm](https://git-scm.com/download/win) or using the [Git for Windows installer](https://gitforwindows.org/)
+  - if the interface to use is a COM port, also install [com0com](https://sourceforge.net/projects/com0com/) (no installation is needed when using TCP/IP or Bluetooth interfaces)
+  - check that PIP is upgraded (`python3 -m pip install --upgrade pip`)
+  - Run this command:
 
   ```shell
   python3 -m pip install git+https://github.com/ircama/ELM327-emulator
