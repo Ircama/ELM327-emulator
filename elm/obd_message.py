@@ -21,10 +21,6 @@ ECU_R_ADDR_P = "7CC"  # Responses sent by Air Conditioning ECU - 7C4/7CC
 ECU_ADDR_S = "7B0"  # Skid Control address ECU
 ECU_R_ADDR_S = "7B8"  # Responses sent by 7B0 Skid Control ECU 7B0/7B8
 
-ELM_R_OK = "OK\r"
-ELM_R_UNKNOWN = "?\r"
-ELM_MAX_RESP = '[0123456]?$'
-
 def SZ(size):
     return ('<size>' + size + '</size>')
 
@@ -33,6 +29,13 @@ def HD(header):
 
 def DT(data):
     return ('<data>' + data + '</data>')
+
+def ST(string):
+    return ('<string>' + string + '</string>')
+
+ELM_R_OK = ST("OK")
+ELM_R_UNKNOWN = ST("?")
+ELM_MAX_RESP = '[0123456]?$'
 
 # This dictionary uses the ISO 15765-4 CAN 11 bit ID 500 kbaud protocol
 
@@ -49,17 +52,17 @@ ObdMessage = {
         'AT_DESCR': {
             'Request': '^AT@1' + ELM_MAX_RESP,
             'Descr': 'Device description',
-            'Response': "OBDII^to^RS232^Interpreter\r"
+            'Response': ST("OBDII to RS232 Interpreter")
         },
         'AT_ID': {
             'Request': '^AT@2' + ELM_MAX_RESP,
             'Descr': 'Device identifier',
-            'Response': "?\r"
+            'Response': "?"
         },
         'AT_STORE_ID': {
             'Request': '^AT@3' + ELM_MAX_RESP,
             'Descr': 'Store the device identifier',
-            'Response': "?\r"
+            'Response': "?"
         },
         'AT_ADAPTIVE_TIMING': {
             'Request': '^ATAT[012]$',
@@ -67,11 +70,23 @@ ObdMessage = {
             'Log': '"Set adaptive timing %s", cmd[4:]',
             'Response': ELM_R_OK # ignored at the moment: just answer OK (to be revised)
         },
+        'AT_BYPASS_INIT': {
+            'Request': '^ATBI$',
+            'Descr': 'Bypass the Initialization sequence',
+            'Response': ELM_R_OK
+        },
         'AT_CAF': {
             'Request': '^ATCAF[01]$',
             'Descr': 'AT CAF',
             'Exec': 'self.counters["cmd_caf"] = (cmd[4] == "1")',
             'Log': '"set CAF ON/OFF : %s", self.counters["cmd_caf"]',
+            'Response': ELM_R_OK
+        },
+        'AT_SET_CAN_RX_ADDR': {
+            'Request': '^ATCRA',
+            'Descr': 'AT SET CAN RX Addr',
+            'Exec': 'self.counters["cmd_cra"] = cmd[5:] or None',
+            'Log': '"set CAN RX Addr %s", self.counters["cmd_cra"]',
             'Response': ELM_R_OK
         },
         'AT_DEFAULT': {
@@ -91,13 +106,13 @@ ObdMessage = {
             'Request': '^ATDP' + ELM_MAX_RESP,
             'Descr': 'set DESCRIBE_PROTO',
             'Exec': 'time.sleep(0.5)',
-            'Response': "ISO^15765-4^(CAN^11/500)\r"
+            'Response': ST("ISO 15765-4 (CAN 11/500)")
         },
         'AT_DESCRIBE_PROTO_N': {
             'Request': '^ATDPN$',
             'Descr': 'set DESCRIBE_PROTO_N',
             'Exec': 'time.sleep(0.5)',
-            'Response': "A6\r"
+            'Response': ST("A6")
         },
         'AT_ECHO': {
             'Request': '^ATE[01]$',
@@ -116,12 +131,12 @@ ObdMessage = {
         'AT_I': {
             'Request': '^ATI$',
             'Descr': 'ELM327 version string',
-            'Response': "ELM327^v1.5\r"
+            'Response': ST("ELM327 v1.5")
         },
         'AT_IGN': {
             'Request': '^ATIGN' + ELM_MAX_RESP,
             'Descr': 'IgnMon input level',
-            'Response': ("ON\r", "OFF\r")
+            'Response': (ST("ON"), ST("OFF"))
         },
         'AT_LINEFEEDS': {
             'Request': '^ATL[01]$',
@@ -149,12 +164,13 @@ ObdMessage = {
             'ResponseHeader': \
             lambda self, cmd, pid, val: \
                 "{:.1f}".format(0.1 * abs(9 - (self.counters[pid] + 9) % 18) + 13),
-            'Response': "V\r"
+            'Response': ST("V")
         },
         'AT_SPACES': {
             'Request': '^ATS[01]$',
             'Descr': 'Spaces off or on',
             'Exec': 'self.counters["cmd_spaces"] = (cmd[3] == "1")',
+            'Log': '"set SPACES %s", self.counters["cmd_spaces"]',
             'Response': ELM_R_OK
         },
         'AT_SET_HEADER': {
@@ -182,14 +198,14 @@ ObdMessage = {
             'Descr': 'AT WARM START',
             'Log': '"Sleep 0.1 seconds"',
             'Exec': 'self.reset(0.1)',
-            'Response': "\r\rELM327^v1.5\r"
+            'Response': ST('') + ST("ELM327 v1.5")
         },
         'AT_RESET': {
             'Request': '^ATZ$',
             'Descr': 'AT RESET',
             'Log': '"Sleep 0.5 seconds"',
             'Exec': 'self.reset(0.5)',
-            'Response': "\r\rELM327^v1.5\r"
+            'Response': ST('') + ST("ELM327 v1.5")
         },
         'AT_SET_TIMEOUT': {
             'Request': '^ATST[0-9A-F][0-9A-F]$',
@@ -202,17 +218,17 @@ ObdMessage = {
         'ST_DI': {
             'Request': '^STDI$',
             'Descr': 'Print device hardware ID string',
-            'Response': "OBDLink^r1.7\r"
+            'Response': ST("OBDLink r1.7")
         },
         'ST_ID': {
             'Request': '^STI$',
             'Descr': 'Print firmware ID string',
-            'Response': "STN1100^v1.2.3\r"
+            'Response': ST("STN1100 v1.2.3")
         },
         'ST_SET_BAUD_RATE': {
             'Request': '^STSBR *[1-9][0-9]*$',
             'Descr': 'Set baud rate',
-            'Response': "STN1101^v2.1.0\r"
+            'Response': ST("STN1101 v2.1.0")
         },
     },
     # OBD Commands
@@ -222,9 +238,11 @@ ObdMessage = {
             'Descr': 'PIDS_A',
             'ResponseHeader': \
             lambda self, cmd, pid, val: \
-                'SEARCHING...\0 time.sleep(4.5) \0\rUNABLE^TO^CONNECT\r' \
+                '<subs>SEARCHING...</subs>'
+                '<exec>time.sleep(4.5)</exec>' + ST('') + \
+                ST('UNABLE TO CONNECT') \
                 if self.counters[pid] == 1 else \
-                self.choice(['NO^DATA\r', 'BUS^INIT:ERROR\r']),
+                self.choice([ST('NO DATA'), ST('BUS INIT:ERROR')]),
             'Response': '',
             'Priority': 5
         },
@@ -233,9 +251,11 @@ ObdMessage = {
             'Descr': 'MIDS_A',
             'ResponseHeader': \
             lambda self, cmd, pid, val: \
-                'SEARCHING...\0 time.sleep(4.5) \0\rUNABLE^TO^CONNECT\r' \
+                '<subs>SEARCHING...</subs>'
+                '<exec>time.sleep(4.5)</exec>' + ST('') + \
+                ST('UNABLE TO CONNECT') \
                 if self.counters[pid] == 1 else \
-                self.choice(['NO^DATA\r', 'BUS^INIT:ERROR\r']),
+                self.choice([ST('NO DATA'), ST('BUS INIT:ERROR')]),
             'Response': '',
             'Priority': 5
         },
@@ -243,12 +263,12 @@ ObdMessage = {
             'Request': '^ATDPN$',
             'Descr': 'set DESCRIBE_PROTO_N',
             'Exec': 'time.sleep(0.5)',
-            'Response': "A0\r"
+            'Response': ST("A0")
         },
         'NO_DATA': {
             'Request': '^[0-9][0-9][0-9A-F]+$',
             'Descr': 'NO_DATA',
-            'Response': 'NO^DATA\r',
+            'Response': ST('NO DATA'),
             'Priority': 6
         },
     },
@@ -287,9 +307,9 @@ ObdMessage = {
             lambda self, cmd, pid, val: \
                 HD(ECU_R_ADDR_E) + SZ('04') + '41 0C ' \
                 + self.Sequence(pid, base=2400, max=200, factor=80, n_bytes=2) \
-                + ' \r' + HD(ECU_R_ADDR_H) + SZ('04') + '41 0C ' \
+                + ST(' ') + HD(ECU_R_ADDR_H) + SZ('04') + '41 0C ' \
                 + self.Sequence(pid, base=2400, max=200, factor=80, n_bytes=2) \
-                + ' \r'
+                + ST(' ')
         },
         'SPEED': {
             'Request': '^010D' + ELM_MAX_RESP,
@@ -300,9 +320,9 @@ ObdMessage = {
             lambda self, cmd, pid, val: \
                 HD(ECU_R_ADDR_E) + SZ('03') + '41 0D ' \
                 + self.Sequence(pid, base=0, max=30, factor=4, n_bytes=1) \
-                + ' \r' + HD(ECU_R_ADDR_H) + SZ('03') + '41 0D ' \
+                + ST(' ') + HD(ECU_R_ADDR_H) + SZ('03') + '41 0D ' \
                 + self.Sequence(pid, base=0, max=30, factor=4, n_bytes=1) \
-                + ' \r'
+                + ST(' ')
         },
         'INTAKE_TEMP': {
             'Request': '^010F' + ELM_MAX_RESP,
@@ -338,7 +358,7 @@ ObdMessage = {
             'Request': '^0121' + ELM_MAX_RESP,
             'Descr': 'Distance Traveled with MIL on',
             'Header': ECU_ADDR_E,
-            'Response': HD(ECU_R_ADDR_E) + SZ('04') + DT('41 21 00 00 \r00')
+            'Response': HD(ECU_R_ADDR_E) + SZ('04') + DT('41 21 00 00') + ST('00')
         },
         'FUEL_RAIL_PRESSURE_DIRECT': {
             'Request': '^0123' + ELM_MAX_RESP,
@@ -380,7 +400,7 @@ ObdMessage = {
             'Request': '^0142' + ELM_MAX_RESP,
             'Descr': 'Control module voltage',
             'Header': ECU_ADDR_E,
-            'Response': HD(ECU_R_ADDR_E) + SZ('04') + DT('41 42 39 D6 \r00')
+            'Response': HD(ECU_R_ADDR_E) + SZ('04') + DT('41 42 39 D6') + ST('00')
         },
         'AMBIANT_AIR_TEMP': {
             'Request': '^0146' + ELM_MAX_RESP,
@@ -410,13 +430,13 @@ ObdMessage = {
             'Request': '^014D' + ELM_MAX_RESP,
             'Descr': 'Time run with MIL on',
             'Header': ECU_ADDR_E,
-            'Response': HD(ECU_R_ADDR_E) + SZ('04') + DT('41 4D 00 00 \r00')
+            'Response': HD(ECU_R_ADDR_E) + SZ('04') + DT('41 4D 00 00') + ST('00')
         },
         'TIME_SINCE_DTC_CLEARED': {
             'Request': '^014E' + ELM_MAX_RESP,
             'Descr': 'Time since trouble codes cleared',
             'Header': ECU_ADDR_E,
-            'Response': HD(ECU_R_ADDR_E) + SZ('04') + DT('41 4E 4C 69 \r00')
+            'Response': HD(ECU_R_ADDR_E) + SZ('04') + DT('41 4E 4C 69') + ST('00')
         },
         'FUEL_TYPE': {
             'Request': '^0151' + ELM_MAX_RESP,
@@ -435,8 +455,10 @@ ObdMessage = {
             'Request': '^0100' + ELM_MAX_RESP,
             'Descr': 'PIDS_A',
             'ResponseHeader': \
-            lambda self, cmd, pid, val: \
-                'SEARCHING...\0 time.sleep(3) \0\r' if self.counters[pid] == 1 else "",
+                lambda self, cmd, pid, val: \
+                    '<subs>SEARCHING...</subs>'
+                    '<exec>time.sleep(3)</exec>' + ST('') \
+                        if self.counters[pid] == 1 else "",
             'Response':
             HD(ECU_R_ADDR_H) + SZ('06') + DT('41 00 98 3A 80 13') +
             HD(ECU_R_ADDR_E) + SZ('06') + DT('41 00 BE 3F A8 13')
@@ -529,8 +551,8 @@ ObdMessage = {
             'Descr': 'Current protocol',
             'Header': ECU_ADDR_E,
             'Response': [
-                        '?^\r',
-                        'AUTO,^ISO^15765-4^(CAN^11/500)^\r'
+                        ST('? '),
+                        ST('AUTO, ISO 15765-4 (CAN 11/500) ')
                         ]
         },
         'ELM_IGNITION': {
@@ -538,8 +560,8 @@ ObdMessage = {
             'Descr': 'IgnMon input level',
             'Header': ECU_ADDR_E,
             'Response': [
-                        'ON^\r',
-                        '?^\r'
+                        ST('ON '),
+                        ST('? ')
                         ]
         },
         'ELM_DESCR': {
@@ -547,27 +569,27 @@ ObdMessage = {
             'Descr': 'Device description',
             'Header': ECU_ADDR_E,
             'Response': [
-                        '?^\r',
-                        'OBDII^to^RS232^Interpreter^\r'
+                        ST('? '),
+                        ST('OBDII to RS232 Interpreter ')
                         ]
         },
         'ELM_ID': {
             'Request': '^AT@2' + ELM_MAX_RESP,
             'Descr': 'Device identifier',
             'Header': ECU_ADDR_E,
-            'Response': '?^\r'
+            'Response': ST('? ')
         },
         'ELM_VERSION': {
             'Request': '^ATI' + ELM_MAX_RESP,
             'Descr': 'ELM327 version string',
             'Header': ECU_ADDR_E,
-            'Response': 'ELM327^v1.5^\r'
+            'Response': ST('ELM327 v1.5 ')
         },
         'ELM_VOLTAGE': {
             'Request': '^ATRV' + ELM_MAX_RESP,
             'Descr': 'Voltage detected by OBD-II adapter',
             'Header': ECU_ADDR_E,
-            'Response': '14.7V^\r'
+            'Response': ST('14.7V ')
             # 14.7 volt
         },
     # OBD Commands
@@ -1369,22 +1391,22 @@ ObdMessage = {
             'Request': '^015B' + ELM_MAX_RESP,
             'Descr': 'Hybrid/EV Battery Pack Remaining Charge',
             'Header': ECU_ADDR_E,
-            'Response': 'NO^DATA\r'
+            'Response': ST('NO DATA'),
         },
         'PIDS_D': {
             'Request': '^0160' + ELM_MAX_RESP,
             'Descr': 'Supported PIDs [61-80]',
-            'Response': 'NO^DATA\r'
+            'Response': ST('NO DATA'),
         },
         'PIDS_E': {
             'Request': '^0180' + ELM_MAX_RESP,
             'Descr': 'Supported PIDs [81-A0]',
-            'Response': 'NO^DATA\r'
+            'Response': ST('NO DATA'),
         },
         'PIDS_F': {
             'Request': '^01A0' + ELM_MAX_RESP,
             'Descr': 'Supported PIDs [A1-C0]',
-            'Response': 'NO^DATA\r'
+            'Response': ST('NO DATA'),
         },
         # MODE 2 - freeze frame (or instantaneous) data of a fault
         'DTC_STATUS': {
@@ -1517,7 +1539,7 @@ ObdMessage = {
             'Descr': 'DTC Supported PIDs [21-40]',
             'Header': ECU_ADDR_E,
             'Response': [
-                        'NO^DATA^\r',
+                        ST('NO DATA'),
                         HD(ECU_R_ADDR_E) + SZ('03') + DT('7F 02 12')
                         ]
             # invalid data returned by diagnostic request (mode 02)
@@ -1555,7 +1577,7 @@ ObdMessage = {
             'Descr': 'DTC Number of warm-ups since codes cleared',
             'Header': ECU_ADDR_E,
             'Response': [
-                        'NO^DATA^\r',
+                        ST('NO DATA'),
                         HD(ECU_R_ADDR_E) + SZ('03') + DT('7F 02 12')
                         ]
             # invalid data returned by diagnostic request (mode 02)
@@ -1663,7 +1685,7 @@ ObdMessage = {
             'Descr': 'DTC Fuel Type',
             'Header': ECU_ADDR_E,
             'Response': [
-                        'NO^DATA^\r',
+                        ST('NO DATA'),
                         HD(ECU_R_ADDR_E) + SZ('03') + DT('7F 02 12')
                         ]
             # invalid data returned by diagnostic request (mode 02)
@@ -1802,7 +1824,7 @@ ObdMessage = {
         'PIDS_8': {
             'Request': '^0800' + ELM_MAX_RESP,
             'Descr': 'PIDS_08',
-            'Response': 'NO^DATA\r',
+            'Response': ST('NO DATA'),
         },
     # Mode 09 Request vehicle information
         'ELM_PIDS_9A': {
@@ -1884,7 +1906,7 @@ ObdMessage = {
         'UNKNOWN_0A': {
             'Request': '^0A' + ELM_MAX_RESP,
             'Descr': 'UNKNOWN_0A',
-            'Response': 'NO^DATA\r',
+            'Response': ST('NO DATA'),
         },
         # Custom OBD Commands
         "CUSTOM_CAL'D_LOAD": {

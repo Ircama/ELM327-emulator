@@ -23,8 +23,11 @@ import sys
 import traceback
 import errno
 from random import randint, choice
-from .obd_message import ObdMessage, ECU_ADDR_E, ELM_R_OK, ELM_R_UNKNOWN
+from .obd_message import ObdMessage, ECU_ADDR_E, ELM_R_OK, ELM_R_UNKNOWN, ST
 from .__version__ import __version__
+from functools import reduce
+import string
+import xml.etree.ElementTree as ET
 
 FORWARD_READ_TIMEOUT = 5.0 # seconds
 SERIAL_BAUDRATE = 38400 # bps
@@ -50,17 +53,6 @@ def setup_logging(
 
 class Elm:
     ELM_VALID_CHARS = r"[a-zA-Z0-9 \n\r]*"
-
-    # Other AT commands (still to be implemented...)
-    ELM_DEFAULTS    = r"ATD$"
-    ELM_SET_PROTO   = r"ATSPA?[0-9A-C]$"
-    ELM_ERASE_PROTO = r"ATSP00$"
-
-    def SZ(self, size):
-        return(size)
-
-    def HD(self, header):
-        return(header)
 
     class THREAD:
         STOPPED = 0
@@ -217,6 +209,8 @@ class Elm:
                 self.sock_inet = socket.socket(af, socktype, proto)
                 self.sock_inet.setsockopt(
                     socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
+                self.sock_inet.setsockopt(
+                    socket.IPPROTO_TCP, socket.TCP_NODELAY, 1)
             except OSError as msg:
                 errmsg = msg
                 self.sock_inet = None
@@ -391,7 +385,7 @@ class Elm:
                     logging.critical("Error while processing %s:\n%s\n%s",
                                      repr(self.cmd), e, traceback.format_exc())
                     continue
-                self.write(resp)
+                self.process_response(resp)
             else:
                 logging.warning("Invalid request: %s", repr(self.cmd))
 
@@ -434,6 +428,8 @@ class Elm:
                 s = socket.socket(af, socktype, proto)
                 self.sock_inet.setsockopt(
                     socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
+                self.sock_inet.setsockopt(
+                    socket.IPPROTO_TCP, socket.TCP_NODELAY, 1)
             except OSError as msg:
                 s = None
                 continue
@@ -725,62 +721,109 @@ class Elm:
                     self.terminate()
                     return
 
-    def write(self, resp):
-        """ process write operation """
+    def process_response(self, resp):
+        """ compute the response and write it to the device """
 
-        if ("cmd_use_header" in self.counters and
-                self.counters["cmd_use_header"]):
-            resp = re.sub(r"(?s)<header>(.*?)</header>", r"\1", resp)
-            resp = re.sub(r"(?s)<size>(.*?)</size>", r" \1 ", resp)
-        else:
-            resp = re.sub(r"(?s)<header>(.*?)</header>", r"", resp)
-            resp = re.sub(r"(?s)<size>(.*?)</size>", r"", resp)
-        resp = re.sub(r"(?s)<data>(.*?)</data>", r"\1 \r", resp)
+        logging.debug("Processing: %s", repr(resp))
 
-        n = "\r"
-        if 'cmd_linefeeds' in self.counters:
-            if self.counters['cmd_linefeeds'] == 1:
-                n = "\r\n"
-            if self.counters['cmd_linefeeds'] == 2:
-                n = "\n"
-            if self.counters['cmd_linefeeds'] == 3:
-                n = ""
-                resp = resp.replace('\r', '\n')
-            if self.counters['cmd_linefeeds'] == 4:
-                n = ""
-        resp += n + ">"
-        nospaces = 0
+        # compute cra_pattern
+        cra_pattern = r'.*'
+        cra = self.counters["cmd_cra"] if "cmd_cra" in self.counters else None
+        if cra:
+            cra_pattern = r'^' + cra + r'$'
+            cra_pattern = cra_pattern.replace('X', '?').replace('x', '?')
+
+        # compute use_headers
+        use_headers = ("cmd_use_header" in self.counters and
+                self.counters["cmd_use_header"])
+
+        # compute sp and whitespaces
         if ('cmd_spaces' in self.counters
                 and self.counters['cmd_spaces'] == 0):
-            nospaces = 1
+            sp = ''
+            whitespaces = string.whitespace
+        else:
+            sp = ' '
+            whitespaces = ''
 
-        j = 0
-        for i in re.split(r'\0([^\0]+)\0', resp):
-            if j % 2:
-                msg = i.strip()
+        # compute nl
+        nl = "\r\r"
+        if 'cmd_linefeeds' in self.counters:
+            if self.counters['cmd_linefeeds'] == 1:
+                nl = "\r\r\n"
+            if self.counters['cmd_linefeeds'] == 2:
+                nl = "\r\n"
+            if self.counters['cmd_linefeeds'] == 3:
+                nl = "\n"
+            if self.counters['cmd_linefeeds'] == 4:
+                nl = "\r"
+
+        # generate string
+        incomplete_resp = False
+        try:
+            root = ET.fromstring('<xml>' + resp + '</xml>')
+            s = iter(root)
+        except ET.ParseError as e:
+            incomplete_resp = True
+            logging.error(
+                'Wrong response format for "%s": "%s""', resp, e)
+        str = ""
+        while not incomplete_resp:
+            try:
+                i = next(s)
+            except StopIteration:
+                break
+            if i.tag.lower() == 'subs':
+                str += (i.text or "")
+            if i.tag.lower() == 'string':
+                str += (i.text or "") + nl
+            if i.tag.lower() == 'exec':
+                logging.debug("Write: %s", repr(str))
+                self.write_to_device(str.encode())
+                str = ""
+                msg = i.text.strip()
+                if not msg:
+                    continue
                 try:
                     evalmsg = eval(msg)
-                    if nospaces:
-                        evalmsg = re.sub(r'[ \t]+', '', evalmsg)
-                    logging.debug("Evaluated command: %s", msg)
+                    logging.debug(
+                        "Evaluated command: %s -> %s", msg, repr(evalmsg))
                     if evalmsg != None:
-                        self.write_to_device(evalmsg.encode())
-                        logging.debug("Written evaluated command: %s",
-                                      repr(evalmsg))
+                        str += evalmsg
                 except Exception:
                     try:
-                        logging.debug("Executing command: %s", msg)
-                        if msg:
-                            exec(msg, globals())
+                        exec(msg, globals())
+                        logging.debug("Executed command: %s", msg)
                     except Exception as e:
-                        logging.error("Cannot execute '%s': %s", i, e)
-            else:
-                if nospaces:
-                    i = re.sub(r' +', '', i)
-                i = i.replace('^', ' ')
-                logging.debug("Write: %s", repr(i))
-                self.write_to_device(i.encode())
-            j += 1
+                        logging.error("Cannot execute '%s': %s", msg, e)
+            if i.tag.lower() == 'header' and re.match(cra_pattern, i.text):
+                incomplete_resp = True
+                try:
+                    size = next(s)
+                    data = next(s)
+                except StopIteration:
+                    logging.error(
+                        'Missing <size> or <data> tags '
+                        'after <header> tag in "%s".', resp)
+                    break
+                if size.tag.lower() != 'size' or data.tag.lower() != 'data':
+                    logging.error(
+                        'In "%s", <size> and <data> tags '
+                        'must follow the <header> tag.', resp)
+                    break
+                incomplete_resp = False
+                str += (((i.text or "") + sp + (size.text or "") + sp
+                            if use_headers else "") +
+                            (data.text or "").translate(
+                                str.maketrans('', '', whitespaces))
+                        + sp + nl)
+        if incomplete_resp:
+            str = "NO DATA" + nl
+        #if not resp:
+        #    str = '\r'
+        str += ">"
+        logging.debug("Write: %s", repr(str))
+        self.write_to_device(str.encode())
 
     def validate(self, cmd):
         if not re.match(self.ELM_VALID_CHARS, cmd):
@@ -889,7 +932,7 @@ class Elm:
                              repr(cmd), self.counters["cmd_header"])
             else:
                 logging.info("Unknown request: %s", repr(cmd))
-            return 'NO^DATA'
+            return ST('NO DATA')
         if "cmd_header" in self.counters:
             logging.info("Unknown ELM command: %s, header=%s",
                          repr(cmd), self.counters["cmd_header"])

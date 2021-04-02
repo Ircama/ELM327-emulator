@@ -64,6 +64,36 @@ blacklisted_pids = (
     'CUSTOM_RB_DIS', # "Reverse Beep Disable|A|0|0|No reply req'd" ('3BAC40')
 )
 
+header = """
+def SZ(size):
+    return ('<size>' + size + '</size>')
+
+def HD(header):
+    return ('<header>' + header + '</header>')
+
+def DT(data):
+    return ('<data>' + data + '</data>')
+
+def ST(string):
+    return ('<string>' + string + '</string>')
+
+def SZ(size):
+    return ('<size>' + size + '</size>')
+
+def HD(header):
+    return ('<header>' + header + '</header>')
+
+def DT(data):
+    return ('<data>' + data + '</data>')
+
+def ST(string):
+    return ('<string>' + string + '</string>')
+
+ELM_R_OK = ST("OK")
+ELM_R_UNKNOWN = ST("?")
+ELM_MAX_RESP = '[0123456]?$'
+"""
+
 
 def add_at(data):
     stack = 0
@@ -377,20 +407,7 @@ def obd_dictionary():
 
     # Print header information
     print("\n".join([ecu[k] + ' = "' + k + '"' for k in ecu]))
-    print("""
-ELM_R_OK = "OK\\r"
-ELM_R_UNKNOWN = "?\\r"
-ELM_MAX_RESP = "[0123456]?$"
-
-def SZ(size):
-    return ('<size>' + size + '</size>')
-
-def HD(header):
-    return ('<header>' + header + '</header>')
-
-def DT(data):
-    return ('<data>' + data + '</data>')
-""")
+    print(header)
     print("ObdMessage = {")
     print("    '" + args.car_name + "': {")
 

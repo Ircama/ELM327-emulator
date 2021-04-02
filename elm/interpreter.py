@@ -511,6 +511,15 @@ def main():
         metavar = 'BAUDRATE'
     )
     parser.add_argument(
+        '-v', '--log',
+        dest = 'log',
+        type=int,
+        help = "Preset a log level in interactive mode.",
+        default = None,
+        nargs = 1,
+        metavar = 'LOG'
+    )
+    parser.add_argument(
         '-s', '--scenario',
         dest = 'scenario',
         help = "Set the scenario used by ELM327-emulator.",
@@ -715,6 +724,8 @@ def main():
                 print("\nCannot start ELM327-emulator.\n")
                 os._exit(1) # does not raise SystemExit
             p_elm = Interpreter(session, args)
+            if args.log:
+                logging.getLogger().handlers[0].setLevel(int(args.log[0]))
             if args.batch_mode:
                 p_elm.cmdloop_with_keyboard_interrupt(
                     'ELM327-emulator batch mode STARTED\n'
