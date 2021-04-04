@@ -206,6 +206,29 @@ class Interpreter(Cmd):
                 "Current logging level:",
                     logging.getLogger().handlers[0].level)
 
+    def do_test(self, arg):
+        "Test the OBD-II request specified in the argument."
+        if not arg:
+            print(
+                "Invalid format. Add the OBD-II request to test as argument.")
+            return
+        print("______Raw command:_______________")
+        try:
+            ret = self.emulator.handle(arg)
+            if not ret:
+                print("Error in request.")
+                return
+            print(repr(ret))
+        except Exception as e:
+            print("Could not run test:", repr(e))
+        print("\n______Command output:____________")
+        try:
+            print(
+                repr(self.emulator.process_response(
+                    self.emulator.handle(arg))))
+        except Exception as e:
+            print("Could not run test:", repr(e))
+
     def do_port(self, arg):
         "Print the used TCP/IP port, or the used device, "\
         "or the serial COM port,\nor the serial pseudo-tty, "\

@@ -77,21 +77,9 @@ def DT(data):
 def ST(string):
     return ('<string>' + string + '</string>')
 
-def SZ(size):
-    return ('<size>' + size + '</size>')
-
-def HD(header):
-    return ('<header>' + header + '</header>')
-
-def DT(data):
-    return ('<data>' + data + '</data>')
-
-def ST(string):
-    return ('<string>' + string + '</string>')
-
 ELM_R_OK = ST("OK")
 ELM_R_UNKNOWN = ST("?")
-ELM_MAX_RESP = '[0123456]?$'
+ELM_FOOTER = '[0123456]?$'
 """
 
 
@@ -487,7 +475,7 @@ def obd_dictionary():
         # print all data
         print("        " + repr(cmd.name) + ": {")
         print("            'Request': '^" + cmd.command.decode() +
-              "' + ELM_MAX_RESP,")
+              "' + ELM_FOOTER,")
         descr_list = cmd.desc.split(SEP)
         print("            'Descr': '" + descr_list[0] + "',")
         if len(descr_list) >= 5:
@@ -509,7 +497,7 @@ def obd_dictionary():
 '''
 Sample:
             'ENGINE_LOAD': {
-                'Request': '^0104' + ELM_MAX_RESP,
+                'Request': '^0104' + ELM_FOOTER,
                 'Descr': 'Calculated Engine Load',
                 'Header': ECU_ADDR_E,
                 'Response': ECU_R_ADDR_E + ' 03 41 04 3F \r'

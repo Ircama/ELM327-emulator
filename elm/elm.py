@@ -23,7 +23,9 @@ import sys
 import traceback
 import errno
 from random import randint, choice
-from .obd_message import ObdMessage, ECU_ADDR_E, ELM_R_OK, ELM_R_UNKNOWN, ST
+from .obd_message import ObdMessage
+from .obd_message import ELM_R_OK, ELM_R_UNKNOWN, ST
+from .obd_message import ECU_ADDR_E, ECU_R_ADDR_E, ECU_ADDR_I, ECU_R_ADDR_I
 from .__version__ import __version__
 from functools import reduce
 import string
@@ -80,7 +82,7 @@ class Elm:
             del (self.counters[i])
         self.counters['ELM_PIDS_A'] = 0
         self.counters['ELM_MIDS_A'] = 0
-        self.counters['cmd_header'] = ECU_ADDR_E
+        self.counters['cmd_set_header'] = ECU_ADDR_E
         self.counters.update(self.presets)
 
     def set_defaults(self):
@@ -362,7 +364,7 @@ class Elm:
                 continue
 
             # get the latest command
-            self.cmd = self.read()
+            self.cmd = self.normalized_read_line()
             if (self.threadState == self.THREAD.STOPPED or
                     self.threadState == self.THREAD.TERMINATED):
                 return True
@@ -385,7 +387,8 @@ class Elm:
                     logging.critical("Error while processing %s:\n%s\n%s",
                                      repr(self.cmd), e, traceback.format_exc())
                     continue
-                self.process_response(resp)
+                resp = self.process_response(resp)
+                self.write_to_device(resp.encode())
             else:
                 logging.warning("Invalid request: %s", repr(self.cmd))
 
@@ -630,7 +633,7 @@ class Elm:
             return None
         return c
 
-    def read(self):
+    def normalized_read_line(self):
         """
             reads the next newline delimited command
             returns a normalized string command
@@ -722,7 +725,7 @@ class Elm:
                     return
 
     def process_response(self, resp):
-        """ compute the response and write it to the device """
+        """ compute the response and returns data to be written to the device """
 
         logging.debug("Processing: %s", repr(resp))
 
@@ -730,8 +733,8 @@ class Elm:
         cra_pattern = r'.*'
         cra = self.counters["cmd_cra"] if "cmd_cra" in self.counters else None
         if cra:
+            cra = cra.replace('X', '.').replace('x', '?')
             cra_pattern = r'^' + cra + r'$'
-            cra_pattern = cra_pattern.replace('X', '?').replace('x', '?')
 
         # compute use_headers
         use_headers = ("cmd_use_header" in self.counters and
@@ -747,16 +750,17 @@ class Elm:
             whitespaces = ''
 
         # compute nl
-        nl = "\r\r"
+        nl_type = {
+            0: "\r",
+            1: "\r\n",
+            2: "\n",
+            3: "\r",
+            4: "\r\n",
+            5: "\n"
+        }
+        nl = "\r"
         if 'cmd_linefeeds' in self.counters:
-            if self.counters['cmd_linefeeds'] == 1:
-                nl = "\r\r\n"
-            if self.counters['cmd_linefeeds'] == 2:
-                nl = "\r\n"
-            if self.counters['cmd_linefeeds'] == 3:
-                nl = "\n"
-            if self.counters['cmd_linefeeds'] == 4:
-                nl = "\r"
+            nl = nl_type[int(self.counters['cmd_linefeeds'])]
 
         # generate string
         incomplete_resp = False
@@ -767,7 +771,10 @@ class Elm:
             incomplete_resp = True
             logging.error(
                 'Wrong response format for "%s": "%s""', resp, e)
-        str = ""
+            return "NO DATA" + nl
+        str = root.text.strip() if root.text else ""
+        answers = False
+        i = None
         while not incomplete_resp:
             try:
                 i = next(s)
@@ -775,55 +782,72 @@ class Elm:
                 break
             if i.tag.lower() == 'subs':
                 str += (i.text or "")
-            if i.tag.lower() == 'string':
+            elif i.tag.lower() == 'string':
                 str += (i.text or "") + nl
-            if i.tag.lower() == 'exec':
+            elif i.tag.lower() == 'space':
+                str += (i.text or "") + sp
+            elif (i.tag.lower() == 'eval' or
+                    i.tag.lower() == 'exec'):
                 logging.debug("Write: %s", repr(str))
-                self.write_to_device(str.encode())
-                str = ""
+                if i.tag.lower() == 'exec':
+                    self.write_to_device(str.encode())
+                    str = ""
                 msg = i.text.strip()
-                if not msg:
-                    continue
-                try:
-                    evalmsg = eval(msg)
-                    logging.debug(
-                        "Evaluated command: %s -> %s", msg, repr(evalmsg))
-                    if evalmsg != None:
-                        str += evalmsg
-                except Exception:
+                if msg:
                     try:
-                        exec(msg, globals())
-                        logging.debug("Executed command: %s", msg)
-                    except Exception as e:
-                        logging.error("Cannot execute '%s': %s", msg, e)
-            if i.tag.lower() == 'header' and re.match(cra_pattern, i.text):
-                incomplete_resp = True
-                try:
-                    size = next(s)
-                    data = next(s)
-                except StopIteration:
-                    logging.error(
-                        'Missing <size> or <data> tags '
-                        'after <header> tag in "%s".', resp)
-                    break
-                if size.tag.lower() != 'size' or data.tag.lower() != 'data':
-                    logging.error(
-                        'In "%s", <size> and <data> tags '
-                        'must follow the <header> tag.', resp)
-                    break
-                incomplete_resp = False
-                str += (((i.text or "") + sp + (size.text or "") + sp
-                            if use_headers else "") +
-                            (data.text or "").translate(
-                                str.maketrans('', '', whitespaces))
-                        + sp + nl)
-        if incomplete_resp:
+                        evalmsg = eval(msg)
+                        logging.debug(
+                            "Evaluated command: %s -> %s",
+                            msg, repr(evalmsg))
+                        if evalmsg != None:
+                            str += evalmsg
+                    except Exception:
+                        try:
+                            exec(msg, globals())
+                            logging.debug("Executed command: %s", msg)
+                        except Exception as e:
+                            logging.error("Cannot execute '%s': %s", msg, e)
+                else:
+                    logging.debug(
+                        "Missing command to execute: %s", resp)
+            elif i.tag.lower() == 'header':
+                answers = True
+                if re.match(cra_pattern, i.text):
+                    incomplete_resp = True
+                    try:
+                        size = next(s)
+                        data = next(s)
+                    except StopIteration:
+                        logging.error(
+                            'Missing <size> or <data>/<subd> tags '
+                            'after <header> tag in "%s".', resp)
+                        break
+                    if (size.tag.lower() != 'size' or
+                            (data.tag.lower() != 'data' and
+                             data.tag.lower() != 'subd')):
+                        logging.error(
+                            'In "%s", <size> and <data>/<subd> tags '
+                            'must follow the <header> tag.', resp)
+                        break
+                    incomplete_resp = False
+                    str += (((i.text or "") + sp + (size.text or "") + sp
+                                if use_headers else "") +
+                                (data.text or "").translate(
+                                    str.maketrans('', '', whitespaces))
+                            + sp + (nl if data.tag.lower() == 'data' else ""))
+            else:
+                logging.error(
+                    'Unknown tag "%s" in response "%s"', i.tag, resp)
+            str += i.tail.strip() if i.tail else ""
+        if incomplete_resp or (answers and not str):
             str = "NO DATA" + nl
-        #if not resp:
-        #    str = '\r'
-        str += ">"
+        if ('cmd_linefeeds' in self.counters and
+                self.counters['cmd_linefeeds'] > 2):
+            str += ">"
+        else:
+            str += nl + ">"
         logging.debug("Write: %s", repr(str))
-        self.write_to_device(str.encode())
+        return str
 
     def validate(self, cmd):
         if not re.match(self.ELM_VALID_CHARS, cmd):
@@ -835,10 +859,12 @@ class Elm:
 
         cmd = self.sanitize(cmd)
 
+        # increment commands counter
         if 'commands' not in self.counters:
             self.counters['commands'] = 0
         self.counters['commands'] += 1
 
+        # manages delay
         logging.debug("Handling: %s", repr(cmd))
         if self.delay > 0:
             time.sleep(self.delay)
@@ -847,11 +873,43 @@ class Elm:
             logging.error("Unknown scenario %s", repr(self.scenario))
             return ""
 
+        if ('cmd_can' in self.counters and
+                self.counters['cmd_can'] and
+                cmd[:2] != 'AT'
+                and self.is_hex_sp(cmd [:3])):
+            self.counters['cmd_set_header'] = cmd[:3]
+            self.counters['cmd_caf'] = False
+            self.counters['cmd_use_header'] = True
+            cmd = cmd[3:]
+
+        # manages cmd_caf
+        if ('cmd_caf' in self.counters and
+                not self.counters['cmd_caf'] and
+                cmd[:2] != 'AT'):
+            size = cmd[:2]
+            try:
+                int_size = int(size, 16)
+            except ValueError as e:
+                logging.error('Improper size "%s" for request "%s": %s',
+                              repr(cmd), repr(size), e)
+                return ""
+            payload = cmd[2:]
+            if not payload:
+                logging.error('Missing data for request "%s"', repr(cmd))
+                return ""
+            if int_size < 9 and len(payload) != int_size * 2:
+                logging.error(
+                    'In request "%s", data "%s" has an improper data length '
+                    'of %s bytes', repr(cmd), repr(payload), size)
+                return ""
+            cmd = payload
+
         for i in self.sortedOBDMsg:
             key = i[0]
             val = i[1]
             if 'Request' in val and re.match(val['Request'], cmd):
-                if 'Header' in val and val['Header'] != self.counters["cmd_header"]:
+                if ('Header' in val and 'cmd_set_header' in self.counters and
+                        val['Header'] != self.counters["cmd_set_header"]):
                     continue
                 if key:
                     pid = key
@@ -927,15 +985,15 @@ class Elm:
                 'Missing data in dictionary: %s. Answer:\n%s',
                 repr(cmd), repr(fw_data))
         if self.is_hex_sp(cmd):
-            if "cmd_header" in self.counters:
+            if "cmd_set_header" in self.counters:
                 logging.info("Unknown request: %s, header=%s",
-                             repr(cmd), self.counters["cmd_header"])
+                             repr(cmd), self.counters["cmd_set_header"])
             else:
                 logging.info("Unknown request: %s", repr(cmd))
             return ST('NO DATA')
-        if "cmd_header" in self.counters:
+        if "cmd_set_header" in self.counters:
             logging.info("Unknown ELM command: %s, header=%s",
-                         repr(cmd), self.counters["cmd_header"])
+                         repr(cmd), self.counters["cmd_set_header"])
         else:
             logging.info("Unknown ELM command: %s", repr(cmd))
         return self.ELM_R_UNKNOWN
