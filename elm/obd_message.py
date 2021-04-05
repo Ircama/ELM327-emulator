@@ -50,7 +50,6 @@ ObdMessage = {
         'AT_LONG_MSG': {
             'Request': '^ATAL$',
             'Descr': 'Allow long messages',
-            'Log': '"Set long messages %s", cmd[4:]',
             'Response': ELM_R_OK # ignored at the moment: just answer OK (to be revised)
         },
         'AT_DESCR': {
@@ -61,29 +60,39 @@ ObdMessage = {
         'AT_ID': {
             'Request': '^AT@2' + ELM_FOOTER,
             'Descr': 'Device identifier',
-            'Response': "?"
+            'Response': ST('?')
         },
         'AT_STORE_ID': {
             'Request': '^AT@3' + ELM_FOOTER,
             'Descr': 'Store the device identifier',
-            'Response': "?"
+            'Response': ST('?')
         },
         'AT_ADAPTIVE_TIMING': {
             'Request': '^ATAT[012]$',
             'Descr': 'Set adaptive timing mode',
-            'Log': '"Set adaptive timing %s", cmd[4:]',
-            'Response': ELM_R_OK # ignored at the moment: just answer OK (to be revised)
+            'Exec': 'self.counters["cmd_adaptive_t"] = cmd[4:] or None',
+            'Log': '"Set adaptive timing %s", self.counters["cmd_adaptive_t"]',
+            'Response': ELM_R_OK
         },
         'AT_BYPASS_INIT': {
             'Request': '^ATBI$',
             'Descr': 'Bypass the Initialization sequence',
-            'Response': ELM_R_OK
+            'Response': ELM_R_OK # ignored at the moment: just answer OK (to be revised)
         },
         'AT_CAF': {
             'Request': '^ATCAF[01]$',
             'Descr': 'AT CAF',
-            'Exec': 'self.counters["cmd_caf"] = (cmd[4] == "1")',
-            'Log': '"set CAF ON/OFF : %s", self.counters["cmd_caf"]',
+            'Exec': 'self.counters["cmd_caf"] = (cmd[5] == "1")',
+            'Log': '"Set CAN Automatic Formatting ON/OFF : %s", '
+                   'self.counters["cmd_caf"]',
+            'Response': ELM_R_OK
+        },
+        'AT_RESPONSES': {
+            'Request': '^ATR[01]$',
+            'Descr': 'AT Turn responses on or off',
+            'Exec': 'self.counters["cmd_response"] = (cmd[3] == "1")',
+            'Log': '"Set responses ON/OFF : %s", '
+                   'self.counters["cmd_response"]',
             'Response': ELM_R_OK
         },
         'AT_SET_CAN_RX_ADDR': {
@@ -103,18 +112,19 @@ ObdMessage = {
         'AT_DLC': {
             'Request': '^ATD[01]$',
             'Descr': 'Display of the DLC on/off',
-            'Log': '"Set DLC %s", cmd[3:]',
+            'Exec': 'self.counters["cmd_dlc"] = (cmd[3] == "1")',
+            'Log': '"Set DLC %s", self.counters["cmd_dlc"]',
             'Response': ELM_R_OK # ignored at the moment: just answer OK (to be revised)
         },
         'AT_DESCRIBE_PROTO': {
-            'Request': '^ATDP' + ELM_FOOTER,
+            'Request': '^ATDP$',
             'Descr': 'set DESCRIBE_PROTO',
             'Exec': 'time.sleep(0.5)',
             'Response': ST("ISO 15765-4 (CAN 11/500)")
         },
         'AT_DESCRIBE_PROTO_N': {
             'Request': '^ATDPN$',
-            'Descr': 'set DESCRIBE_PROTO_N',
+            'Descr': 'Display Protocol Number',
             'Exec': 'time.sleep(0.5)',
             'Response': ST("A6")
         },
@@ -138,7 +148,7 @@ ObdMessage = {
             'Response': ST("ELM327 v1.5")
         },
         'AT_IGN': {
-            'Request': '^ATIGN' + ELM_FOOTER,
+            'Request': '^ATIGN$',
             'Descr': 'IgnMon input level',
             'Response': (ST("ON"), ST("OFF"))
         },
@@ -158,13 +168,15 @@ ObdMessage = {
             'Request': '^ATM[01]$',
             'Descr': 'AT Memory off or on',
             'Exec': 'self.counters["cmd_memory"] = (cmd[3] == "1")',
+            'Log': '"set MEMORY ON/OFF : %s", self.counters["cmd_memory"]',
             'Response': ELM_R_OK
         },
         'AT_R_VOLT': {
             'Request': '^ATRV$',
             'Descr': 'AT read volt',
             'Log':
-            '"Volt = {:.1f}".format(0.1 * abs(9 - (self.counters[pid] + 9) % 18) + 13)',
+            '"Volt = {:.1f}".format('
+            '0.1 * abs(9 - (self.counters[pid] + 9) % 18) + 13)',
             'ResponseHeader': \
             lambda self, cmd, pid, val: \
                 "<subs>{:.1f}</subs>".format( \
@@ -179,10 +191,11 @@ ObdMessage = {
             'Response': ELM_R_OK
         },
         'AT_SET_HEADER': {
-            'Request': '^ATSH',
+            'Request': '^ATSH[0-9A-F]+$',
             'Descr': 'AT SET HEADER',
-            'Exec': 'self.counters["cmd_set_header"] = cmd[4:]',
-            'Log': '"set HEADER %s", self.counters["cmd_set_header"]',
+            'Exec': 'self.counters["cmd_set_header"] = '
+                    're.sub(r"^0*([0-9A-F]+)$", r"\\1", cmd[4:])',
+            'Log': '"Set HEADER to <%s>", self.counters["cmd_set_header"]',
             'Response': ELM_R_OK
         },
         'AT_FCSH': {
@@ -202,8 +215,15 @@ ObdMessage = {
         'AT_FCSM': {
             'Request': '^ATFCSM[0-2]$',
             'Descr': 'AT FLOW CONTROL SET MODE',
-            'Exec': 'self.counters["cmd_fcsm"] = cmd[7:]',
+            'Exec': 'self.counters["cmd_fcsm"] = cmd[6:]',
             'Log': '"set FLOW CONTROL set MODE %s", self.counters["cmd_fcsm"]',
+            'Response': ELM_R_OK
+        },
+        'AT_ISO_BAUD': {
+            'Request': '^ATIB[149][086]$',
+            'Descr': 'AT Set ISO baud rate to 10400, 4800, or 9600 baud',
+            'Exec': 'self.counters["cmd_iso_baud"] = cmd[4:]',
+            'Log': '"Set ISO baud rate to: %s", self.counters["cmd_iso_baud"]',
             'Response': ELM_R_OK
         },
         'AT_PROTO': {
@@ -214,9 +234,17 @@ ObdMessage = {
             'Response': ELM_R_OK
         },
         'AT_TRY_PROTO': {
-            'Request': '^ATTP[0-9A-C]+$',
+            'Request': '^ATTP[0-9A-F]+$',
             'Descr': 'AT TRY PROTO',
-            'Log': '"Try protocol %s", cmd[4:]',
+            'Exec': 'self.counters["cmd_try_proto"] = int(cmd[4:], 16)',
+            'Log': '"Try protocol %s", self.counters["cmd_try_proto"]',
+            'Response': ELM_R_OK
+        },
+        'AT_TEST_ADDR': {
+            'Request': '^ATTA[0-9A-F][0-9A-F]$',
+            'Descr': 'Set tester address to hh.',
+            'Exec': 'self.counters["cmd_test_add"] = cmd[4:]',
+            'Log': '"Try protocol %s", self.counters["cmd_test_add"]',
             'Response': ELM_R_OK
         },
         'AT_WARM_START': {
@@ -234,10 +262,10 @@ ObdMessage = {
             'Response': ST('') + ST('') + ST("ELM327 v1.5")
         },
         'AT_SET_TIMEOUT': {
-            'Request': '^ATST[0-9A-F][0-9A-F]$',
+            'Request': '^ATST[0-9A-F]+$',
             'Descr': 'AT SET TIMEOUT',
             'Exec': 'self.counters["cmd_timeout"] = int(cmd[4:], 16)',
-            'Log': '"Set timeout %s", cmd[4:]',
+            'Log': '"Set timeout %s", self.counters["cmd_timeout"]',
             'Response': ELM_R_OK
         },
         'AT_CEA': {
@@ -256,6 +284,22 @@ ObdMessage = {
             'Request': '^ATAR$',
             'Descr': 'AT Automatically set the Receive Address',
             'Response': ELM_R_OK
+        },
+        'AT_PPS': {
+            'Request': '^ATPPS$',
+            'Descr': 'AT Print programmable parameter summary.',
+            'Response': ST('00:FF F 01:FF F 02:FF F 03:32 F') +
+                        ST('04:01 F 05:FF F 06:F1 F 07:09 F') +
+                        ST('08:FF F 09:00 F 0A:0A F 0B:FF F') +
+                        ST('0C:68 F 0D:0D F 0E:FF F 0F:FF F') +
+                        ST('10:0D F 11:00 F 12:FF F 13:32 F') +
+                        ST('14:FF F 15:FF F 16:FF F 17:92 F') +
+                        ST('18:00 F 19:FF F 1A:FF F 1B:FF F') +
+                        ST('1C:FF F 1D:FF F 1E:FF F 1F:FF F') +
+                        ST('20:FF F 21:FF F 22:FF F 23:FF F') +
+                        ST('24:00 F 25:00 F 26:00 F 27:FF F') +
+                        ST('28:FF F 29:FF F 2A:38 F 2B:02 F') +
+                        ST('2C:E0 F 2D:04 F 2E:80 F 2F:0A F')
         },
         'AT_MA': {
             'Request': '^ATMA$',
@@ -281,12 +325,39 @@ ObdMessage = {
                         ST('2A4 00 ') + ST('361 80 00 00 00 01 FD 01 FB ') +
                         ST('38B 00 ') + ST('247 06 00 FF 00 00 00 00 ') +
                         ST('413 01 01 ') + ST('127 00 ') + ST('020 00 ') +
-                        ST('0B4 00 ') + ST('025 00 ') + ST('02266 10 342F 283 23')
+                        ST('0B4 00 ') + ST('025 00 ') +
+                        ST('02266 10 342F 283 23')
         },
         # ST Extensions used to configure the STN11xx family of OBD interpreters
+        'ST_PROTO': {
+            'Request': '^STP[0-9]+$',
+            'Descr': 'ST Set current protocol',
+            'Exec': 'self.counters["cmd_st_proto"] = int(cmd[3:])',
+            'Log': '"Set current protocol %s", self.counters["cmd_st_proto"]',
+            'Response': ELM_R_OK
+        },
+        '^ST_SLX': {
+            'Request': '^STSLX',
+            'Descr': 'Enable or disable sleep/wakeup triggers',
+            'Exec': 'self.counters["cmd_st_slx"] = cmd[5:]',
+            'Log': '"set sleep/wakeup triggers %s", '
+                   'self.counters["cmd_st_slx"]',
+            'Response': ELM_R_OK
+        },
+        'ST_SERIAL_NUMBER': {
+            'Request': '^STSN$',
+            'Descr': 'Print the device serial number.',
+            'Response': ST("110012345678")
+        },
+        'ST_REPORT_PROTOCOL': {
+            'Request': '^STPR$',
+            'Descr': 'Report current protocol number.',
+            'Exec': 'time.sleep(0.5)',
+            'Response': ST("A6")
+        },
         'ST_DI': {
             'Request': '^STDI$',
-            'Descr': 'Print device hardware ID string',
+            'Descr': 'Print device hardware ID string.',
             'Response': ST("OBDLink r1.7")
         },
         'ST_ID': {
@@ -298,6 +369,35 @@ ObdMessage = {
             'Request': '^STSBR *[1-9][0-9]*$',
             'Descr': 'Set baud rate',
             'Response': ST("STN1101 v2.1.0")
+        },
+        'ST_STCCFCP': {
+            'Request': '^STCCFCP$',
+            'Descr': 'Clear all flow control address pairs.',
+            'Response': ELM_R_OK
+        },
+        'ST_STCFCPC': {
+            'Request': '^STCFCPC$',
+            'Descr': 'Clear all flow control address pairs.',
+            'Response': ELM_R_OK
+        },
+        'ST_STCAFCP': {
+            'Request': '^STCAFCP',
+            'Descr': 'Add a flow control CAN address pair.',
+            'Exec': 'self.counters["cmd_st_fcap"] = cmd[7:]',
+            'Log': '"Set current protocol %s", self.counters["cmd_st_fcap"]',
+            'Response': ELM_R_OK
+        },
+        'ST_STCFCPA': {
+            'Request': '^STCFCPA',
+            'Descr': 'Add a flow control CAN address pair.',
+            'Exec': 'self.counters["cmd_st_fcap"] = cmd[7:]',
+            'Log': '"Set current protocol %s", self.counters["cmd_st_fcap"]',
+            'Response': ELM_R_OK
+        },
+        'VTI': {
+            'Request': '^VTI$',
+            'Descr': 'hardware string',
+            'Response': ST("OBDLink") # To be revised
         },
     },
     # OBD Commands
@@ -2044,19 +2144,28 @@ ObdMessage = {
             'Header': ECU_ADDR_E,
             'Response': HD(ECU_R_ADDR_E) + SZ('10') + DT('3E E8 01 00 04 FF FF')
         },
-        'UNKNOWN_2100_U': {
-            'Request': '^2100' + ELM_FOOTER,
-            'Descr': 'UNKNOWN_2100',
-            'Header': ECU_ADDR_U,
-            'Response': ST('NO DATA'),
-        },
+        # MODE 21
         'UNKNOWN_2100_E': {
             'Request': '^2100' + ELM_FOOTER,
             'Descr': 'UNKNOWN_2100',
             'Header': ECU_ADDR_E,
             'Response': HD(ECU_R_ADDR_E) + SZ('06') + DT('61 00 BC 00 00 01')
         },
-    # USD tests
+        # MODE 22 (temporary workaround for all MODE 22 Pids)
+        'UNKNOWN_22x': {
+            'Request': '^22.*$' + ELM_FOOTER,
+            'Descr': 'UNKNOWN_22x',
+            'Header': ECU_ADDR_E,
+            'Response': HD(ECU_R_ADDR_E) + SZ('04') + DT('62 02 00 01') # wrong response
+        },
+        # MODE 23 (temporary workaround for all MODE 23 Pids)
+        'UNKNOWN_23x': {
+            'Request': '^23.*$' + ELM_FOOTER,
+            'Descr': 'UNKNOWN_23x',
+            'Header': ECU_ADDR_E,
+            'Response': HD(ECU_R_ADDR_E) + SZ('04') + DT('62 02 00 01') # wrong response
+        },
+        # USD tests
         # MODE 10
         'UDS_DSC': {
             'Request': '^1002' + ELM_FOOTER,
@@ -2070,6 +2179,13 @@ ObdMessage = {
             'Descr': 'EcuReset',
             'Header': ECU_ADDR_E,
             'Response': HD(ECU_R_ADDR_E) + SZ('02') + DT('51 01')
+        },
+        # MODE 21
+        'UNKNOWN_2100_E': {
+            'Request': '^2100' + ELM_FOOTER,
+            'Descr': 'UNKNOWN_2100',
+            'Header': ECU_ADDR_E,
+            'Response': HD(ECU_R_ADDR_E) + SZ('10') + DT('08 61 00 05 00 90 8B')
         },
         # MODE 27
         'UDS_SA1': {
