@@ -105,7 +105,8 @@ class Elm:
             self.sortedOBDMsg = {**self.ObdMessage[self.scenario]}
         # Add 'Priority' to all pids and sort basing on priority (highest = 1, lowest=10)
         self.sortedOBDMsg = sorted(
-            self.sortedOBDMsg.items(), key=lambda x: x[1]['Priority'] if 'Priority' in x[1] else 10)
+            self.sortedOBDMsg.items(),
+            key=lambda x: x[1]['Priority'] if 'Priority' in x[1] else 10)
 
     def __init__(
             self,
@@ -387,8 +388,8 @@ class Elm:
                     logging.critical("Error while processing %s:\n%s\n%s",
                                      repr(self.cmd), e, traceback.format_exc())
                     continue
-                resp = self.process_response(resp)
-                self.write_to_device(resp.encode())
+                if resp is not None:
+                    resp = self.process_response(resp, do_write=True)
             else:
                 logging.warning("Invalid request: %s", repr(self.cmd))
 
@@ -719,13 +720,14 @@ class Elm:
                     self.terminate()
                     return
                 else:
-                    logging.critical("PANIC - Internal OSError in write(): %s", e,
-                                     exc_info=True)
+                    logging.critical(
+                        "PANIC - Internal OSError in write(): %s", e,
+                        exc_info=True)
                     self.terminate()
                     return
 
-    def process_response(self, resp):
-        """ compute the response and returns data to be written to the device """
+    def process_response(self, resp, do_write=False):
+        """ compute the response and returns data written to the device """
 
         logging.debug("Processing: %s", repr(resp))
 
@@ -764,34 +766,37 @@ class Elm:
 
         # generate string
         incomplete_resp = False
+        root = None
         try:
             root = ET.fromstring('<xml>' + resp + '</xml>')
             s = iter(root)
         except ET.ParseError as e:
             incomplete_resp = True
             logging.error(
-                'Wrong response format for "%s": "%s""', resp, e)
-            return "NO DATA" + nl
-        str = root.text.strip() if root.text else ""
+                'Wrong response format for "%s"; %s', resp, e)
+        answ = root.text.strip() if root is not None and root.text else ""
         answers = False
         i = None
         while not incomplete_resp:
             try:
                 i = next(s)
             except StopIteration:
+                answ += i.tail.strip() if i is not None and i.tail else ""
                 break
             if i.tag.lower() == 'subs':
-                str += (i.text or "")
+                answ += (i.text or "")
             elif i.tag.lower() == 'string':
-                str += (i.text or "") + nl
+                answ += (i.text or "") + nl
             elif i.tag.lower() == 'space':
-                str += (i.text or "") + sp
+                answ += (i.text or "") + sp
             elif (i.tag.lower() == 'eval' or
                     i.tag.lower() == 'exec'):
-                logging.debug("Write: %s", repr(str))
-                if i.tag.lower() == 'exec':
-                    self.write_to_device(str.encode())
-                    str = ""
+                logging.debug("Write: %s", repr(answ))
+                if i.tag.lower() == 'exec' and do_write:
+                    self.write_to_device(answ.encode())
+                    answ = ""
+                if i.text is None:
+                    continue
                 msg = i.text.strip()
                 if msg:
                     try:
@@ -800,7 +805,7 @@ class Elm:
                             "Evaluated command: %s -> %s",
                             msg, repr(evalmsg))
                         if evalmsg != None:
-                            str += evalmsg
+                            answ += str(evalmsg)
                     except Exception:
                         try:
                             exec(msg, globals())
@@ -820,34 +825,66 @@ class Elm:
                     except StopIteration:
                         logging.error(
                             'Missing <size> or <data>/<subd> tags '
-                            'after <header> tag in "%s".', resp)
+                            'after <header> tag in %s.', repr(resp))
                         break
+
+                    # check that the tags are valid
                     if (size.tag.lower() != 'size' or
                             (data.tag.lower() != 'data' and
                              data.tag.lower() != 'subd')):
                         logging.error(
-                            'In "%s", <size> and <data>/<subd> tags '
-                            'must follow the <header> tag.', resp)
+                            'In %s, <size> and <data>/<subd> tags '
+                            'must follow the <header> tag.', repr(resp))
                         break
+
+                    # check validity of the content fields
+                    try:
+                        int_size = int(size.text, 16)
+                    except ValueError as e:
+                        logging.error(
+                            'Improper size %s for response %s: %s.',
+                            repr(size.text), repr(resp), e)
+                        break
+                    if not data.text:
+                        logging.error('Missing data for response %s.',
+                                      repr(resp))
+                        break
+                    if (int_size < 16 and
+                            len(data.text.translate(
+                            answ.maketrans('', '', string.whitespace))
+                            ) != int_size * 2):
+                        logging.error(
+                            'In response %s, data %s has an improper '
+                            'length of %s bytes.',
+                            repr(resp), repr(data.text), repr(size.text))
+                        break
+
+                    # perform translation
                     incomplete_resp = False
-                    str += (((i.text or "") + sp + (size.text or "") + sp
+                    answ += (((i.text or "") + sp + (size.text or "") + sp
                                 if use_headers else "") +
                                 (data.text or "").translate(
-                                    str.maketrans('', '', whitespaces))
+                                    answ.maketrans('', '', whitespaces))
                             + sp + (nl if data.tag.lower() == 'data' else ""))
             else:
                 logging.error(
                     'Unknown tag "%s" in response "%s"', i.tag, resp)
-            str += i.tail.strip() if i.tail else ""
-        if incomplete_resp or (answers and not str):
-            str = "NO DATA" + nl
+            answ += i.tail.strip() if i is not None and i.tail else ""
+        if incomplete_resp or (answers and not answ):
+            answ = "NO DATA" + nl
+        if not answ:
+            logging.debug(
+                'Null response received after processing "%s".', resp)
+            return None
         if ('cmd_linefeeds' in self.counters and
                 self.counters['cmd_linefeeds'] > 2):
-            str += ">"
+            answ += ">"
         else:
-            str += nl + ">"
-        logging.debug("Write: %s", repr(str))
-        return str
+            answ += nl + ">"
+        if do_write:
+            logging.debug("Write: %s", repr(answ))
+            self.write_to_device(answ.encode())
+        return answ
 
     def validate(self, cmd):
         if not re.match(self.ELM_VALID_CHARS, cmd):
@@ -883,10 +920,10 @@ class Elm:
             cmd = cmd[3:]
 
         # manages cmd_caf
+        size = cmd[:2]
         if ('cmd_caf' in self.counters and
                 not self.counters['cmd_caf'] and
-                cmd[:2] != 'AT'):
-            size = cmd[:2]
+                size != 'AT' and self.is_hex_sp(size)):
             try:
                 int_size = int(size, 16)
             except ValueError as e:
@@ -897,9 +934,9 @@ class Elm:
             if not payload:
                 logging.error('Missing data for request "%s"', repr(cmd))
                 return ""
-            if int_size < 9 and len(payload) != int_size * 2:
+            if int_size < 16 and len(payload) != int_size * 2:
                 logging.error(
-                    'In request "%s", data "%s" has an improper data length '
+                    'In request "%s", data "%s" has an improper length '
                     'of %s bytes', repr(cmd), repr(payload), size)
                 return ""
             cmd = payload

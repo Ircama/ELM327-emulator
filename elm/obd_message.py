@@ -2056,7 +2056,61 @@ ObdMessage = {
             'Header': ECU_ADDR_E,
             'Response': HD(ECU_R_ADDR_E) + SZ('06') + DT('61 00 BC 00 00 01')
         },
-    # USD tests simulating a Continental ECU (these pids are unrelated to the ones of a Toyota Auris Hybrid)
+    # USD tests
+        # MODE 10
+        'UDS_DSC': {
+            'Request': '^1002' + ELM_FOOTER,
+            'Descr': 'DiagnosticSessionControl - Programming Session',
+            'Header': ECU_ADDR_E,
+            'Response': HD(ECU_R_ADDR_E) + SZ('06') + DT('50 02 00 14 00 C8')
+        },
+        # MODE 11
+        'UDS_DSC': {
+            'Request': '^1101' + ELM_FOOTER,
+            'Descr': 'EcuReset',
+            'Header': ECU_ADDR_E,
+            'Response': HD(ECU_R_ADDR_E) + SZ('02') + DT('51 01')
+        },
+        # MODE 27
+        'UDS_SA1': {
+            'Request': '^2701' + ELM_FOOTER,
+            'Descr': 'SecurityAccess #1',
+            'Header': ECU_ADDR_E,
+            'Response': HD(ECU_R_ADDR_E) + SZ('06') + DT('67 01 D6 D0 63 12')
+        },
+        'UDS_SA2': {
+            'Request': '^2702' + ELM_FOOTER,
+            'Descr': 'SecurityAccess #2',
+            'Header': ECU_ADDR_E,
+            'Response': HD(ECU_R_ADDR_E) + SZ('02') + DT('67 02')
+        },
+        # RCEM1
+        'UDS_RCEM1': {
+            'Request': '^0A3101FF000068' + ELM_FOOTER, # [10] start routine 0xFF00
+            'Descr': 'RoutineControl - Erase memory / 1',
+            'Header': ECU_ADDR_E,
+            'Response': HD(ECU_R_ADDR_E) + SZ('30') + DT('01 00')
+        },
+        'UDS_RCEM2': {
+            'Request': '^0002ABFF' + ELM_FOOTER, # [21]
+            'Descr': 'RoutineControl - Erase memory / 2',
+            'Header': ECU_ADDR_E,
+            'Response': HD(ECU_R_ADDR_E) + SZ('04') + DT('71 01 FF 00') # positive answer
+        },
+        'UDS_RCEM3': {
+            'Request': '^3103FF00' + ELM_FOOTER,
+            'Descr': 'RoutineControl - Erase memory / 3',
+            'Header': ECU_ADDR_E,
+            'Response': HD(ECU_R_ADDR_E) + SZ('03') + DT('7F 31 78') + # 2 Ways: Wait or ask about the status of the deletion.
+                        HD(ECU_R_ADDR_E) + SZ('04') + DT('71 03 FF 00')
+        },
+        'UDS_RCEM4': {
+            'Request': '^3E80' + ELM_FOOTER,
+            'Descr': 'RoutineControl - Erase memory / 4',
+            'Header': ECU_ADDR_E,
+            'Response': HD(ECU_R_ADDR_E) + SZ('02') + DT('3E 80') # to be revised.....
+        },
+        # USD tests simulating a Continental ECU (these pids are unrelated to the ones of a Toyota Auris Hybrid)
         # MODE 10
         'UDS_WF1': {
             'Request': '^0C2EF15A000414' + ELM_FOOTER, # 2E: F15A => 0004140606FFFFFFFF

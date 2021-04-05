@@ -8,6 +8,7 @@
 ###########################################################################
 
 import sys
+import traceback
 try:
     if sys.hexversion < 0x3060000:
         raise ImportError("Python version must be >= 3.6")
@@ -206,6 +207,25 @@ class Interpreter(Cmd):
                 "Current logging level:",
                     logging.getLogger().handlers[0].level)
 
+    def do_write(self, arg):
+        "Write the formatted XML response specified in the argument\n"\
+        "to the device."
+        if not arg:
+            print(
+                "Invalid format. Add the formatted XML response as argument.")
+            return
+        try:
+            ret = self.emulator.process_response(arg, do_write=True)
+            if ret is None:
+                print(
+                    'Null data returned while processing XML response "{}".'.
+                        format(arg))
+            else:
+                print(repr(ret))
+        except Exception as e:
+            print(traceback.format_exc())
+            print("Could not perform the operation:", repr(e))
+
     def do_test(self, arg):
         "Test the OBD-II request specified in the argument."
         if not arg:
@@ -216,17 +236,23 @@ class Interpreter(Cmd):
         try:
             ret = self.emulator.handle(arg)
             if not ret:
-                print("Error in request.")
+                print("Error in request. No data returned.")
                 return
             print(repr(ret))
         except Exception as e:
             print("Could not run test:", repr(e))
+            print(traceback.format_exc())
         print("\n______Command output:____________")
         try:
-            print(
-                repr(self.emulator.process_response(
-                    self.emulator.handle(arg))))
+            ret = self.emulator.process_response(ret)
+            if ret is None:
+                print(
+                    'Null data received while processing command "{}".'.
+                        format(arg))
+            else:
+                print(repr(ret))
         except Exception as e:
+            print(traceback.format_exc())
             print("Could not run test:", repr(e))
 
     def do_port(self, arg):
