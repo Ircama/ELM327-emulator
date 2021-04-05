@@ -411,12 +411,17 @@ class Elm:
 
     def serial_client(self):
         if self.fw_serial_fd:
-            return
-        self.fw_serial_fd = serial.Serial(
-            port=self.forward_serial_port,
-            baudrate=int(self.forward_serial_baudrate)
-                if self.forward_serial_baudrate else SERIAL_BAUDRATE,
-            timeout=self.forward_timeout or FORWARD_READ_TIMEOUT)
+            return True
+        try:
+            self.fw_serial_fd = serial.Serial(
+                port=self.forward_serial_port,
+                baudrate=int(self.forward_serial_baudrate)
+                    if self.forward_serial_baudrate else SERIAL_BAUDRATE,
+                timeout=self.forward_timeout or FORWARD_READ_TIMEOUT)
+            return True
+        except Exception as e:
+            logging.error('Cannot open forward port: %s', e)
+            return False
 
     def net_client(self):
         if (self.fw_sock_inet
@@ -466,7 +471,8 @@ class Elm:
 
         if self.forward_serial_port:
             if self.fw_serial_fd is None:
-                self.serial_client()
+                if not self.serial_client():
+                    return False
             if self.fw_serial_fd:
                 if i:
                     self.fw_serial_fd.write(i)
@@ -503,6 +509,11 @@ class Elm:
         return False
 
     def get_port_name(self, extended=False):
+        """
+        Returns the name of the opened port.
+        :param extended: False or True
+        :return: string
+        """
         if self.sock_inet:
             if self.net_port:
                 return 'TCP/IP network port ' + str(self.net_port) + '.'
@@ -674,7 +685,10 @@ class Elm:
             first = False
             buffer += c
 
-        self.send_receive_forward((buffer + '\r').encode())
+        try:
+            self.send_receive_forward((buffer + '\r').encode())
+        except Exception as e:
+            logging.error('Forward Write error: %s', e)
         return buffer
 
     def write_to_device(self, i):
@@ -742,14 +756,12 @@ class Elm:
         use_headers = ("cmd_use_header" in self.counters and
                 self.counters["cmd_use_header"])
 
-        # compute sp and whitespaces
+        # compute sp
         if ('cmd_spaces' in self.counters
                 and self.counters['cmd_spaces'] == 0):
             sp = ''
-            whitespaces = string.whitespace
         else:
             sp = ' '
-            whitespaces = ''
 
         # compute nl
         nl_type = {
@@ -849,23 +861,21 @@ class Elm:
                         logging.error('Missing data for response %s.',
                                       repr(resp))
                         break
-                    if (int_size < 16 and
-                            len(data.text.translate(
-                            answ.maketrans('', '', string.whitespace))
-                            ) != int_size * 2):
+                    unspaced_data = (data.text or "").translate(
+                        answ.maketrans('', '', string.whitespace))
+                    if int_size < 16 and len(unspaced_data) != int_size * 2:
                         logging.error(
-                            'In response %s, data %s has an improper '
-                            'length of %s bytes.',
+                            'In response %s, mismatch between number of data '
+                            'digits %s and related length field %s.',
                             repr(resp), repr(data.text), repr(size.text))
                         break
 
-                    # perform translation
+                    # concatenate answ from header, size and data/subd
                     incomplete_resp = False
-                    answ += (((i.text or "") + sp + (size.text or "") + sp
-                                if use_headers else "") +
-                                (data.text or "").translate(
-                                    answ.maketrans('', '', whitespaces))
-                            + sp + (nl if data.tag.lower() == 'data' else ""))
+                    answ += ((((i.text or "") + sp + (size.text or "") + sp)
+                            if use_headers else "") +
+                            ((data.text or "") if sp else unspaced_data) +
+                            sp + (nl if data.tag.lower() == 'data' else ""))
             else:
                 logging.error(
                     'Unknown tag "%s" in response "%s"', i.tag, resp)

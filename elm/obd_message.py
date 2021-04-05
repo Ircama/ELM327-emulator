@@ -6,6 +6,10 @@
 ###########################################################################
 
 # List of known ECUs:
+ECU_ADDR_J = "747"
+ECU_R_ADDR_J = "74F"
+ECU_ADDR_K = "7D2"
+ECU_R_ADDR_K = "7DA"
 ECU_ADDR_H = "7E2"  # HVECU address (Hybrid control module)
 ECU_R_ADDR_H = "7EA"  # Responses sent by HVECU (Hybrid control module) 7E2/7EA
 ECU_ADDR_E = "7E0"  # Engine ECU address
@@ -50,7 +54,16 @@ ObdMessage = {
         'AT_LONG_MSG': {
             'Request': '^ATAL$',
             'Descr': 'Allow long messages',
-            'Response': ELM_R_OK # ignored at the moment: just answer OK (to be revised)
+            'Exec': 'self.counters["cmd_long_msg"] = True)',
+            'Log': '"set Long Messages %s", self.counters["cmd_long_msg"]',
+            'Response': ELM_R_OK
+        },
+        'AT_NORMAL_LENGTH': {
+            'Request': '^ATNL$',
+            'Descr': 'Enforce normal message length',
+            'Exec': 'self.counters["cmd_long_msg"] = False)',
+            'Log': '"set Long Messages %s", self.counters["cmd_long_msg"]',
+            'Response': ELM_R_OK
         },
         'AT_DESCR': {
             'Request': '^AT@1' + ELM_FOOTER,
@@ -98,8 +111,15 @@ ObdMessage = {
         'AT_SET_CAN_RX_ADDR': {
             'Request': '^ATCRA',
             'Descr': 'AT SET CAN RX Addr',
-            'Exec': 'self.counters["cmd_cra"] = cmd[5:] or None',
+            'Exec': 'self.counters["cmd_cra"] = int(cmd[5:])',
             'Log': '"set CAN RX Addr %s", self.counters["cmd_cra"]',
+            'Response': ELM_R_OK
+        },
+        'AT_BRD': {
+            'Request': '^ATBRD',
+            'Descr': 'AT Set UART baud rate divisor',
+            'Exec': 'self.counters["cmd_brd"] = int(cmd[5:])',
+            'Log': '"set CAN RX Addr %s", self.count    ers["cmd_brd"]',
             'Response': ELM_R_OK
         },
         'AT_DEFAULT': {
@@ -201,35 +221,35 @@ ObdMessage = {
         'AT_FCSH': {
             'Request': '^ATFCSH',
             'Descr': 'AT FLOW CONTROL SET HEADER',
-            'Exec': 'self.counters["cmd_fcsh"] = cmd[6:]',
+            'Exec': 'self.counters["cmd_fcsh"] = cmd[6:] or None',
             'Log': '"set FLOW CONTROL set HEADER %s", self.counters["cmd_fcsh"]',
             'Response': ELM_R_OK
         },
         'AT_FCSD': {
             'Request': '^ATFCSD',
             'Descr': 'AT FLOW CONTROL SET DATA',
-            'Exec': 'self.counters["cmd_fcsd"] = cmd[6:]',
+            'Exec': 'self.counters["cmd_fcsd"] = cmd[6:] or None',
             'Log': '"set FLOW CONTROL set DATA %s", self.counters["cmd_fcsd"]',
             'Response': ELM_R_OK
         },
         'AT_FCSM': {
             'Request': '^ATFCSM[0-2]$',
             'Descr': 'AT FLOW CONTROL SET MODE',
-            'Exec': 'self.counters["cmd_fcsm"] = cmd[6:]',
+            'Exec': 'self.counters["cmd_fcsm"] = cmd[6:] or None',
             'Log': '"set FLOW CONTROL set MODE %s", self.counters["cmd_fcsm"]',
             'Response': ELM_R_OK
         },
         'AT_ISO_BAUD': {
             'Request': '^ATIB[149][086]$',
             'Descr': 'AT Set ISO baud rate to 10400, 4800, or 9600 baud',
-            'Exec': 'self.counters["cmd_iso_baud"] = cmd[4:]',
+            'Exec': 'self.counters["cmd_iso_baud"] = cmd[4:] or None',
             'Log': '"Set ISO baud rate to: %s", self.counters["cmd_iso_baud"]',
             'Response': ELM_R_OK
         },
         'AT_PROTO': {
             'Request': '^ATSP[0-9A-C]$',
             'Descr': 'AT PROTO',
-            'Exec': 'self.counters["cmd_proto"] = cmd[4]',
+            'Exec': 'self.counters["cmd_proto"] = cmd[4] or None',
             'Log': '"set PROTO %s", self.counters["cmd_proto"]',
             'Response': ELM_R_OK
         },
@@ -243,7 +263,7 @@ ObdMessage = {
         'AT_TEST_ADDR': {
             'Request': '^ATTA[0-9A-F][0-9A-F]$',
             'Descr': 'Set tester address to hh.',
-            'Exec': 'self.counters["cmd_test_add"] = cmd[4:]',
+            'Exec': 'self.counters["cmd_test_add"] = cmd[4:] or None',
             'Log': '"Try protocol %s", self.counters["cmd_test_add"]',
             'Response': ELM_R_OK
         },
@@ -271,7 +291,7 @@ ObdMessage = {
         'AT_CEA': {
             'Request': '^ATCEA',
             'Descr': 'AT CAN EXTENDED ADDRESS',
-            'Exec': 'self.counters["cmd_cea"] = cmd[5:]',
+            'Exec': 'self.counters["cmd_cea"] = cmd[5:] or None',
             'Log': '"set CEA %s", self.counters["cmd_cea"]',
             'Response': ELM_R_OK
         },
@@ -339,7 +359,7 @@ ObdMessage = {
         '^ST_SLX': {
             'Request': '^STSLX',
             'Descr': 'Enable or disable sleep/wakeup triggers',
-            'Exec': 'self.counters["cmd_st_slx"] = cmd[5:]',
+            'Exec': 'self.counters["cmd_st_slx"] = cmd[5:] or None',
             'Log': '"set sleep/wakeup triggers %s", '
                    'self.counters["cmd_st_slx"]',
             'Response': ELM_R_OK
@@ -383,21 +403,16 @@ ObdMessage = {
         'ST_STCAFCP': {
             'Request': '^STCAFCP',
             'Descr': 'Add a flow control CAN address pair.',
-            'Exec': 'self.counters["cmd_st_fcap"] = cmd[7:]',
+            'Exec': 'self.counters["cmd_st_fcap"] = cmd[7:] or None',
             'Log': '"Set current protocol %s", self.counters["cmd_st_fcap"]',
             'Response': ELM_R_OK
         },
         'ST_STCFCPA': {
             'Request': '^STCFCPA',
             'Descr': 'Add a flow control CAN address pair.',
-            'Exec': 'self.counters["cmd_st_fcap"] = cmd[7:]',
+            'Exec': 'self.counters["cmd_st_fcap"] = cmd[7:] or None',
             'Log': '"Set current protocol %s", self.counters["cmd_st_fcap"]',
             'Response': ELM_R_OK
-        },
-        'VTI': {
-            'Request': '^VTI$',
-            'Descr': 'hardware string',
-            'Response': ST("OBDLink") # To be revised
         },
     },
     # OBD Commands
@@ -2284,7 +2299,7 @@ ObdMessage = {
                         HD(ECU_R_ADDR_M) + SZ('03') + DT('7F 31 78') +
                         HD(ECU_R_ADDR_M) + SZ('05') + DT('71 01 FF 00 00')
         },
-    # Custom OBD Commands
+    # Custom OBD Commands (MODE 21)
         "CUSTOM_CAL'D_LOAD": {
             'Request': '^2101' + ELM_FOOTER,
             'Descr': 'Calculated Load',
@@ -3954,6 +3969,57 @@ ObdMessage = {
             'Unit': 'degrees/s',
             'Header': ECU_ADDR_S,
             'Response': HD(ECU_R_ADDR_S) + SZ('03') + DT('61 A1 80')
+        },
+        # Mode 22
+        'HB_SOC': {
+            'Request': '^227A76' + ELM_FOOTER,
+            'Descr': 'Hybrid Battery State of Charge',
+            'Equation': 'A*100/255',
+            'Min': '0',
+            'Max': '200',
+            'Unit': '%',
+            'Header': ECU_ADDR_J,
+            'Response': HD(ECU_R_ADDR_J) + SZ('03') + DT('61 A1 80') # Wrong value! To be tested
+        },
+        'H_BATT': {
+            'Request': '^227A53' + ELM_FOOTER,
+            'Descr': 'Hybrid Battery Voltage',
+            'Equation': 'D*4',
+            'Min': '0',
+            'Max': '1000',
+            'Unit': 'Volts',
+            'Header': ECU_ADDR_J,
+            'Response': HD(ECU_R_ADDR_J) + SZ('03') + DT('61 A1 80') # Wrong value! To be tested
+        },
+        'INVT_CT': {
+            'Request': '^221093' + ELM_FOOTER,
+            'Descr': 'Inverter Coolant Temperature',
+            'Equation': 'A*9/5-40',
+            'Min': '-40',
+            'Max': '300',
+            'Unit': 'F',
+            'Header': ECU_ADDR_K,
+            'Response': HD(ECU_R_ADDR_K) + SZ('03') + DT('61 A1 80') # Wrong value! To be tested
+        },
+        'GN_IT': {
+            'Request': '^221089' + ELM_FOOTER,
+            'Descr': 'Generator Inverter Temperature',
+            'Equation': 'A*9/5-40',
+            'Min': '-40',
+            'Max': '300',
+            'Unit': 'F',
+            'Header': ECU_ADDR_K,
+            'Response': HD(ECU_R_ADDR_K) + SZ('03') + DT('61 A1 80') # Wrong value! To be tested
+        },
+        'B_CVT': {
+            'Request': '^2210AB' + ELM_FOOTER,
+            'Descr': 'Boosting Converter Temperature (Upper and Lower)',
+            'Equation': 'A*9/5-40',
+            'Min': '-40',
+            'Max': '300',
+            'Unit': 'F',
+            'Header': ECU_ADDR_K,
+            'Response': HD(ECU_R_ADDR_K) + SZ('03') + DT('61 A1 80') # Wrong value! To be tested
         },
     }
 }

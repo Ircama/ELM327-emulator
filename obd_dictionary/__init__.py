@@ -25,6 +25,10 @@ except ImportError as detail:
     sys.exit(1)
 
 ecu = {
+    "747": 'ECU_ADDR_J',
+    "74F": 'ECU_R_ADDR_J',
+    "7D2": 'ECU_ADDR_K',
+    "7DA": 'ECU_R_ADDR_K',
     "7B0": 'ECU_ADDR_S',   # Skid Control address ECU
     "7B8": 'ECU_R_ADDR_S', # Responses sent by 7B0 Skid Control ECU 7B0/7B8
     "7E2": 'ECU_ADDR_H',   # HVECU address (Hybrid control module)
@@ -349,7 +353,9 @@ def obd_dictionary():
                         obd.logger.error("Unknown ECU " + repr(i[7]) +
                                          " in CSV line " + repr(i))
                     else:
-                        obd.logger.error("Invalid CSV data: " + repr(i))
+                        obd.logger.error(
+                            "Invalid CSV data: %s; fields are %s vs. %s.",
+                            repr(i), len(i), 8)
                 continue
             Pid = 'CUSTOM_' + i[1].upper().replace(' ', '_')
             Descr = i[0] + SEP + i[3] + SEP + i[4] + SEP + i[5] + SEP + i[6]
