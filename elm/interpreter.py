@@ -187,7 +187,7 @@ class Interpreter(Cmd):
         return Cmd.postcmd(self, stop, line)
 
     def do_reset(self, arg):
-        "Reset the emulator (counters and variables)"
+        "Reset the emulator (counters and variables)."
         if arg:
             print ("Invalid format.")
             return
@@ -341,7 +341,7 @@ class Interpreter(Cmd):
                 print("Import error: missing scenario.")
 
     def do_engineoff(self, arg):
-        "Switch to 'engineoff' scenario"
+        "Switch to 'engineoff' scenario."
         if arg:
             print ("Invalid format.")
             return
@@ -349,16 +349,29 @@ class Interpreter(Cmd):
         print("Emulator scenario switched to '%s'" % self.emulator.scenario)
 
     def do_default(self, arg):
-        "Reset to 'default' scenario"
+        "Reset to 'default' scenario."
         if arg:
             print ("Invalid format.")
             return
         self.emulator.scenario='default'
         print("Emulator scenario reset to '%s'" % self.emulator.scenario)
 
+    def do_commands(self, arg):
+        "List the description of each available command."
+        if arg:
+            print ("Invalid format.")
+            return
+        formatter = "\n{0:10} "
+        for name in self.get_names():
+            if name[:3] == 'do_':
+                print((formatter.format(name[3:]) +
+                       getattr(self, name).__doc__.replace(
+                           "\n", formatter.format(''))))
+        print("")
+
     def do_history(self, arg):
         "print the command history; if an argument is given, print the last\n"\
-        "n commands in the history; with argument 'clear', clears the history"
+        "n commands in the history; with argument 'clear', clears the history."
         if arg == "clear":
             readline.clear_history()
             return
