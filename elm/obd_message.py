@@ -38,8 +38,8 @@ def HD(header):
 def DT(data):
     return ('<data>' + data + '</data>')
 
-def ST(string):
-    return ('<string>' + string + '</string>')
+def ST(writeln):
+    return ('<writeln>' + writeln + '</writeln>')
 
 ELM_R_OK = ST("OK")
 ELM_R_UNKNOWN = ST("?")
@@ -48,53 +48,54 @@ ELM_FOOTER = '[0123456]?$'
 # This dictionary uses the ISO 15765-4 CAN 11 bit ID 500 kbaud protocol
 
 # PID Dictionary
+
 ObdMessage = {
     # AT Commands
     'AT' : {
         'AT_LONG_MSG': {
             'Request': '^ATAL$',
-            'Descr': 'Allow long messages',
-            'Exec': 'self.counters["cmd_long_msg"] = True)',
+            'Descr': 'AT Allow long messages',
+            'Exec': 'self.counters["cmd_long_msg"] = True',
             'Log': '"set Long Messages %s", self.counters["cmd_long_msg"]',
             'Response': ELM_R_OK
         },
         'AT_NORMAL_LENGTH': {
             'Request': '^ATNL$',
-            'Descr': 'Enforce normal message length',
-            'Exec': 'self.counters["cmd_long_msg"] = False)',
+            'Descr': 'AT Enforce normal message length',
+            'Exec': 'self.counters["cmd_long_msg"] = False',
             'Log': '"set Long Messages %s", self.counters["cmd_long_msg"]',
             'Response': ELM_R_OK
         },
         'AT_DESCR': {
             'Request': '^AT@1' + ELM_FOOTER,
-            'Descr': 'Device description',
+            'Descr': 'AT Device description',
             'Response': ST("OBDII to RS232 Interpreter")
         },
         'AT_ID': {
             'Request': '^AT@2' + ELM_FOOTER,
-            'Descr': 'Device identifier',
+            'Descr': 'AT Device identifier',
             'Response': ST('?')
         },
         'AT_STORE_ID': {
             'Request': '^AT@3' + ELM_FOOTER,
-            'Descr': 'Store the device identifier',
+            'Descr': 'AT Store the device identifier',
             'Response': ST('?')
         },
         'AT_ADAPTIVE_TIMING': {
             'Request': '^ATAT[012]$',
-            'Descr': 'Set adaptive timing mode',
+            'Descr': 'AT Set adaptive timing mode',
             'Exec': 'self.counters["cmd_adaptive_t"] = cmd[4:] or None',
             'Log': '"Set adaptive timing %s", self.counters["cmd_adaptive_t"]',
             'Response': ELM_R_OK
         },
         'AT_BYPASS_INIT': {
             'Request': '^ATBI$',
-            'Descr': 'Bypass the Initialization sequence',
+            'Descr': 'AT Bypass the Initialization sequence',
             'Response': ELM_R_OK # ignored at the moment: just answer OK (to be revised)
         },
         'AT_CAF': {
             'Request': '^ATCAF[01]$',
-            'Descr': 'AT CAF',
+            'Descr': 'AT CAN Automatic Formatting',
             'Exec': 'self.counters["cmd_caf"] = (cmd[5] == "1")',
             'Log': '"Set CAN Automatic Formatting ON/OFF : %s", '
                    'self.counters["cmd_caf"]',
@@ -111,7 +112,7 @@ ObdMessage = {
         'AT_SET_CAN_RX_ADDR': {
             'Request': '^ATCRA',
             'Descr': 'AT SET CAN RX Addr',
-            'Exec': 'self.counters["cmd_cra"] = int(cmd[5:])',
+            'Exec': 'self.counters["cmd_cra"] = cmd[5:] or None',
             'Log': '"set CAN RX Addr %s", self.counters["cmd_cra"]',
             'Response': ELM_R_OK
         },
@@ -119,7 +120,8 @@ ObdMessage = {
             'Request': '^ATBRD',
             'Descr': 'AT Set UART baud rate divisor',
             'Exec': 'self.counters["cmd_brd"] = int(cmd[5:])',
-            'Log': '"set CAN RX Addr %s", self.count    ers["cmd_brd"]',
+            'Log': '"set UART baud rate divisor %s", '
+                   'self.count    ers["cmd_brd"]',
             'Response': ELM_R_OK
         },
         'AT_DEFAULT': {
@@ -131,20 +133,20 @@ ObdMessage = {
         },
         'AT_DLC': {
             'Request': '^ATD[01]$',
-            'Descr': 'Display of the DLC on/off',
+            'Descr': 'AT Display of the DLC on/off',
             'Exec': 'self.counters["cmd_dlc"] = (cmd[3] == "1")',
             'Log': '"Set DLC %s", self.counters["cmd_dlc"]',
             'Response': ELM_R_OK # ignored at the moment: just answer OK (to be revised)
         },
         'AT_DESCRIBE_PROTO': {
             'Request': '^ATDP$',
-            'Descr': 'set DESCRIBE_PROTO',
+            'Descr': 'AT set DESCRIBE PROTO',
             'Exec': 'time.sleep(0.5)',
             'Response': ST("ISO 15765-4 (CAN 11/500)")
         },
         'AT_DESCRIBE_PROTO_N': {
             'Request': '^ATDPN$',
-            'Descr': 'Display Protocol Number',
+            'Descr': 'AT Display Protocol Number',
             'Exec': 'time.sleep(0.5)',
             'Response': ST("A6")
         },
@@ -164,12 +166,12 @@ ObdMessage = {
         },
         'AT_I': {
             'Request': '^ATI$',
-            'Descr': 'ELM327 version string',
+            'Descr': 'AT ELM327 version string',
             'Response': ST("ELM327 v1.5")
         },
         'AT_IGN': {
             'Request': '^ATIGN$',
-            'Descr': 'IgnMon input level',
+            'Descr': 'AT IgnMon input level',
             'Response': (ST("ON"), ST("OFF"))
         },
         'AT_LINEFEEDS': {
@@ -181,7 +183,7 @@ ObdMessage = {
         },
         'AT_LP': {
             'Request': '^ATLP$',
-            'Descr': 'Low Power mode',
+            'Descr': 'AT Low Power mode',
             'Response': ELM_R_OK
         },
         'AT_MEMORY': {
@@ -199,13 +201,13 @@ ObdMessage = {
             '0.1 * abs(9 - (self.counters[pid] + 9) % 18) + 13)',
             'ResponseHeader': \
             lambda self, cmd, pid, val: \
-                "<subs>{:.1f}</subs>".format( \
+                "<string>{:.1f}</string>".format( \
                     0.1 * abs(9 - (self.counters[pid] + 9) % 18) + 13),
             'Response': ST("V")
         },
         'AT_SPACES': {
             'Request': '^ATS[01]$',
-            'Descr': 'Spaces off or on',
+            'Descr': 'AT Spaces off or on',
             'Exec': 'self.counters["cmd_spaces"] = (cmd[3] == "1")',
             'Log': '"set SPACES %s", self.counters["cmd_spaces"]',
             'Response': ELM_R_OK
@@ -218,25 +220,46 @@ ObdMessage = {
             'Log': '"Set HEADER to <%s>", self.counters["cmd_set_header"]',
             'Response': ELM_R_OK
         },
+        'AT_CAN_HFM': {
+            'Request': '^ATCM[0-9A-F]+$',
+            'Descr': 'AT Set the CAN hardware filter mask',
+            'Exec': 'self.counters["cmd_hfm"] = '
+                    're.sub(r"^0*([0-9A-F]+)$", r"\\1", cmd[4:])',
+            'Log': '"Set CAN hardware filter mask to <%s>", '
+                   'self.counters["cmd_hfm"]',
+            'Response': ELM_R_OK
+        },
+        'AT_CAN_FP': {
+            'Request': '^ATCF[0-9A-F]+$',
+            'Descr': 'AT Set the CAN hardware filter pattern',
+            'Exec': 'self.counters["cmd_cfp"] = '
+                    're.sub(r"^0*([0-9A-F]+)$", r"\\1", cmd[4:])',
+            'Log': '"Set CAN hardware filter pattern to <%s>", '
+                   'self.counters["cmd_cfp"]',
+            'Response': ELM_R_OK
+        },
         'AT_FCSH': {
             'Request': '^ATFCSH',
             'Descr': 'AT FLOW CONTROL SET HEADER',
             'Exec': 'self.counters["cmd_fcsh"] = cmd[6:] or None',
-            'Log': '"set FLOW CONTROL set HEADER %s", self.counters["cmd_fcsh"]',
+            'Log': '"set FLOW CONTROL set HEADER %s", '
+                   'self.counters["cmd_fcsh"]',
             'Response': ELM_R_OK
         },
         'AT_FCSD': {
             'Request': '^ATFCSD',
             'Descr': 'AT FLOW CONTROL SET DATA',
             'Exec': 'self.counters["cmd_fcsd"] = cmd[6:] or None',
-            'Log': '"set FLOW CONTROL set DATA %s", self.counters["cmd_fcsd"]',
+            'Log': '"set FLOW CONTROL set DATA %s", '
+                   'self.counters["cmd_fcsd"]',
             'Response': ELM_R_OK
         },
         'AT_FCSM': {
             'Request': '^ATFCSM[0-2]$',
             'Descr': 'AT FLOW CONTROL SET MODE',
             'Exec': 'self.counters["cmd_fcsm"] = cmd[6:] or None',
-            'Log': '"set FLOW CONTROL set MODE %s", self.counters["cmd_fcsm"]',
+            'Log': '"set FLOW CONTROL set MODE %s", '
+                   'self.counters["cmd_fcsm"]',
             'Response': ELM_R_OK
         },
         'AT_ISO_BAUD': {
@@ -253,6 +276,21 @@ ObdMessage = {
             'Log': '"set PROTO %s", self.counters["cmd_proto"]',
             'Response': ELM_R_OK
         },
+        'AT_SET_RECEIVE_ADDR': {
+            'Request': '^ATSR[0-9A-F]+$',
+            'Descr': 'AT Set Receive Address',
+            'Exec': 'self.counters["cmd_rec_addr"] = cmd[4:]',
+            'Log': '"Set Receive Address to %s", '
+                   'self.counters["cmd_rec_addr"]',
+            'Response': ELM_R_OK
+        },
+        'AT_ISO_INIT_ADDR': {
+            'Request': '^ATIIA[0-9A-F]+$',
+            'Descr': 'AT Set the ISO 5-baud init address',
+            'Exec': 'self.counters["cmd_iia"] = int(cmd[5:], 16)',
+            'Log': '"Set init address to %s", self.counters["cmd_iia"]',
+            'Response': ELM_R_OK
+        },
         'AT_TRY_PROTO': {
             'Request': '^ATTP[0-9A-F]+$',
             'Descr': 'AT TRY PROTO',
@@ -262,22 +300,23 @@ ObdMessage = {
         },
         'AT_TEST_ADDR': {
             'Request': '^ATTA[0-9A-F][0-9A-F]$',
-            'Descr': 'Set tester address to hh.',
+            'Descr': 'AT Set tester address to hh.',
             'Exec': 'self.counters["cmd_test_add"] = cmd[4:] or None',
-            'Log': '"Try protocol %s", self.counters["cmd_test_add"]',
+            'Log': '"Set tester address to %s", '
+                   'self.counters["cmd_test_add"]',
             'Response': ELM_R_OK
         },
         'AT_WARM_START': {
             'Request': '^ATWS$',
             'Descr': 'AT WARM START',
-            'Log': '"Sleep 0.1 seconds"',
+            'Log': '"Warm start and sleep 0.1 seconds"',
             'Exec': 'self.reset(0.1)',
             'Response': ST('') + ST("ELM327 v1.5")
         },
         'AT_RESET': {
             'Request': '^ATZ$',
             'Descr': 'AT RESET',
-            'Log': '"Sleep 0.5 seconds"',
+            'Log': '"Reset and sleep 0.5 seconds"',
             'Exec': 'self.reset(0.5)',
             'Response': ST('') + ST('') + ST("ELM327 v1.5")
         },
@@ -300,10 +339,20 @@ ObdMessage = {
             'Descr': 'AT PROTOCOL CLOSE',
             'Response': ELM_R_OK
         },
+        'AT_SLOW_INIT': {
+            'Request': '^ATSI$',
+            'Descr': 'AT Slow (5-baud) initialization',
+            'Response': ELM_R_OK
+        },
         'AT_AR': {
             'Request': '^ATAR$',
             'Descr': 'AT Automatically set the Receive Address',
             'Response': ELM_R_OK
+        },
+        'AT_BD': {
+            'Request': '^ATBD$',
+            'Descr': 'AT Buffer dump',
+            'Response': ST("00 00 00 00 00 00 00 00 00 00 00 00 00")
         },
         'AT_PPS': {
             'Request': '^ATPPS$',
@@ -358,7 +407,7 @@ ObdMessage = {
         },
         '^ST_SLX': {
             'Request': '^STSLX',
-            'Descr': 'Enable or disable sleep/wakeup triggers',
+            'Descr': 'AT Enable or disable sleep/wakeup triggers',
             'Exec': 'self.counters["cmd_st_slx"] = cmd[5:] or None',
             'Log': '"set sleep/wakeup triggers %s", '
                    'self.counters["cmd_st_slx"]',
@@ -366,52 +415,52 @@ ObdMessage = {
         },
         'ST_SERIAL_NUMBER': {
             'Request': '^STSN$',
-            'Descr': 'Print the device serial number.',
+            'Descr': 'ST Print the device serial number.',
             'Response': ST("110012345678")
         },
         'ST_REPORT_PROTOCOL': {
             'Request': '^STPR$',
-            'Descr': 'Report current protocol number.',
+            'Descr': 'ST Report current protocol number.',
             'Exec': 'time.sleep(0.5)',
             'Response': ST("A6")
         },
         'ST_DI': {
             'Request': '^STDI$',
-            'Descr': 'Print device hardware ID string.',
+            'Descr': 'AT Print device hardware ID string.',
             'Response': ST("OBDLink r1.7")
         },
         'ST_ID': {
             'Request': '^STI$',
-            'Descr': 'Print firmware ID string',
+            'Descr': 'ST Print firmware ID string',
             'Response': ST("STN1100 v1.2.3")
         },
         'ST_SET_BAUD_RATE': {
             'Request': '^STSBR *[1-9][0-9]*$',
-            'Descr': 'Set baud rate',
+            'Descr': 'ST Set baud rate',
             'Response': ST("STN1101 v2.1.0")
         },
         'ST_STCCFCP': {
             'Request': '^STCCFCP$',
-            'Descr': 'Clear all flow control address pairs.',
+            'Descr': 'ST Clear all CAN flow control address pairs.',
             'Response': ELM_R_OK
         },
         'ST_STCFCPC': {
             'Request': '^STCFCPC$',
-            'Descr': 'Clear all flow control address pairs.',
+            'Descr': 'ST Clear all flow control address pairs.',
             'Response': ELM_R_OK
         },
         'ST_STCAFCP': {
             'Request': '^STCAFCP',
-            'Descr': 'Add a flow control CAN address pair.',
+            'Descr': 'ST Add CAN flow control address pair.',
             'Exec': 'self.counters["cmd_st_fcap"] = cmd[7:] or None',
-            'Log': '"Set current protocol %s", self.counters["cmd_st_fcap"]',
+            'Log': '"Add CAN flow control CAN %s", self.counters["cmd_st_fcap"]',
             'Response': ELM_R_OK
         },
         'ST_STCFCPA': {
             'Request': '^STCFCPA',
-            'Descr': 'Add a flow control CAN address pair.',
+            'Descr': 'ST Add a flow control CAN address pair.',
             'Exec': 'self.counters["cmd_st_fcap"] = cmd[7:] or None',
-            'Log': '"Set current protocol %s", self.counters["cmd_st_fcap"]',
+            'Log': '"Add a flow control CAN %s", self.counters["cmd_st_fcap"]',
             'Response': ELM_R_OK
         },
     },
@@ -422,7 +471,7 @@ ObdMessage = {
             'Descr': 'PIDS_A',
             'ResponseHeader': \
             lambda self, cmd, pid, val: \
-                '<subs>SEARCHING...</subs>'
+                '<string>SEARCHING...</string>'
                 '<exec>time.sleep(4.5)</exec>' + ST('') + \
                 ST('UNABLE TO CONNECT') \
                 if self.counters[pid] == 1 else \
@@ -435,7 +484,7 @@ ObdMessage = {
             'Descr': 'MIDS_A',
             'ResponseHeader': \
             lambda self, cmd, pid, val: \
-                '<subs>SEARCHING...</subs>'
+                '<string>SEARCHING...</string>'
                 '<exec>time.sleep(4.5)</exec>' + ST('') + \
                 ST('UNABLE TO CONNECT') \
                 if self.counters[pid] == 1 else \
@@ -638,7 +687,7 @@ ObdMessage = {
             'Descr': 'PIDS_A',
             'ResponseHeader': \
                 lambda self, cmd, pid, val: \
-                    '<subs>SEARCHING...</subs>'
+                    '<string>SEARCHING...</string>'
                     '<exec>time.sleep(3)</exec>' + ST('') \
                         if self.counters[pid] == 1 else "",
             'Response':
@@ -2137,11 +2186,6 @@ ObdMessage = {
             'Descr': 'UNKNOWN_13FF00',
             'Response': ST('NO DATA'),
         },
-        'UNKNOWN_1902D': {
-            'Request': '^1902D' + ELM_FOOTER,
-            'Descr': 'UNKNOWN_1902D',
-            'Response': ST('NO DATA'),
-        },
         'UNKNOWN_0A': {
             'Request': '^0A' + ELM_FOOTER,
             'Descr': 'UNKNOWN_0A',
@@ -2159,50 +2203,73 @@ ObdMessage = {
             'Header': ECU_ADDR_E,
             'Response': HD(ECU_R_ADDR_E) + SZ('10') + DT('3E E8 01 00 04 FF FF')
         },
-        # MODE 21
-        'UNKNOWN_2100_E': {
-            'Request': '^2100' + ELM_FOOTER,
-            'Descr': 'UNKNOWN_2100',
-            'Header': ECU_ADDR_E,
-            'Response': HD(ECU_R_ADDR_E) + SZ('06') + DT('61 00 BC 00 00 01')
-        },
-        # MODE 22 (temporary workaround for all MODE 22 Pids)
-        'UNKNOWN_22x': {
-            'Request': '^22.*$' + ELM_FOOTER,
-            'Descr': 'UNKNOWN_22x',
-            'Header': ECU_ADDR_E,
-            'Response': HD(ECU_R_ADDR_E) + SZ('04') + DT('62 02 00 01') # wrong response
-        },
-        # MODE 23 (temporary workaround for all MODE 23 Pids)
-        'UNKNOWN_23x': {
-            'Request': '^23.*$' + ELM_FOOTER,
-            'Descr': 'UNKNOWN_23x',
-            'Header': ECU_ADDR_E,
-            'Response': HD(ECU_R_ADDR_E) + SZ('04') + DT('62 02 00 01') # wrong response
-        },
-        # USD tests
-        # MODE 10
+        # USD tests simulating a Continental ECU (these pids are unrelated to the ones of a Toyota Auris Hybrid)
+        # MODE 10 - Diagnostic Session Control
         'UDS_DSC': {
             'Request': '^1002' + ELM_FOOTER,
             'Descr': 'DiagnosticSessionControl - Programming Session',
             'Header': ECU_ADDR_E,
             'Response': HD(ECU_R_ADDR_E) + SZ('06') + DT('50 02 00 14 00 C8')
         },
-        # MODE 11
-        'UDS_DSC': {
+        'UDS_PS': {
+            'Request': '^1002' + ELM_FOOTER,
+            'Descr': 'UDS Programming Session',
+            'Header': ECU_ADDR_M,
+            'Response': HD(ECU_R_ADDR_M) + SZ('06') + DT('50 02 00 14 00 C8')
+        },
+        'UDS_EDS': {
+            'Request': '^1003' + ELM_FOOTER,
+            'Descr': 'UDS Extended Diagnostics Session',
+            'Header': ECU_ADDR_M,
+            'Response': HD(ECU_R_ADDR_M) + SZ('06') + DT('50 03 00 14 00 C8')
+        },
+        'UDS_SESSION_REQ': {
+            'Request': '^1092' + ELM_FOOTER,
+            'Descr': 'UDS Session Request',
+            'Header': ECU_ADDR_E,
+            'Response': HD(ECU_R_ADDR_E) + SZ('02') + DT('50 92')
+        },
+        # MODE 11 - ECU Reset
+        'UDS_ECU_RESET': {
             'Request': '^1101' + ELM_FOOTER,
             'Descr': 'EcuReset',
             'Header': ECU_ADDR_E,
             'Response': HD(ECU_R_ADDR_E) + SZ('02') + DT('51 01')
+        },
+        'UDS_HR': {
+            'Request': '^1101' + ELM_FOOTER,
+            'Descr': 'UDS Hardware Reset',
+            'Header': ECU_ADDR_M,
+            'Response': HD(ECU_R_ADDR_M) + SZ('03') + DT('7F 11 78') +
+                        HD(ECU_R_ADDR_M) + SZ('02') + DT('51 01')
         },
         # MODE 21
         'UNKNOWN_2100_E': {
             'Request': '^2100' + ELM_FOOTER,
             'Descr': 'UNKNOWN_2100',
             'Header': ECU_ADDR_E,
-            'Response': HD(ECU_R_ADDR_E) + SZ('10') + DT('08 61 00 05 00 90 8B')
+            'Response': [
+                        HD(ECU_R_ADDR_E) + SZ('06') + DT('61 00 BC 00 00 01'),
+                        HD(ECU_R_ADDR_E) + SZ('10') + DT('08 61 00 05 00 90 8B')
+                        ]
         },
-        # MODE 27
+        # MODE 1A
+        'UDS_SEI': {
+            'Request': '^1A87' + ELM_FOOTER,
+            'Descr': 'UDS Session ECU Info',
+            'Header': ECU_ADDR_E,
+            'Response': HD(ECU_R_ADDR_E) + SZ('10') + DT('16 5A 87 01 22 05 14') +
+                        HD(ECU_R_ADDR_E) + SZ('21') + DT('FF 07 09 09 43 00 32') +
+                        HD(ECU_R_ADDR_E) + SZ('22') + DT('30 34 35 34 35 33 38') +
+                        HD(ECU_R_ADDR_E) + SZ('23') + DT('33 32')
+        },
+        'UDS_SEI_1': {
+            'Request': '^10165A8701220514$',
+            'Descr': 'UDS Session ECU Info - 2',
+            'Header': ECU_ADDR_E,
+            'Response': ''
+        },
+        # MODE 27 - Security Access
         'UDS_SA1': {
             'Request': '^2701' + ELM_FOOTER,
             'Descr': 'SecurityAccess #1',
@@ -2214,6 +2281,19 @@ ObdMessage = {
             'Descr': 'SecurityAccess #2',
             'Header': ECU_ADDR_E,
             'Response': HD(ECU_R_ADDR_E) + SZ('02') + DT('67 02')
+        },
+        # MODE 3E - Tester Present
+        'UDS_TESTER_PRESENT': {
+            'Request': '^3E00' + ELM_FOOTER,
+            'Descr': 'UDS Tester Present',
+            'Header': ECU_ADDR_E,
+            'Response': HD(ECU_R_ADDR_E) + SZ('02') + DT('7E 00')
+        },
+        'UDS_RCEM4': {
+            'Request': '^3E80' + ELM_FOOTER,
+            'Descr': 'RoutineControl - Erase memory / 4',
+            'Header': ECU_ADDR_E,
+            'Response': HD(ECU_R_ADDR_E) + SZ('02') + DT('3E 80') # to be revised.....
         },
         # RCEM1
         'UDS_RCEM1': {
@@ -2235,14 +2315,7 @@ ObdMessage = {
             'Response': HD(ECU_R_ADDR_E) + SZ('03') + DT('7F 31 78') + # 2 Ways: Wait or ask about the status of the deletion.
                         HD(ECU_R_ADDR_E) + SZ('04') + DT('71 03 FF 00')
         },
-        'UDS_RCEM4': {
-            'Request': '^3E80' + ELM_FOOTER,
-            'Descr': 'RoutineControl - Erase memory / 4',
-            'Header': ECU_ADDR_E,
-            'Response': HD(ECU_R_ADDR_E) + SZ('02') + DT('3E 80') # to be revised.....
-        },
-        # USD tests simulating a Continental ECU (these pids are unrelated to the ones of a Toyota Auris Hybrid)
-        # MODE 10
+        # other msgs
         'UDS_WF1': {
             'Request': '^0C2EF15A000414' + ELM_FOOTER, # 2E: F15A => 0004140606FFFFFFFF
             'Descr': 'Write Fingerprint',
@@ -2254,26 +2327,6 @@ ObdMessage = {
             'Descr': 'Write Fingerprint',
             'Header': ECU_ADDR_M,
             'Response': HD(ECU_R_ADDR_M) + SZ('03') + DT('6E F1 5A')
-        },
-        'UDS_PS': {
-            'Request': '^1002' + ELM_FOOTER,
-            'Descr': 'UDS Programming Session',
-            'Header': ECU_ADDR_M,
-            'Response': HD(ECU_R_ADDR_M) + SZ('06') + DT('50 02 00 14 00 C8')
-        },
-        'UDS_EDS': {
-            'Request': '^1003' + ELM_FOOTER,
-            'Descr': 'UDS Extended Diagnostics Session',
-            'Header': ECU_ADDR_M,
-            'Response': HD(ECU_R_ADDR_M) + SZ('06') + DT('50 03 00 14 00 C8')
-        },
-        # MODE 11
-        'UDS_HR': {
-            'Request': '^1101' + ELM_FOOTER,
-            'Descr': 'UDS Hardware Reset',
-            'Header': ECU_ADDR_M,
-            'Response': HD(ECU_R_ADDR_M) + SZ('03') + DT('7F 11 78') +
-                        HD(ECU_R_ADDR_M) + SZ('02') + DT('51 01')
         },
         # MODE 27
         'UDS_RS': {
@@ -3970,7 +4023,7 @@ ObdMessage = {
             'Header': ECU_ADDR_S,
             'Response': HD(ECU_R_ADDR_S) + SZ('03') + DT('61 A1 80')
         },
-        # Mode 22
+        # Mode 22 - Read Data By Identifier
         'HB_SOC': {
             'Request': '^227A76' + ELM_FOOTER,
             'Descr': 'Hybrid Battery State of Charge',

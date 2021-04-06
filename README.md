@@ -212,8 +212,9 @@ Command|Description
 :---------------:|-----------
 `help`|List available commands (or detailed help with "help cmd").
 `port`|Print the used TCP/IP port, or the used device, or the serial COM port, or the serial pseudo-tty, depending on the selected interface.
-`test`|Test the OBD-II request specified in the argument.
-`write`|Write the formatted XML response specified in the argument to the device.
+`test`|Test the OBD-II request specified in the argument. Check also "verify" and "write".
+`write`|Write the formatted XML response specified in the argument to the connected application. (Use "verify" to avoid the write operation.)
+`verify`|Test the processing of the formatted XML response specified in the argument (like "write", but without writing to the application).
 `loglevel`|If an argument is given, set the logging level, otherwise show the current one. Valid numbers: CRITICAL=50, ERROR=40, WARNING=30, INFO=20, DEBUG=10.
 `quit`|quit the program  (or end-of-file/Control-D, or break/Control-C)
 `counters`|print the number of each executed PIDs (upper case names), the values associated to some 'AT' PIDs (*cmd_...*), the unknown requests, the emulator response delay, the total number of executed commands (*commands*) and the current scenario (*scenario*). The related dictionary is `emulator.counters`.
@@ -266,6 +267,9 @@ Special setter  |Related AT command     |Handled|Description
 `cmd_response`  |*ATR0*, *ATR1*         |No     |Set responses off/on
 `cmd_brd`       |*ATBRDn* (n=two digits)|No     |Set UART baud rate divisor
 `cmd_long_msg`  |*ATAL*, *ATNL*         |No     |Set message length
+`cmd_iia`       |*ATIIA hh* (hh = addr) |No     |Set the ISO 5-baud init address to hh
+`cmd_rec_addr`  |*ATSR hh* (hh = addr)  /No     /Set receive address
+`cmd_hfm`       |*ATCM m* (m = addr)    /No     /Set the CAN hardware filter mask
 
 Unhandled setter means that the AT command is recognized, the related counter is valued but no process is currently associated.
 
@@ -367,10 +371,10 @@ emulator.answer = { 'pid' : 'answer', 'pid' : 'answer', ... }
 Example:
 
 ```python
-emulator.answer = { 'SPEED': '<string>NO DATA</string>', 'RPM': '<string>NO DATA</string>' }
+emulator.answer = { 'SPEED': '<writeln>NO DATA</writeln>', 'RPM': '<writeln>NO DATA</writeln>' }
 # Or, alternatively:
-emulator.answer['SPEED']='<string>NO DATA</string>'
-emulator.answer['RPM']='<string>NO DATA</string>'
+emulator.answer['SPEED']='<writeln>NO DATA</writeln>'
+emulator.answer['RPM']='<writeln>NO DATA</writeln>'
 test 010d
 test 010c
 ```
@@ -391,7 +395,7 @@ test 010c
 To simulate that the adapter is not connected to the vehicle:
 
 ```python
-emulator.answer['AT_R_VOLT'] = '<string>0.0V</string>'
+emulator.answer['AT_R_VOLT'] = '<writeln>0.0V</writeln>'
 test atrv
 ```
 
@@ -431,13 +435,13 @@ car
 
 Tag|Add a line separator at the end|Behaviour
 :--------:|:----:|-----------------------------------------------
-`<string>`|Yes   |The content is returned with the addition of a line separator at the end. `<string></string>` means newline.
-`<space>` |No    |The content is returned with the addition of a space at the end. `<space></space>` means adding a simple space.
-`<subs>`  |No    |The content is returned with no space and no line separator at the end.
+`<writeln>`|Yes   |The content is returned with the addition of a line separator at the end. `<writeln></writeln>` or `<writeln />`means newline.
+`<space>` |No    |The content is returned with the addition of a space at the end. `<space></space>` or `<space />` means adding a simple space.
+`<string>`  |No    |The content is returned with no space and no line separator at the end.
 `<header>`, `<size>`, `<data>`|Yes   |Standard response format composed of the concatenation of hexadecimal ECU header, related size code and hexadecimal data with the addition of a line separator at the end. `<size>` is the CAN PCI byte.
 `<header>`, `<size>`, `<subd>`|No    |Standard response format composed of the concatenation of hexadecimal ECU header, related size code and hexadecimal data with no line separator at the end. `<size>` is the CAN PCI byte.
 `<exec>`  |No    |Execution of single or multiple in-line Python commands (expressions or statements) returning the expression evaluation with no line separator at the end; any previous string is printed before the execution.
-`<exec>`  |No    |Execution of single or multiple in-line Python commands (expressions or statements) returning the expression evaluation with no line separator at the end; any previous string is concatenated (not immediately printed).
+`<eval>`  |No    |Like `exec`, but any previous string is concatenated (not immediately printed).
 
 Strings among tags are allowed and are returned as they are, with no line separator and stripping blank heading and footing characters.
 
@@ -454,7 +458,7 @@ Symbol (name)     |Escape Sequence
 `<` (less-than)   |`&lt;`  (or `&#60;`)
 `>` (greater-than)|`&gt;`  (or `&#62;`)
 
-The *exec* tag for instance can be used to embed real-time delays between strings or to differentiate answers. The return value of a statement is ignored. The evaluation of an expression is substituted. Example: `'Response' = '<subs>SEARCHING...</subs><exec>time.sleep(4.5)</exec><string></string><string>UNABLE TO CONNECT</string>'. Notice that, as `time.sleep` is a statement, the related return value is ignored.
+The *exec* tag for instance can be used to embed real-time delays between strings or to differentiate answers. The return value of a statement is ignored. The evaluation of an expression is substituted. Example: `'Response' = '<string>SEARCHING...</string><exec>time.sleep(4.5)</exec><writeln /><writeln>UNABLE TO CONNECT</writeln>'. Notice that, as `time.sleep` is a statement, the related return value is ignored.
 
 Further processing can be achieved through a *lambda function* applied to `ResponseHeader`, `ResponseFooter`. It has to manage the following parameters: *self*, *cmd*, *pid*, *val* (e.g., `lambda self, cmd, pid, val:`).
 
@@ -470,9 +474,9 @@ Example of PID definition within the `ObdMessage` dictionary:
             'Descr': 'PIDS_A',
             'ResponseHeader': \
             lambda self, cmd, pid, val: \
-                '<subs>SEARCHING...</subs>'
-                '<exec>time.sleep(4.5)</exec><string></string>'
-                '<string>UNABLE TO CONNECT</string>' \
+                '<string>SEARCHING...</string>'
+                '<exec>time.sleep(4.5)</exec><writeln />'
+                '<writeln>UNABLE TO CONNECT</writeln>' \
                 if self.counters[pid] == 1 else \
                 self.choice([ST('NO DATA'), ST('BUS INIT:ERROR')]),
             'Response': '',
@@ -485,7 +489,7 @@ In the above example, the first time *ResponseHeader* is executed (`self.counter
 The ability to add dynamic differentiators and delays within responses enables testing specific use cases and exceptions that are difficult to be achieved through a real connection with a car. These not only apply to the `ObdMessage` dictionary (by editing *obd_message.py*), but also to `emulator.answer` and `emulator.ELM_R_UNKNOWN`, that can be configured through the command line. Consider for instance the following dynamic configuration via command line:
 
 ```python
-emulator.answer['SPEED'] = '<exec>ECU_R_ADDR_E + " 03 41 0D 0A " if randint(0, 100) > 20 else "NO DATA"</exec><string></string>'
+emulator.answer['SPEED'] = '<exec>ECU_R_ADDR_E + " 03 41 0D 0A " if randint(0, 100) > 20 else "NO DATA"</exec><writeln />'
 scenario car
 test ath1
 test atsh7e0
@@ -506,7 +510,7 @@ Preliminarily, test number conversion with the command line:
 Apply it to *CUSTOM_FUEL_LEVEL* PID so that it returns `7C8 03 61 29 1F \r'`:
 
 ```python
-emulator.answer['CUSTOM_FUEL_LEVEL'] = '<header>7C8</header><size>03</size><subd>61 29</subd><eval>"%.2X" % int(15.5*2)</eval><space></space><string></string>'
+emulator.answer['CUSTOM_FUEL_LEVEL'] = '<header>7C8</header><size>03</size><subd>61 29</subd><eval>"%.2X" % int(15.5*2)</eval><space /><writeln />'
 scenario car
 test ath1
 test atsh7c0
@@ -522,7 +526,7 @@ The output is:
 Or, alternatively, use the header variable instead of the header digits:
 
 ```python
-emulator.answer['CUSTOM_FUEL_LEVEL'] = '<exec>ECU_R_ADDR_I + " 03 61 29 " + "%.2X" % int(15.5*2)</exec><string> </string>'
+emulator.answer['CUSTOM_FUEL_LEVEL'] = '<exec>ECU_R_ADDR_I + " 03 61 29 " + "%.2X" % int(15.5*2)</exec><writeln> </writeln>'
 scenario car
 test ath1
 test atsh7c0
@@ -532,7 +536,7 @@ test 2129
 The following command sets SPEED ([Vehicle speed](https://en.wikipedia.org/wiki/OBD-II_PIDs#Service_01)) to 60 km/h via command line (60 can be changed to any integer value between 0 and 255):
 
 ```python
-emulator.answer['SPEED'] = '<header>7E8</header><size>03</size><subd>41 0D</subd><eval>"%.2X" % 60</eval><space></space><string></string>'
+emulator.answer['SPEED'] = '<header>7E8</header><size>03</size><subd>41 0D</subd><eval>"%.2X" % 60</eval><space /><writeln />'
 scenario car
 test ath1
 test atsh7e0
@@ -548,13 +552,13 @@ The output is:
 The following command sets RPM ([Engine RPM](https://en.wikipedia.org/wiki/OBD-II_PIDs#Service_01)) to 500 via command line:
 
 ```python
-emulator.answer['RPM'] = '<exec>ECU_R_ADDR_E + " 04 41 0C %.4X" % int(4 * 500)</exec><string></string>'
+emulator.answer['RPM'] = '<exec>ECU_R_ADDR_E + " 04 41 0C %.4X" % int(4 * 500)</exec><writeln />'
 ```
 
 or
 
 ```python
-emulator.answer['RPM'] = '<header>7E8</header><size>04</size><subd>41 0C</subd><eval>"%.4X" % int(4 * 500)</eval><space></space><string></string>'
+emulator.answer['RPM'] = '<header>7E8</header><size>04</size><subd>41 0C</subd><eval>"%.4X" % int(4 * 500)</eval><space /><writeln />'
 scenario car
 test ath1
 test atsh7e0
@@ -572,7 +576,7 @@ To list the configuration, type `emulator.answer`, or simply `counters`. To remo
 Command to configure PID '0100' answer (*PIDS_A*) to `BUS INIT: OK` for its first query and to `48 6B 13 41 00 BE 1F B8 11 AD \r` for all the subsequent queries:
 
 ```python
-emulator.answer['ELM_PIDS_A'] = '<exec>"BUS INIT: OK" if self.counters["ELM_PIDS_A"] &lt; 2 else "48 6B 13 41 00 BE 1F B8 11 AD "</exec><string></string>'
+emulator.answer['ELM_PIDS_A'] = '<exec>"BUS INIT: OK" if self.counters["ELM_PIDS_A"] &lt; 2 else "48 6B 13 41 00 BE 1F B8 11 AD "</exec><writeln />'
 scenario car
 test ath1
 test atsh7e0
@@ -595,16 +599,18 @@ The *ELM_PIDS_A* counter (`emulator.counters["ELM_PIDS_A"]`) can be reset with:
 emulator.counters["ELM_PIDS_A"] = 0
 ```
 
-To quickly test the conversion of an XML response, use the `write` command, which also writes the produced output to the opened device. Example:
+To quickly test the conversion of an XML response, use the `verify` command (without single or double commas); `write` does the same and also writes the produced output to the opened device. Example:
 
 ```shell
 python3 -m elm -s car
 test ath1
 test ats0
-write <header>7E0</header><size>03</size><data>01 02 03</data>
+verify <header>7E0</header><size>03</size><data>01 02 03</data>
 ```
 
 The output will be `'7E003010203\r\r>'`.
+
+To write the output of a `test` command to the application, copy its *Raw command* output and paste it to a `write` command.
 
 ## Available interfaces
 

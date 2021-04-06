@@ -579,7 +579,7 @@ class Elm:
                     self.reset(0)
                     return None
             except ConnectionResetError:
-                logging.error(
+                logging.warning(
                     "Session terminated by the client.")
                 self.sock_conn = None
                 self.sock_addr = None
@@ -795,9 +795,9 @@ class Elm:
             except StopIteration:
                 answ += i.tail.strip() if i is not None and i.tail else ""
                 break
-            if i.tag.lower() == 'subs':
+            if i.tag.lower() == 'string':
                 answ += (i.text or "")
-            elif i.tag.lower() == 'string':
+            elif i.tag.lower() == 'writeln':
                 answ += (i.text or "") + nl
             elif i.tag.lower() == 'space':
                 answ += (i.text or "") + sp
@@ -829,49 +829,47 @@ class Elm:
                         "Missing command to execute: %s", resp)
             elif i.tag.lower() == 'header':
                 answers = True
+                incomplete_resp = True
+                try:
+                    size = next(s)
+                    data = next(s)
+                except StopIteration:
+                    logging.error(
+                        'Missing <size> or <data>/<subd> tags '
+                        'after <header> tag in %s.', repr(resp))
+                    break
+                # check that the tags are valid
+                if (size.tag.lower() != 'size' or
+                        (data.tag.lower() != 'data' and
+                         data.tag.lower() != 'subd')):
+                    logging.error(
+                        'In %s, <size> and <data>/<subd> tags '
+                        'must follow the <header> tag.', repr(resp))
+                    break
+
+                # check validity of the content fields
+                try:
+                    int_size = int(size.text, 16)
+                except ValueError as e:
+                    logging.error(
+                        'Improper size %s for response %s: %s.',
+                        repr(size.text), repr(resp), e)
+                    break
+                if not data.text:
+                    logging.error('Missing data for response %s.',
+                                  repr(resp))
+                    break
+                unspaced_data = (data.text or "").translate(
+                    answ.maketrans('', '', string.whitespace))
+                if int_size < 16 and len(unspaced_data) != int_size * 2:
+                    logging.error(
+                        'In response %s, mismatch between number of data '
+                        'digits %s and related length field %s.',
+                        repr(resp), repr(data.text), repr(size.text))
+                    break
+                incomplete_resp = False
                 if re.match(cra_pattern, i.text):
-                    incomplete_resp = True
-                    try:
-                        size = next(s)
-                        data = next(s)
-                    except StopIteration:
-                        logging.error(
-                            'Missing <size> or <data>/<subd> tags '
-                            'after <header> tag in %s.', repr(resp))
-                        break
-
-                    # check that the tags are valid
-                    if (size.tag.lower() != 'size' or
-                            (data.tag.lower() != 'data' and
-                             data.tag.lower() != 'subd')):
-                        logging.error(
-                            'In %s, <size> and <data>/<subd> tags '
-                            'must follow the <header> tag.', repr(resp))
-                        break
-
-                    # check validity of the content fields
-                    try:
-                        int_size = int(size.text, 16)
-                    except ValueError as e:
-                        logging.error(
-                            'Improper size %s for response %s: %s.',
-                            repr(size.text), repr(resp), e)
-                        break
-                    if not data.text:
-                        logging.error('Missing data for response %s.',
-                                      repr(resp))
-                        break
-                    unspaced_data = (data.text or "").translate(
-                        answ.maketrans('', '', string.whitespace))
-                    if int_size < 16 and len(unspaced_data) != int_size * 2:
-                        logging.error(
-                            'In response %s, mismatch between number of data '
-                            'digits %s and related length field %s.',
-                            repr(resp), repr(data.text), repr(size.text))
-                        break
-
                     # concatenate answ from header, size and data/subd
-                    incomplete_resp = False
                     answ += ((((i.text or "") + sp + (size.text or "") + sp)
                             if use_headers else "") +
                             ((data.text or "") if sp else unspaced_data) +

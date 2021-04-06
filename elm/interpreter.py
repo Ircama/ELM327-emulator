@@ -207,15 +207,15 @@ class Interpreter(Cmd):
                 "Current logging level:",
                     logging.getLogger().handlers[0].level)
 
-    def do_write(self, arg):
-        "Write the formatted XML response specified in the argument\n"\
-        "to the device."
+    def do_verify(self, arg, do_write=False):
+        'Test the processing of the formatted XML response specified in\n'\
+        'the argument (like "write", but without writing to the application).'
         if not arg:
             print(
                 "Invalid format. Add the formatted XML response as argument.")
             return
         try:
-            ret = self.emulator.process_response(arg, do_write=True)
+            ret = self.emulator.process_response(arg, do_write=do_write)
             if ret is None:
                 print(
                     'Null data returned while processing XML response "{}".'.
@@ -224,10 +224,17 @@ class Interpreter(Cmd):
                 print(repr(ret))
         except Exception as e:
             print(traceback.format_exc())
-            print("Could not perform the operation:", repr(e))
+            print("Could not process",ret , "-", repr(e))
+
+    def do_write(self, arg):
+        'Write the formatted XML response specified in the argument\n'\
+        'to the connected application. (Use "verify" to avoid the \n'\
+        'write operation.)'
+        self.do_verify(arg, do_write=True)
 
     def do_test(self, arg):
-        "Test the OBD-II request specified in the argument."
+        'Test the OBD-II request specified in the argument. Check also\n'\
+        '"verify" and "write".'
         if not arg:
             print(
                 "Invalid format. Add the OBD-II request to test as argument.")
@@ -243,17 +250,7 @@ class Interpreter(Cmd):
             print("Could not run test:", repr(e))
             print(traceback.format_exc())
         print("\n______Command output:____________")
-        try:
-            ret = self.emulator.process_response(ret)
-            if ret is None:
-                print(
-                    'Null data received while processing command "{}".'.
-                        format(arg))
-            else:
-                print(repr(ret))
-        except Exception as e:
-            print(traceback.format_exc())
-            print("Could not run test:", repr(e))
+        self.do_verify(ret)
 
     def do_port(self, arg):
         "Print the used TCP/IP port, or the used device, "\

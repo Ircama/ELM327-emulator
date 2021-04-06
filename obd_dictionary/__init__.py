@@ -78,8 +78,8 @@ def HD(header):
 def DT(data):
     return ('<data>' + data + '</data>')
 
-def ST(string):
-    return ('<string>' + string + '</string>')
+def ST(writeln):
+    return ('<writeln>' + writeln + '</writeln>')
 
 ELM_R_OK = ST("OK")
 ELM_R_UNKNOWN = ST("?")
