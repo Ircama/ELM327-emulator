@@ -33,6 +33,7 @@ import xml.etree.ElementTree as ET
 
 FORWARD_READ_TIMEOUT = 5.0 # seconds
 SERIAL_BAUDRATE = 38400 # bps
+NETWORK_INTERFACES = ""
 
 def setup_logging(
         default_path=Path(__file__).stem + '.yaml',
@@ -221,7 +222,7 @@ class Elm:
 
             try:
                 # Bind the socket to the port
-                self.sock_inet.bind(("", self.net_port))
+                self.sock_inet.bind((NETWORK_INTERFACES, self.net_port))
                 # Become a socket server and listen for incoming connections
                 self.sock_inet.listen(1)
             except OSError as msg:
@@ -516,7 +517,12 @@ class Elm:
         """
         if self.sock_inet:
             if self.net_port:
-                return 'TCP/IP network port ' + str(self.net_port) + '.'
+                postfix = ''
+                if extended:
+                    postfix = '\nWarning: the socket is bound '\
+                              'to all interfaces.'
+                return ('TCP/IP network port ' + str(self.net_port) + '.'
+                        + postfix)
             else:
                 return ('Unopened TCP/IP network port ' +
                         str(self.net_port) + '.')
