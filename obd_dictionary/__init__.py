@@ -500,16 +500,6 @@ def obd_dictionary():
     obd.logger.info("Dictionary production complete.")
 
 
-'''
-Sample:
-            'ENGINE_LOAD': {
-                'Request': '^0104' + ELM_FOOTER,
-                'Descr': 'Calculated Engine Load',
-                'Header': ECU_ADDR_E,
-                'Response': ECU_R_ADDR_E + ' 03 41 04 3F \r'
-            },
-'''
-
 def main():
     try:
         obd_dictionary()
