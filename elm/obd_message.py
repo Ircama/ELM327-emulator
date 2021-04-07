@@ -2211,21 +2211,28 @@ ObdMessage = {
             'Header': ECU_ADDR_E,
             'Response': HD(ECU_R_ADDR_E) + SZ('10') + DT('3E E8 01 00 04 FF FF')
         },
-        # USD tests simulating a Continental ECU (these pids are unrelated to the ones of a Toyota Auris Hybrid)
-        # MODE 10 - Diagnostic Session Control
+        # MODE 10 - UDS - Diagnostic Session Control
         'UDS_DSC': {
             'Request': '^1002' + ELM_FOOTER,
             'Descr': 'DiagnosticSessionControl - Programming Session',
             'Header': ECU_ADDR_E,
-            'Response': HD(ECU_R_ADDR_E) + SZ('06') + DT('50 02 00 14 00 C8')
+            'Response': HD(ECU_R_ADDR_E) + SZ('03') + DT('7F 10 22')
         },
+        'UDS_EDS': {
+            'Request': '^1003' + ELM_FOOTER,
+            'Descr': 'UDS Extended Diagnostics Session',
+            'Header': ECU_ADDR_E,
+            'Response': HD(ECU_R_ADDR_E) + SZ('03') + DT('7F 10 12')
+        },
+        # USD tests simulating a Continental ECU (these pids are unrelated to the ones of a Toyota Auris Hybrid)
+        # MODE 10 - Diagnostic Session Control
         'UDS_PS': {
             'Request': '^1002' + ELM_FOOTER,
             'Descr': 'UDS Programming Session',
             'Header': ECU_ADDR_M,
             'Response': HD(ECU_R_ADDR_M) + SZ('06') + DT('50 02 00 14 00 C8')
         },
-        'UDS_EDS': {
+        'UDS_EDS_M': {
             'Request': '^1003' + ELM_FOOTER,
             'Descr': 'UDS Extended Diagnostics Session',
             'Header': ECU_ADDR_M,
@@ -2261,20 +2268,77 @@ ObdMessage = {
                         HD(ECU_R_ADDR_E) + SZ('10') + DT('08 61 00 05 00 90 8B')
                         ]
         },
+        # Mode 22 - Read Data By Identifier
+        'HB_SOC': {
+            'Request': '^227A76' + ELM_FOOTER,
+            'Descr': 'Hybrid Battery State of Charge',
+            'Equation': 'A*100/255',
+            'Min': '0',
+            'Max': '200',
+            'Unit': '%',
+            'Header': ECU_ADDR_J,
+            'Response': HD(ECU_R_ADDR_J) + SZ('03') + DT('61 A1 80') # Wrong value! To be tested
+        },
+        'H_BATT': {
+            'Request': '^227A53' + ELM_FOOTER,
+            'Descr': 'Hybrid Battery Voltage',
+            'Equation': 'D*4',
+            'Min': '0',
+            'Max': '1000',
+            'Unit': 'Volts',
+            'Header': ECU_ADDR_J,
+            'Response': HD(ECU_R_ADDR_J) + SZ('03') + DT('61 A1 80') # Wrong value! To be tested
+        },
+        'INVT_CT': {
+            'Request': '^221093' + ELM_FOOTER,
+            'Descr': 'Inverter Coolant Temperature',
+            'Equation': 'A*9/5-40',
+            'Min': '-40',
+            'Max': '300',
+            'Unit': 'F',
+            'Header': ECU_ADDR_K,
+            'Response': HD(ECU_R_ADDR_K) + SZ('03') + DT('61 A1 80') # Wrong value! To be tested
+        },
+        'GN_IT': {
+            'Request': '^221089' + ELM_FOOTER,
+            'Descr': 'Generator Inverter Temperature',
+            'Equation': 'A*9/5-40',
+            'Min': '-40',
+            'Max': '300',
+            'Unit': 'F',
+            'Header': ECU_ADDR_K,
+            'Response': HD(ECU_R_ADDR_K) + SZ('03') + DT('61 A1 80') # Wrong value! To be tested
+        },
+        'B_CVT': {
+            'Request': '^2210AB' + ELM_FOOTER,
+            'Descr': 'Boosting Converter Temperature (Upper and Lower)',
+            'Equation': 'A*9/5-40',
+            'Min': '-40',
+            'Max': '300',
+            'Unit': 'F',
+            'Header': ECU_ADDR_K,
+            'Response': HD(ECU_R_ADDR_K) + SZ('03') + DT('61 A1 80') # Wrong value! To be tested
+        },
         # MODE 1A
         'UDS_SEI': {
             'Request': '^1A87' + ELM_FOOTER,
             'Descr': 'UDS Session ECU Info',
             'Header': ECU_ADDR_E,
-            'Response': HD(ECU_R_ADDR_E) + SZ('10') + DT('16 5A 87 01 22 05 14') +
-                        HD(ECU_R_ADDR_E) + SZ('21') + DT('FF 07 09 09 43 00 32') +
-                        HD(ECU_R_ADDR_E) + SZ('22') + DT('30 34 35 34 35 33 38') +
-                        HD(ECU_R_ADDR_E) + SZ('23') + DT('33 32')
+            'Response': HD(ECU_R_ADDR_E) + SZ('06') + DT('5A 80 00 00 00 00')
+        },
+        'UDS_SEI_M': {
+            'Request': '^1A87' + ELM_FOOTER,
+            'Descr': 'UDS Session ECU Info',
+            'Header': ECU_ADDR_M,
+            'Response': HD(ECU_R_ADDR_M) + SZ('10') + DT('16 5A 87 01 22 05 14') +
+                        HD(ECU_R_ADDR_M) + SZ('21') + DT('FF 07 09 09 43 00 32') +
+                        HD(ECU_R_ADDR_M) + SZ('22') + DT('30 34 35 34 35 33 38') +
+                        HD(ECU_R_ADDR_M) + SZ('23') + DT('33 32')
         },
         'UDS_SEI_1': {
             'Request': '^10165A8701220514$',
             'Descr': 'UDS Session ECU Info - 2',
-            'Header': ECU_ADDR_E,
+            'Header': ECU_ADDR_M,
             'Response': ''
         },
         # MODE 27 - Security Access
@@ -2295,7 +2359,7 @@ ObdMessage = {
             'Request': '^3E00' + ELM_FOOTER,
             'Descr': 'UDS Tester Present',
             'Header': ECU_ADDR_E,
-            'Response': HD(ECU_R_ADDR_E) + SZ('02') + DT('7E 00')
+            'Response': HD(ECU_R_ADDR_E) + SZ('03') + DT('7F 3E 12')
         },
         'UDS_RCEM4': {
             'Request': '^3E80' + ELM_FOOTER,
@@ -2338,6 +2402,12 @@ ObdMessage = {
         },
         # MODE 27
         'UDS_RS': {
+            'Request': '^2711' + ELM_FOOTER,
+            'Descr': 'UDS Request Seed',
+            'Header': ECU_ADDR_E,
+            'Response': HD(ECU_R_ADDR_E) + SZ('03') + DT('7F 27 12')
+        },
+        'UDS_RS_M': {
             'Request': '^2711' + ELM_FOOTER,
             'Descr': 'UDS Request Seed',
             'Header': ECU_ADDR_M,
@@ -4031,56 +4101,17 @@ ObdMessage = {
             'Header': ECU_ADDR_S,
             'Response': HD(ECU_R_ADDR_S) + SZ('03') + DT('61 A1 80')
         },
-        # Mode 22 - Read Data By Identifier
-        'HB_SOC': {
-            'Request': '^227A76' + ELM_FOOTER,
-            'Descr': 'Hybrid Battery State of Charge',
-            'Equation': 'A*100/255',
-            'Min': '0',
-            'Max': '200',
-            'Unit': '%',
-            'Header': ECU_ADDR_J,
-            'Response': HD(ECU_R_ADDR_J) + SZ('03') + DT('61 A1 80') # Wrong value! To be tested
+        'R_14': {
+            'Request': '^14$',
+            'Descr': '??',
+            'Header': ECU_ADDR_E,
+            'Response': HD(ECU_R_ADDR_E) + SZ('03') + DT('7F 14 11')
         },
-        'H_BATT': {
-            'Request': '^227A53' + ELM_FOOTER,
-            'Descr': 'Hybrid Battery Voltage',
-            'Equation': 'D*4',
-            'Min': '0',
-            'Max': '1000',
-            'Unit': 'Volts',
-            'Header': ECU_ADDR_J,
-            'Response': HD(ECU_R_ADDR_J) + SZ('03') + DT('61 A1 80') # Wrong value! To be tested
-        },
-        'INVT_CT': {
-            'Request': '^221093' + ELM_FOOTER,
-            'Descr': 'Inverter Coolant Temperature',
-            'Equation': 'A*9/5-40',
-            'Min': '-40',
-            'Max': '300',
-            'Unit': 'F',
-            'Header': ECU_ADDR_K,
-            'Response': HD(ECU_R_ADDR_K) + SZ('03') + DT('61 A1 80') # Wrong value! To be tested
-        },
-        'GN_IT': {
-            'Request': '^221089' + ELM_FOOTER,
-            'Descr': 'Generator Inverter Temperature',
-            'Equation': 'A*9/5-40',
-            'Min': '-40',
-            'Max': '300',
-            'Unit': 'F',
-            'Header': ECU_ADDR_K,
-            'Response': HD(ECU_R_ADDR_K) + SZ('03') + DT('61 A1 80') # Wrong value! To be tested
-        },
-        'B_CVT': {
-            'Request': '^2210AB' + ELM_FOOTER,
-            'Descr': 'Boosting Converter Temperature (Upper and Lower)',
-            'Equation': 'A*9/5-40',
-            'Min': '-40',
-            'Max': '300',
-            'Unit': 'F',
-            'Header': ECU_ADDR_K,
-            'Response': HD(ECU_R_ADDR_K) + SZ('03') + DT('61 A1 80') # Wrong value! To be tested
+        'R_04': {
+            'Request': '^04$',
+            'Descr': '??',
+            'Header': ECU_ADDR_E,
+            'Response': HD(ECU_R_ADDR_E) + SZ('01') + DT('44')
         },
     }
 }
