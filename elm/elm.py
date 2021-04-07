@@ -31,7 +31,7 @@ from functools import reduce
 import string
 import xml.etree.ElementTree as ET
 
-FORWARD_READ_TIMEOUT = 5.0 # seconds
+FORWARD_READ_TIMEOUT = 0.2 # seconds
 SERIAL_BAUDRATE = 38400 # bps
 NETWORK_INTERFACES = ""
 
@@ -180,8 +180,18 @@ class Elm:
             if self.slave_fd:
                 os.close(self.slave_fd)
             if self.master_fd: # pty or device
-                os.close(self.master_fd)
+                thread = threading.Thread(
+                    target=os.close, args=(self.master_fd,))
+                thread.start()
+                thread.join(1)
+                if thread.is_alive():
+                    logging.critical(
+                        'Cannot close file descriptor. '
+                        'Forcing program termination.')
+                    os._exit(5)
             if self.serial_fd: # serial COM - pySerial
+                self.reset_input_buffer()
+                self.reset_output_buffer()
                 self.serial_fd.close()
             if self.sock_inet:
                 self.sock_inet.shutdown(socket.SHUT_RDWR)
@@ -462,9 +472,10 @@ class Elm:
 
     def send_receive_forward(self, i):
         """
-            if a forwarder is active, send data if i is not None
+            If a forwarder is active, send data if it is not None
             and try receiving data until a timeout.
             Then received data are logged and returned.
+
             return False: no connection
             return None: no data
             return data: decoded string
@@ -948,12 +959,12 @@ class Elm:
             if not payload:
                 logging.error('Missing data for request "%s"', repr(cmd))
                 return ""
-            if int_size < 16 and len(payload) != int_size * 2:
+            if int_size < 16 and len(payload) < int_size * 2:
                 logging.error(
                     'In request "%s", data "%s" has an improper length '
                     'of %s bytes', repr(cmd), repr(payload), size)
                 return ""
-            cmd = payload
+            cmd = payload[:int_size * 2]
 
         for i in self.sortedOBDMsg:
             key = i[0]

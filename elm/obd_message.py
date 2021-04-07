@@ -119,9 +119,17 @@ ObdMessage = {
         'AT_BRD': {
             'Request': '^ATBRD',
             'Descr': 'AT Set UART baud rate divisor',
-            'Exec': 'self.counters["cmd_brd"] = int(cmd[5:])',
+            'Exec': 'self.counters["cmd_brd"] = cmd[5:]',
             'Log': '"set UART baud rate divisor %s", '
-                   'self.count    ers["cmd_brd"]',
+                   'self.counters["cmd_brd"]',
+            'Response': ELM_R_OK
+        },
+        'AT_BRT': {
+            'Request': '^ATBRT',
+            'Descr': 'AT Set UART baud rate timeout',
+            'Exec': 'self.counters["cmd_brt"] = cmd[5:]',
+            'Log': '"set UART baud rate timeout %s", '
+                   'self.counters["cmd_brt"]',
             'Response': ELM_R_OK
         },
         'AT_DEFAULT': {
@@ -310,7 +318,7 @@ ObdMessage = {
             'Request': '^ATWS$',
             'Descr': 'AT WARM START',
             'Log': '"Warm start and sleep 0.1 seconds"',
-            'Exec': 'self.reset(0.1)',
+            #'Exec': 'self.reset(0.1)',
             'Response': ST('') + ST("ELM327 v1.5")
         },
         'AT_RESET': {

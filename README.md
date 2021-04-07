@@ -271,6 +271,7 @@ Special setter  |Related AT command     |Handled|Description
 `cmd_iia`       |*ATIIA hh* (hh = addr) |No     |Set the ISO 5-baud init address to hh
 `cmd_rec_addr`  |*ATSR hh* (hh = addr)  /No     /Set receive address
 `cmd_hfm`       |*ATCM m* (m = addr)    /No     /Set the CAN hardware filter mask
+`cmd_brt`       |*ATBRT t* (t = timeout)/No     /Set UART baud rate timeout
 
 Unhandled setter means that the AT command is recognized, the related counter is valued but no process is currently associated.
 
@@ -764,12 +765,12 @@ The selection of the interface exposed to the application is done via the standa
 
 The OBD-II interface is connected through the `-S` option (serial device) or the `-H` and `-N` ones (TCP/IP host and related port). When using the serial device, the `-B` option allows indicating a specific baud rate (38400 bps by default).
 
-Data read from the OBD-II port are grouped together basing on a timeout parameter (floating point number) which by default is 5.0 seconds and can be tuned with the `-T` option. The higher the number, the more reliant the grouping; anyway, delays produced by high timeout values might compromise the communication quality: if the application does not perform correctly in the forwarder mode (e.g., producing connection drops), is useful to test lower timeout periods, like `-T 0.2` or `-T 0.1`.
+Data read from the OBD-II port are grouped together basing on a timeout parameter (floating point number) which by default is 0.2 seconds and can be tuned with the `-T` option. The higher the number, the more reliant the grouping; anyway, delays produced by high timeout values might compromise the communication quality: if the application does not perform correctly in the forwarder mode (e.g., producing connection drops), is useful to test different timeout periods, like `-T 0.1`.
 
 Example.
 
 - In a window, run a simulated OBD-II interface connected via TCP network: `python3 -m elm -s car -n 20000`. Then optionally set `loglevel 10`.
-- In another window, run *ELM327-emulator* configured as forwarder to the local TCP port 20000 and exposing a network port 35000: `python3 -m elm -s car -n 35000 -N 20000 -H localhost -T 0.2`.
+- In another window, run *ELM327-emulator* configured as forwarder to the local TCP port 20000 and exposing a network port 35000: `python3 -m elm -s car -n 35000 -N 20000 -H localhost`.
 - In a third window, run a telnet client: `elnet localhost 35000`. Write `at@1` and press enter. Check the logs in the other windows.
 - Close the telnet client. Run an *OBD* application, select Wifi communication, IP address 127.0.0.1, port 35000. Check the logs in the other windows. You should succeed in connecting the application.
 
@@ -1119,7 +1120,7 @@ python -m elm -s car -n 35000
 
 Run *OBD Auto Doctor* with `obdautodoctor`. Then select File, Open connection, Connection method: WiFi. IP address: 127.0.0.1. Port: 35000. Press Connect.
 
-## scantool
+## Scantool
 
 Scantool from [ScanTool.net](https://www.scantool.net/) is an old software which can also be used to test *ELM327-emulator*.
 
