@@ -1160,8 +1160,7 @@ def scantool(port):
 Close *scantool*, save a file named *scantool.py* including the above reported plugin. Run *ELM327-emulator*:
 
 ```shell
-python3 -m elm
-scenario car
+python3 -m elm -s car
 from scantool import scantool;scantool(emulator.slave_name) # load and run the plugin
 ```
 
