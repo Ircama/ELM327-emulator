@@ -1,6 +1,6 @@
 # ELM327-emulator contribution guidelines
 
-Contributins might involve:
+Contributions might involve:
 
 - Adding new core features
 - Adding a new plugin in the plugin directory
@@ -14,19 +14,18 @@ https://help.github.com/articles/about-pull-requests/
 
 First contributors can follow a [tutorial page](https://github.com/firstcontributions/first-contributions).
 
-Please discuss the change you wish to make via [issue](https://github.com/Ircama/ELM327-emulator/issues) before developing a pull request.
+Please discuss the change you wish to make via an [issue](https://github.com/Ircama/ELM327-emulator/issues) before developing a pull request.
 
 # Bugs
 
-You can help reporting bugs by filing an [issue](https://github.com/Ircama/ELM327-emulator/issues) on the software or on the documentation.
+You can help to report bugs by filing an [issue](https://github.com/Ircama/ELM327-emulator/issues) on the software or on the documentation.
 
 # Code of Conduct
 
 ### Our Pledge
 
 In the interest of fostering an open and welcoming environment, we as
-contributors and maintainers pledge to making participation in our project and
-our community a harassment-free experience for everyone, regardless of age, body
+contributors and maintainers pledge to making participation in our project and our community a harassment-free experience for everyone, regardless of age, body
 size, disability, ethnicity, gender identity and expression, level of experience,
 nationality, personal appearance, race, religion, or sexual identity and
 orientation.
@@ -44,7 +43,7 @@ include:
 
 Examples of unacceptable behavior by participants include:
 
-* The use of sexualized language or imagery and unwelcome sexual attention or advances
+* The use of improper language
 * Trolling, insulting/derogatory comments, and personal or political attacks
 * Public or private harassment
 * Publishing others' private information, such as a physical or electronic address, without explicit permission
