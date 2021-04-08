@@ -405,6 +405,7 @@ ObdMessage = {
                         ST('0B4 00 ') + ST('025 00 ') +
                         ST('02266 10 342F 283 23')
         },
+        #------------------------------------------------------------
         # ST Extensions used to configure the STN11xx family of OBD interpreters
         'ST_PROTO': {
             'Request': '^STP[0-9]+$',
@@ -782,6 +783,7 @@ ObdMessage = {
             'Response': HD(ECU_R_ADDR_E) + SZ('04') + DT('00 00 00 00') # improper value at the moment (to be revised)
         }
     },
+# --------------------------------------------------------------------------
 # Pids of a Toyota Auris Hybrid car
     'car': {
     # AT Commands
@@ -826,7 +828,8 @@ ObdMessage = {
             # 14.7 volt
         },
     # OBD Commands
-        # MODE 1 - returns values for sensors characterised by PID - Sending diagnostic data (PID data monitor/on-board system readiness test)
+    # ------------------------------------------------------------
+    # MODE 01 - returns values for sensors characterised by PID - Sending diagnostic data (PID data monitor/on-board system readiness test)
         'PIDS_A': {
             'Request': '^0100' + ELM_FOOTER,
             'Descr': 'Supported PIDs [01-20]',
@@ -1641,7 +1644,8 @@ ObdMessage = {
             'Descr': 'Supported PIDs [A1-C0]',
             'Response': ST('NO DATA'),
         },
-        # MODE 2 - freeze frame (or instantaneous) data of a fault
+    # ------------------------------------------------------------
+    # MODE 02 - freeze frame (or instantaneous) data of a fault
         'DTC_STATUS': {
             'Request': '^0201' + ELM_FOOTER,
             'Descr': 'DTC Status since DTCs cleared',
@@ -1923,15 +1927,18 @@ ObdMessage = {
                         ]
             # invalid data returned by diagnostic request (mode 02)
         },
-    # MODE 3 - diagnostic trouble codes - Sending emission related malfunction code (DTC)
+    # -------------------------------------------------------------------
+    # MODE 03 - diagnostic trouble codes - Sending emission related malfunction code (DTC)
         'GET_DTC': {
             'Request': '^03' + ELM_FOOTER,
             'Descr': 'Get DTCs',
             'Header': ECU_ADDR_E,
             'Response': HD(ECU_R_ADDR_E) + SZ('02') + DT('43 00')
         },
+    # -------------------------------------------------------------------
     # Mode 04 Clearing/resetting emission-related malfunction information
-    # MODE 6 - results of self-diagnostics - Sending intermittent monitoring system test results (DMTR)
+    # -------------------------------------------------------------------
+    # MODE 06 - results of self-diagnostics - Sending intermittent monitoring system test results (DMTR)
         'MIDS_A': {
             'Request': '^0600' + ELM_FOOTER,
             'Descr': 'Supported MIDs [01-20]',
@@ -2046,19 +2053,22 @@ ObdMessage = {
                         HD(ECU_R_ADDR_E) + SZ('21') + DT('00 00 FF FF A5 0C 24') +
                         HD(ECU_R_ADDR_E) + SZ('22') + DT('00 00 00 00 FF FF 00')
         },
-    # MODE 7 - unconfirmed fault codes - Sending continuous monitoring system test results (pending code)
+    # -------------------------------------------------------------------
+    # MODE 07 - unconfirmed fault codes - Sending continuous monitoring system test results (pending code)
         'GET_CURRENT_DTC': {
             'Request': '^07' + ELM_FOOTER,
             'Descr': 'Get DTCs from the current/last driving cycle',
             'Header': ECU_ADDR_E,
             'Response': HD(ECU_R_ADDR_E) + SZ('02') + DT('47 00')
         },
+    # -------------------------------------------------------------------
     # Mode 08 On-board device control (simulation test, active command mode)
         'PIDS_8': {
             'Request': '^0800' + ELM_FOOTER,
             'Descr': 'PIDS_08',
             'Response': ST('NO DATA'),
         },
+    # -------------------------------------------------------------------
     # Mode 09 Request vehicle information
         'ELM_PIDS_9A': {
             'Request': '^0900' + ELM_FOOTER,
@@ -2136,21 +2146,36 @@ ObdMessage = {
                         HD(ECU_R_ADDR_E) + SZ('22') + DT('65 43 6F 6E 74 72 6F') +
                         HD(ECU_R_ADDR_E) + SZ('23') + DT('6C 00 00 00 00 00 00')
         },
-    # Unknown
+    # -------------------------------------------------------------------
+    # Manage Trouble codes
+        'SHOW_DIAG_TC': {
+            'Request': '^03' + ELM_FOOTER,
+            'Descr': 'Show stored Diagnostic Trouble Codes',
+            'Response': ST('NO DATA'),
+        },
+        'CLEAR_DIAG_TC': {
+            'Request': '^04' + ELM_FOOTER,
+            'Descr': 'Clear Diagnostic Trouble Codes and stored values',
+            'Header': ECU_ADDR_E,
+            'Response': HD(ECU_R_ADDR_E) + SZ('01') + DT('44')
+        },
+        'SHOW_PENDING_TC': {
+            'Request': '^07' + ELM_FOOTER,
+            'Descr': 'Show pending Diagnostic Trouble Codes'
+                     '(detected during current or last driving cycle)',
+            'Response': ST('NO DATA'),
+        },
+        'UNKNOWN_0A': {
+            'Request': '^0A' + ELM_FOOTER,
+            'Descr': 'Permanent DTCs (Cleared DTCs)',
+            'Response': ST('NO DATA'),
+        },
+        # -------------------------------------------------------------------
+    # Unknown pids tested on a Toyota Prius
         'UNKNOWN_01AB': {
             'Request': '^01AB' + ELM_FOOTER,
             'Descr': 'UNKNOWN_01AB',
             'Response': ST(''),
-        },
-        'UNKNOWN_03': {
-            'Request': '^03' + ELM_FOOTER,
-            'Descr': 'UNKNOWN_03',
-            'Response': ST('NO DATA'),
-        },
-        'UNKNOWN_07': {
-            'Request': '^07' + ELM_FOOTER,
-            'Descr': 'UNKNOWN_07',
-            'Response': ST('NO DATA'),
         },
         'UNKNOWN_13_U': {
             'Request': '^13' + ELM_FOOTER,
@@ -2194,10 +2219,11 @@ ObdMessage = {
             'Descr': 'UNKNOWN_13FF00',
             'Response': ST('NO DATA'),
         },
-        'UNKNOWN_0A': {
-            'Request': '^0A' + ELM_FOOTER,
-            'Descr': 'UNKNOWN_0A',
-            'Response': ST('NO DATA'),
+        'UNKNOWN_14': {
+            'Request': '^14' + ELM_FOOTER,
+            'Descr': 'UNKNOWN_14',
+            'Header': ECU_ADDR_E,
+            'Response': HD(ECU_R_ADDR_E) + SZ('03') + DT('7F 14 11')
         },
         'UNKNOWN_A801_U': {
             'Request': '^A801' + ELM_FOOTER,
@@ -2211,7 +2237,8 @@ ObdMessage = {
             'Header': ECU_ADDR_E,
             'Response': HD(ECU_R_ADDR_E) + SZ('10') + DT('3E E8 01 00 04 FF FF')
         },
-        # MODE 10 - UDS - Diagnostic Session Control
+    # -------------------------------------------------------------------
+    # UDS - MODE 10 - Diagnostic Session Control
         'UDS_DSC': {
             'Request': '^1002' + ELM_FOOTER,
             'Descr': 'DiagnosticSessionControl - Programming Session',
@@ -2224,7 +2251,14 @@ ObdMessage = {
             'Header': ECU_ADDR_E,
             'Response': HD(ECU_R_ADDR_E) + SZ('03') + DT('7F 10 12')
         },
-        # USD tests simulating a Continental ECU (these pids are unrelated to the ones of a Toyota Auris Hybrid)
+        'UDS_SESSION_REQ': {
+            'Request': '^1092' + ELM_FOOTER,
+            'Descr': 'UDS Session Request',
+            'Header': ECU_ADDR_E,
+            'Response': HD(ECU_R_ADDR_E) + SZ('02') + DT('50 92')
+        },
+        # USD tests with ECU_ADDR_M are simulating a Continental ECU
+        # (these pids are unrelated to the ones of a Toyota Auris Hybrid)
         # MODE 10 - Diagnostic Session Control
         'UDS_PS': {
             'Request': '^1002' + ELM_FOOTER,
@@ -2238,13 +2272,8 @@ ObdMessage = {
             'Header': ECU_ADDR_M,
             'Response': HD(ECU_R_ADDR_M) + SZ('06') + DT('50 03 00 14 00 C8')
         },
-        'UDS_SESSION_REQ': {
-            'Request': '^1092' + ELM_FOOTER,
-            'Descr': 'UDS Session Request',
-            'Header': ECU_ADDR_E,
-            'Response': HD(ECU_R_ADDR_E) + SZ('02') + DT('50 92')
-        },
-        # MODE 11 - ECU Reset
+    # -------------------------------------------------------------------
+    # UDS - MODE 11 - ECU Reset
         'UDS_ECU_RESET': {
             'Request': '^1101' + ELM_FOOTER,
             'Descr': 'EcuReset',
@@ -2258,7 +2287,31 @@ ObdMessage = {
             'Response': HD(ECU_R_ADDR_M) + SZ('03') + DT('7F 11 78') +
                         HD(ECU_R_ADDR_M) + SZ('02') + DT('51 01')
         },
-        # MODE 21
+    # -------------------------------------------------------------------
+    # UDS - MODE 1A
+        'UDS_SEI': {
+            'Request': '^1A87' + ELM_FOOTER,
+            'Descr': 'UDS Session ECU Info',
+            'Header': ECU_ADDR_E,
+            'Response': HD(ECU_R_ADDR_E) + SZ('06') + DT('5A 80 00 00 00 00')
+        },
+        'UDS_SEI_M': {
+            'Request': '^1A87' + ELM_FOOTER,
+            'Descr': 'UDS Session ECU Info',
+            'Header': ECU_ADDR_M,
+            'Response': HD(ECU_R_ADDR_M) + SZ('10') + DT('16 5A 87 01 22 05 14') +
+                        HD(ECU_R_ADDR_M) + SZ('21') + DT('FF 07 09 09 43 00 32') +
+                        HD(ECU_R_ADDR_M) + SZ('22') + DT('30 34 35 34 35 33 38') +
+                        HD(ECU_R_ADDR_M) + SZ('23') + DT('33 32')
+        },
+        'UDS_SEI_1': {
+            'Request': '^10165A8701220514$',
+            'Descr': 'UDS Session ECU Info - 2',
+            'Header': ECU_ADDR_M,
+            'Response': ''
+        },
+    # -------------------------------------------------------------------
+    # UDS - MODE 21
         'UNKNOWN_2100_E': {
             'Request': '^2100' + ELM_FOOTER,
             'Descr': 'UNKNOWN_2100',
@@ -2268,7 +2321,7 @@ ObdMessage = {
                         HD(ECU_R_ADDR_E) + SZ('10') + DT('08 61 00 05 00 90 8B')
                         ]
         },
-        # Mode 22 - Read Data By Identifier
+        # UDS - Mode 22 - Read Data By Identifier
         'HB_SOC': {
             'Request': '^227A76' + ELM_FOOTER,
             'Descr': 'Hybrid Battery State of Charge',
@@ -2319,29 +2372,8 @@ ObdMessage = {
             'Header': ECU_ADDR_K,
             'Response': HD(ECU_R_ADDR_K) + SZ('03') + DT('61 A1 80') # Wrong value! To be tested
         },
-        # MODE 1A
-        'UDS_SEI': {
-            'Request': '^1A87' + ELM_FOOTER,
-            'Descr': 'UDS Session ECU Info',
-            'Header': ECU_ADDR_E,
-            'Response': HD(ECU_R_ADDR_E) + SZ('06') + DT('5A 80 00 00 00 00')
-        },
-        'UDS_SEI_M': {
-            'Request': '^1A87' + ELM_FOOTER,
-            'Descr': 'UDS Session ECU Info',
-            'Header': ECU_ADDR_M,
-            'Response': HD(ECU_R_ADDR_M) + SZ('10') + DT('16 5A 87 01 22 05 14') +
-                        HD(ECU_R_ADDR_M) + SZ('21') + DT('FF 07 09 09 43 00 32') +
-                        HD(ECU_R_ADDR_M) + SZ('22') + DT('30 34 35 34 35 33 38') +
-                        HD(ECU_R_ADDR_M) + SZ('23') + DT('33 32')
-        },
-        'UDS_SEI_1': {
-            'Request': '^10165A8701220514$',
-            'Descr': 'UDS Session ECU Info - 2',
-            'Header': ECU_ADDR_M,
-            'Response': ''
-        },
-        # MODE 27 - Security Access
+    # -------------------------------------------------------------------
+    # UDS - MODE 27 - Security Access
         'UDS_SA1': {
             'Request': '^2701' + ELM_FOOTER,
             'Descr': 'SecurityAccess #1',
@@ -2354,53 +2386,6 @@ ObdMessage = {
             'Header': ECU_ADDR_E,
             'Response': HD(ECU_R_ADDR_E) + SZ('02') + DT('67 02')
         },
-        # MODE 3E - Tester Present
-        'UDS_TESTER_PRESENT': {
-            'Request': '^3E00' + ELM_FOOTER,
-            'Descr': 'UDS Tester Present',
-            'Header': ECU_ADDR_E,
-            'Response': HD(ECU_R_ADDR_E) + SZ('03') + DT('7F 3E 12')
-        },
-        'UDS_RCEM4': {
-            'Request': '^3E80' + ELM_FOOTER,
-            'Descr': 'RoutineControl - Erase memory / 4',
-            'Header': ECU_ADDR_E,
-            'Response': HD(ECU_R_ADDR_E) + SZ('02') + DT('3E 80') # to be revised.....
-        },
-        # RCEM1
-        'UDS_RCEM1': {
-            'Request': '^0A3101FF000068' + ELM_FOOTER, # [10] start routine 0xFF00
-            'Descr': 'RoutineControl - Erase memory / 1',
-            'Header': ECU_ADDR_E,
-            'Response': HD(ECU_R_ADDR_E) + SZ('30') + DT('01 00')
-        },
-        'UDS_RCEM2': {
-            'Request': '^0002ABFF' + ELM_FOOTER, # [21]
-            'Descr': 'RoutineControl - Erase memory / 2',
-            'Header': ECU_ADDR_E,
-            'Response': HD(ECU_R_ADDR_E) + SZ('04') + DT('71 01 FF 00') # positive answer
-        },
-        'UDS_RCEM3': {
-            'Request': '^3103FF00' + ELM_FOOTER,
-            'Descr': 'RoutineControl - Erase memory / 3',
-            'Header': ECU_ADDR_E,
-            'Response': HD(ECU_R_ADDR_E) + SZ('03') + DT('7F 31 78') + # 2 Ways: Wait or ask about the status of the deletion.
-                        HD(ECU_R_ADDR_E) + SZ('04') + DT('71 03 FF 00')
-        },
-        # other msgs
-        'UDS_WF1': {
-            'Request': '^0C2EF15A000414' + ELM_FOOTER, # 2E: F15A => 0004140606FFFFFFFF
-            'Descr': 'Write Fingerprint',
-            'Header': ECU_ADDR_M,
-            'Response': HD(ECU_R_ADDR_M) + SZ('30') + DT('20 00')
-        },
-        'UDS_WF2': {
-            'Request': '^0606FFFFFFFF00' + ELM_FOOTER, # see above
-            'Descr': 'Write Fingerprint',
-            'Header': ECU_ADDR_M,
-            'Response': HD(ECU_R_ADDR_M) + SZ('03') + DT('6E F1 5A')
-        },
-        # MODE 27
         'UDS_RS': {
             'Request': '^2711' + ELM_FOOTER,
             'Descr': 'UDS Request Seed',
@@ -2421,6 +2406,8 @@ ObdMessage = {
             'Header': ECU_ADDR_M,
             'Response': HD(ECU_R_ADDR_M) + SZ('02') + DT('67 12')
         },
+    # -------------------------------------------------------------------
+    # UDS - MODE 31 - UDS Routine Control
         'UDS_RC': {
             'Request': '^3101FF000100' + ELM_FOOTER, # UDS Routine Control (31): Start (01), Delete Area (FF 00), Bootloader (01 00)
             'Descr': 'UDS Routine Control',
@@ -2430,7 +2417,81 @@ ObdMessage = {
                         HD(ECU_R_ADDR_M) + SZ('03') + DT('7F 31 78') +
                         HD(ECU_R_ADDR_M) + SZ('05') + DT('71 01 FF 00 00')
         },
-    # Custom OBD Commands (MODE 21)
+    # -------------------------------------------------------------------
+    # UDS - MODE 3E - Tester Present
+        'UDS_TESTER_PRESENT': {
+            'Request': '^3E00' + ELM_FOOTER,
+            'Descr': 'UDS Tester Present',
+            'Header': ECU_ADDR_E,
+            'Response': HD(ECU_R_ADDR_E) + SZ('03') + DT('7F 3E 12')
+        },
+        'UDS_RCEM4': {
+            'Request': '^3E80' + ELM_FOOTER,
+            'Descr': 'RoutineControl - Erase memory / 4',
+            'Header': ECU_ADDR_E,
+            'Response': HD(ECU_R_ADDR_E) + SZ('02') + DT('3E 80') # to be revised.....
+        },
+    # -------------------------------------------------------------------
+    # UDS - RCEM1 (test)
+        'UDS_RCEM1': {
+            'Request': '^0A3101FF000068' + ELM_FOOTER, # [10] start routine 0xFF00
+            'Descr': 'RoutineControl - Erase memory / 1',
+            'Header': ECU_ADDR_E,
+            'Response': HD(ECU_R_ADDR_E) + SZ('30') + DT('01 00')
+        },
+        'UDS_RCEM2': {
+            'Request': '^0002ABFF' + ELM_FOOTER, # [21]
+            'Descr': 'RoutineControl - Erase memory / 2',
+            'Header': ECU_ADDR_E,
+            'Response': HD(ECU_R_ADDR_E) + SZ('04') + DT('71 01 FF 00') # positive answer
+        },
+        'UDS_RCEM3': {
+            'Request': '^3103FF00' + ELM_FOOTER,
+            'Descr': 'RoutineControl - Erase memory / 3',
+            'Header': ECU_ADDR_E,
+            'Response': HD(ECU_R_ADDR_E) + SZ('03') + DT('7F 31 78') + # 2 Ways: Wait or ask about the status of the deletion.
+                        HD(ECU_R_ADDR_E) + SZ('04') + DT('71 03 FF 00')
+        },
+        # -------------------------------------------------------------------
+        # UDS - other msgs (test)
+        'UDS_WF1': {
+            'Request': '^0C2EF15A000414' + ELM_FOOTER, # 2E: F15A => 0004140606FFFFFFFF
+            'Descr': 'Write Fingerprint',
+            'Header': ECU_ADDR_M,
+            'Response': HD(ECU_R_ADDR_M) + SZ('30') + DT('20 00')
+        },
+        'UDS_WF2': {
+            'Request': '^0606FFFFFFFF00' + ELM_FOOTER, # see above
+            'Descr': 'Write Fingerprint',
+            'Header': ECU_ADDR_M,
+            'Response': HD(ECU_R_ADDR_M) + SZ('03') + DT('6E F1 5A')
+        },
+    #------------------------------------------------------------
+    # Custom OBD Commands - Toyota Prius
+    # MODE 01
+        'CUSTOM_SOC': {
+            'Request': '^015B' + ELM_FOOTER,
+            'Descr': 'State of Charge',
+            'Equation': 'A * 20 / 51',
+            'Min': '30',
+            'Max': '90',
+            'Unit': '%',
+            'Header': ECU_ADDR_H,
+            'Response': [
+                HD(ECU_R_ADDR_H) + SZ('03') + DT('41 5B 95'),
+                HD(ECU_R_ADDR_H) + SZ('03') + DT('41 5B 97'),
+                HD(ECU_R_ADDR_H) + SZ('03') + DT('41 5B 96'),
+                HD(ECU_R_ADDR_H) + SZ('03') + DT('41 5B 94'),
+                HD(ECU_R_ADDR_H) + SZ('03') + DT('41 5B 99'),
+                HD(ECU_R_ADDR_H) + SZ('03') + DT('41 5B 93'),
+                HD(ECU_R_ADDR_H) + SZ('03') + DT('41 5B 9E'),
+                HD(ECU_R_ADDR_H) + SZ('03') + DT('41 5B 92'),
+                HD(ECU_R_ADDR_H) + SZ('03') + DT('41 5B 98'),
+                HD(ECU_R_ADDR_H) + SZ('03') + DT('41 5B 9A')
+            ]
+        },
+    #------------------------------------------------------------
+    # UDS - MODE 21 - Custom OBD Commands - Toyota Prius
         "CUSTOM_CAL'D_LOAD": {
             'Request': '^2101' + ELM_FOOTER,
             'Descr': 'Calculated Load',
@@ -2500,27 +2561,6 @@ ObdMessage = {
                         HD(ECU_R_ADDR_E) + SZ('21') + DT('EF 59 35 61 5E 34 C8') +
                         HD(ECU_R_ADDR_E) + SZ('22') + DT('59 00 85 2D 58 B5 58') +
                         HD(ECU_R_ADDR_E) + SZ('23') + DT('04 00 32 00 5D 39 4B')
-                        ]
-        },
-        'CUSTOM_SOC': {
-            'Request': '^015B' + ELM_FOOTER,
-            'Descr': 'State of Charge',
-            'Equation': 'A * 20 / 51',
-            'Min': '30',
-            'Max': '90',
-            'Unit': '%',
-            'Header': ECU_ADDR_H,
-            'Response': [
-                        HD(ECU_R_ADDR_H) + SZ('03') + DT('41 5B 95'),
-                        HD(ECU_R_ADDR_H) + SZ('03') + DT('41 5B 97'),
-                        HD(ECU_R_ADDR_H) + SZ('03') + DT('41 5B 96'),
-                        HD(ECU_R_ADDR_H) + SZ('03') + DT('41 5B 94'),
-                        HD(ECU_R_ADDR_H) + SZ('03') + DT('41 5B 99'),
-                        HD(ECU_R_ADDR_H) + SZ('03') + DT('41 5B 93'),
-                        HD(ECU_R_ADDR_H) + SZ('03') + DT('41 5B 9E'),
-                        HD(ECU_R_ADDR_H) + SZ('03') + DT('41 5B 92'),
-                        HD(ECU_R_ADDR_H) + SZ('03') + DT('41 5B 98'),
-                        HD(ECU_R_ADDR_H) + SZ('03') + DT('41 5B 9A')
                         ]
         },
         'CUSTOM_MG1T': {
@@ -4100,18 +4140,6 @@ ObdMessage = {
             'Unit': 'degrees/s',
             'Header': ECU_ADDR_S,
             'Response': HD(ECU_R_ADDR_S) + SZ('03') + DT('61 A1 80')
-        },
-        'R_14': {
-            'Request': '^14$',
-            'Descr': '??',
-            'Header': ECU_ADDR_E,
-            'Response': HD(ECU_R_ADDR_E) + SZ('03') + DT('7F 14 11')
-        },
-        'R_04': {
-            'Request': '^04$',
-            'Descr': '??',
-            'Header': ECU_ADDR_E,
-            'Response': HD(ECU_R_ADDR_E) + SZ('01') + DT('44')
         },
     }
 }

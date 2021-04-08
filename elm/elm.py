@@ -919,9 +919,11 @@ class Elm:
     def handle(self, cmd):
         """ handles all commands """
 
-        cmd = self.sanitize(cmd)
+        # Sanitize cmd
+        cmd = cmd.replace(" ", "")
+        cmd = cmd.upper()
 
-        # increment commands counter
+        # increment 'commands' counter
         if 'commands' not in self.counters:
             self.counters['commands'] = 0
         self.counters['commands'] += 1
@@ -935,6 +937,7 @@ class Elm:
             logging.error("Unknown scenario %s", repr(self.scenario))
             return ""
 
+        # cmd_can is experimental (to be removed)
         if ('cmd_can' in self.counters and
                 self.counters['cmd_can'] and
                 cmd[:2] != 'AT'
@@ -966,6 +969,7 @@ class Elm:
                 return ""
             cmd = payload[:int_size * 2]
 
+        # Process response for data stored in cmd
         for i in self.sortedOBDMsg:
             key = i[0]
             val = i[1]
@@ -1030,6 +1034,7 @@ class Elm:
                         "Internal error - Missing response for %s, PID %s",
                         cmd, pid)
                     return ELM_R_OK
+        # Here cmd is unknown
         if "unknown_" + repr(cmd) not in self.counters:
             self.counters["unknown_" + repr(cmd)] = 0
         self.counters["unknown_" + repr(cmd)] += 1
@@ -1062,8 +1067,3 @@ class Elm:
 
     def is_hex_sp(self, s):
         return re.match(r"^[0-9a-fA-F \t\r\n]*$", s or "") is not None
-
-    def sanitize(self, cmd):
-        cmd = cmd.replace(" ", "")
-        cmd = cmd.upper()
-        return cmd

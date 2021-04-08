@@ -251,7 +251,6 @@ Special setter  |Related AT command     |Handled|Description
 `cmd_last_cmd`  |<carriage return>      |Yes    |Last executed command
 `cmd_cra`       |*ATCRAx* (x=hex digit) |Yes    |Set SET CAN Receive address filter argument
 `cmd_caf`       |*ATCAF0*, *ATCAF1*     |Yes    |Set CAN Auto formatting on/off
-`cmd_can`       |(none)                 |Yes    |Include headers in CAN requests
 `cmd_proto`     |*ATSPx* (x=hex digit)  |No     |Set protocol
 `cmd_memory`    |*ATM0*, *ATM1*         |No     |Set Memory off or on
 `cmd_fcsh`      |*ATFCSHx* (x=hex digit)|No     |Set FLOW CONTROL set HEADER
@@ -272,6 +271,7 @@ Special setter  |Related AT command     |Handled|Description
 `cmd_rec_addr`  |*ATSR hh* (hh = addr)  /No     /Set receive address
 `cmd_hfm`       |*ATCM m* (m = addr)    /No     /Set the CAN hardware filter mask
 `cmd_brt`       |*ATBRT t* (t = timeout)/No     /Set UART baud rate timeout
+`cmd_can`       |(none)                 |Yes    |Include headers in CAN requests (experimental - to be removed)
 
 Unhandled setter means that the AT command is recognized, the related counter is valued but no process is currently associated.
 
