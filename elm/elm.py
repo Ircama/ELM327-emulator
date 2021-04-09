@@ -30,10 +30,14 @@ from .__version__ import __version__
 from functools import reduce
 import string
 import xml.etree.ElementTree as ET
+import importlib
+import pkgutil
+import inspect
 
 FORWARD_READ_TIMEOUT = 0.2 # seconds
 SERIAL_BAUDRATE = 38400 # bps
 NETWORK_INTERFACES = ""
+PLUGIN_DIR = "plugins"
 
 def setup_logging(
         default_path=Path(__file__).stem + '.yaml',
@@ -75,7 +79,7 @@ class Elm:
 
     def reset(self, sleep):
         """ returns all settings to their defaults.
-            Called by ATZ and ATD.
+            Called by __init__(), ATZ and ATD.
         """
         logging.debug("Resetting counters and sleeping for %s seconds", sleep)
         time.sleep(sleep)
@@ -85,8 +89,12 @@ class Elm:
         self.counters['ELM_MIDS_A'] = 0
         self.counters['cmd_set_header'] = ECU_ADDR_E
         self.counters.update(self.presets)
+        self.tasks = {}
 
     def set_defaults(self):
+        """
+        Called by __init__() and terminate()
+        """
         self.scenario = 'default'
         self.delay = 0
         self.max_req_timeout = 1440
@@ -150,6 +158,7 @@ class Elm:
         self.sock_addr = None
         self.thread = None
         self.aaa = device_port
+        self.plugins = {}
 
     def __enter__(self):
         # start the read thread
@@ -338,7 +347,7 @@ class Elm:
             if not self.socket_server():
                 logging.critical("Net connection failed.")
                 self.terminate()
-                return
+                return False
         else:
             if (not self.device_port and
                     not self.serial_port and
@@ -348,7 +357,7 @@ class Elm:
                 else:
                     logging.critical("Pseudo-tty port connection failed.")
                 self.terminate()
-                return
+                return False
         self.choice = choice
 
         if self.sock_inet:
@@ -367,6 +376,42 @@ class Elm:
                 '\n\nELM327 OBD-II adapter emulator v%s started '
                 '%s\n', __version__, msg)
         """ the ELM's main IO loop """
+
+        # Load and validate plugins
+        self.plugins = {
+            name: importlib.import_module(PLUGIN_DIR + "." + name)
+            for finder, name, ispkg
+            in pkgutil.iter_modules([PLUGIN_DIR])
+            if name.startswith('task_')
+        }
+        remove = []
+        for k, v in self.plugins.items():
+            if (not (hasattr(v, "Task")) or
+                    not inspect.isclass(v.Task)):
+                logging.critical(
+                    "Task class not available in plugin %s", k)
+                remove += [k]
+                continue
+            if (not (hasattr(v.Task, "start")) or
+                    not inspect.isfunction(v.Task.start)):
+                logging.critical(
+                    '"start" method missing in Task class of plugin %s', k)
+                remove += [k]
+                continue
+            if (not (hasattr(v.Task, "stop")) or
+                    not inspect.isfunction(v.Task.stop)):
+                logging.critical(
+                    '"stop" method missing in Task class of plugin %s', k)
+                remove += [k]
+                continue
+            if (not (hasattr(v.Task, "run")) or
+                    not inspect.isfunction(v.Task.run)):
+                logging.error(
+                    '"run" method missing in Task class of plugin %s', k)
+                remove += [k]
+                continue
+        for k in remove:
+            del self.plugins[k]
 
         self.threadState = self.THREAD.ACTIVE
         while (self.threadState != self.THREAD.STOPPED and
@@ -403,6 +448,7 @@ class Elm:
                     resp = self.process_response(resp, do_write=True)
             else:
                 logging.warning("Invalid request: %s", repr(self.cmd))
+        return True
 
     def accept_connection(self):
         if self.sock_conn is None or self.sock_addr is None:
@@ -969,12 +1015,44 @@ class Elm:
                 return ""
             cmd = payload[:int_size * 2]
 
+        header = None
+        if "cmd_set_header" in self.counters:
+            header = self.counters['cmd_set_header']
+
+        # Manage active tasks
+        if header in self.tasks:
+            if self.is_hex_sp(cmd):
+                try:
+                    if not self.tasks[header].run(cmd):
+                        logging.warning('Terminated task with header "%s"',
+                                        header)
+                        del self.tasks[header]
+                except Exception as e:
+                    logging.critical(
+                        'Error in task "%s", header="%s", '
+                        'run() method: %s',
+                        self.tasks[header].__module__,
+                        header, e, exc_info=True)
+                    del self.tasks[header]
+                return None
+            else:
+                logging.warning('Interrupted task with header "%s"', header)
+                try:
+                    self.tasks[header].stop(cmd)
+                except Exception as e:
+                    logging.critical(
+                        'Error in task "%s", header="%s", '
+                        'stop() method: %s',
+                        self.tasks[header].__module__,
+                        header, e, exc_info=True)
+                del self.tasks[header]
+
         # Process response for data stored in cmd
         for i in self.sortedOBDMsg:
             key = i[0]
             val = i[1]
             if 'Request' in val and re.match(val['Request'], cmd):
-                if ('Header' in val and 'cmd_set_header' in self.counters and
+                if ('Header' in val and header and
                         val['Header'] != self.counters["cmd_set_header"]):
                     continue
                 if key:
@@ -1002,6 +1080,36 @@ class Elm:
                         logging.error(
                             "Error while processing '%s' for PID %s (%s)",
                             self.answer, pid, e)
+                if 'Task' in val:
+                    if val['Task'] in self.plugins and 'Header' in val:
+                        try:
+                            self.tasks[header] = self.plugins[val['Task']].Task(
+                                self, header)
+                        except Exception as e:
+                            logging.critical(
+                                'Cannot start task "%s", header="%s": %s',
+                                val['Task'], header, e, exc_info=True)
+                            return None
+                        logging.warning('Starting task with header "%s"',
+                                        header)
+                        try:
+                            if not self.tasks[header].start(cmd):
+                                logging.warning(
+                                    'Terminated task with header "%s"', header)
+                                del self.tasks[header]
+                        except Exception as e:
+                            logging.critical(
+                                'Error in task "%s", header="%s", '
+                                'start() method: %s',
+                                self.tasks[header].__module__,
+                                header, e, exc_info=True)
+                            del self.tasks[header]
+                        return None
+                    else:
+                        logging.error(
+                            'Unexisting plugin "%s" for pid "%s"',
+                            val['Task'], pid)
+                        return None
                 if 'Exec' in val:
                     try:
                         exec(val['Exec'])
@@ -1052,13 +1160,13 @@ class Elm:
                 'Missing data in dictionary: %s. Answer:\n%s',
                 repr(cmd), repr(fw_data))
         if self.is_hex_sp(cmd):
-            if "cmd_set_header" in self.counters:
+            if header:
                 logging.info("Unknown request: %s, header=%s",
                              repr(cmd), self.counters["cmd_set_header"])
             else:
                 logging.info("Unknown request: %s", repr(cmd))
             return ST('NO DATA')
-        if "cmd_set_header" in self.counters:
+        if header:
             logging.info("Unknown ELM command: %s, header=%s",
                          repr(cmd), self.counters["cmd_set_header"])
         else:

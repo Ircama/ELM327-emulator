@@ -2433,6 +2433,12 @@ ObdMessage = {
         },
     # -------------------------------------------------------------------
     # UDS - RCEM1 (test)
+        'UDS_TEST': {
+            'Request': '^40' + ELM_FOOTER,
+            'Descr': 'UDS Test',
+            'Header': ECU_ADDR_E,
+            'Task': "task_routine"
+        },
         'UDS_RCEM1': {
             'Request': '^0A3101FF000068' + ELM_FOOTER, # [10] start routine 0xFF00
             'Descr': 'RoutineControl - Erase memory / 1',

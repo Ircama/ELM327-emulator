@@ -242,6 +242,8 @@ class Interpreter(Cmd):
         print("______Raw command:_______________")
         try:
             ret = self.emulator.handle(arg)
+            if ret is None:
+                return
             if not ret:
                 print("Error in request. No data returned.")
                 return
@@ -260,6 +262,25 @@ class Interpreter(Cmd):
             print ("Invalid format.")
             return
         print("Using " + self.emulator.get_port_name(extended=True))
+
+    def do_tasks(self, arg):
+        "Print all available plugins and all active tasks."
+        if arg:
+            print ("Invalid format.")
+            return
+        if self.emulator.plugins:
+            print("Plugins:")
+            for i in sorted(self.emulator.plugins):
+                print(" - {}".format(i))
+        else:
+            print("No plugin available.")
+        if self.emulator.tasks:
+            print("Active tasks:")
+            for i in sorted(self.emulator.tasks):
+                print(" - {}, header {}".format(
+                    self.emulator.tasks[i].__module__, i))
+        else:
+            print("No task available.")
 
     def do_counters(self, arg):
         "Print the number of each executed PID (upper case names), "\
