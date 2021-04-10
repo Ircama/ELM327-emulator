@@ -2407,17 +2407,30 @@ ObdMessage = {
             'Response': HD(ECU_R_ADDR_M) + SZ('02') + DT('67 12')
         },
     # -------------------------------------------------------------------
-    # UDS - MODE 31 - UDS Routine Control
-        'UDS_RC': {
-            'Request': '^3101FF000100' + ELM_FOOTER, # UDS Routine Control (31): Start (01), Delete Area (FF 00), Bootloader (01 00)
-            'Descr': 'UDS Routine Control',
-            'Header': ECU_ADDR_M,
-            'Response': HD(ECU_R_ADDR_M) + SZ('03') + DT('7F 31 78') +
-                        HD(ECU_R_ADDR_M) + SZ('03') + DT('7F 31 78') +
-                        HD(ECU_R_ADDR_M) + SZ('03') + DT('7F 31 78') +
-                        HD(ECU_R_ADDR_M) + SZ('05') + DT('71 01 FF 00 00')
-        },
+    # UDS - MODE 2E - writeDataByIdentifier Service (Appl. Inc.)
+    'UDS_WF': {
+        'Request': '^2EF15A([0-9A-Z][0-9A-Z])+' + ELM_FOOTER, # 2E,F1,5A Write Fingerprint (Continental)
+        'Descr': 'Write Fingerprint',
+        'Header': ECU_ADDR_M,
+        'Task': "task_write_fingerprint"
+    },
     # -------------------------------------------------------------------
+    # UDS - MODE 31 - UDS Routine Control
+        'UDS_ERASE_BL': {
+            'Request': '^3101FF00([0-9A-Z][0-9A-Z])+' + ELM_FOOTER,
+            # UDS Routine Control (31): Start (01), Delete Area (FF 00), Bootloader (01 00)
+            'Descr': 'UDS Routine Control - delete Bootloader',
+            'Header': ECU_ADDR_M,
+            'Task': "task_erase_memory"
+        },
+        'UDS_ERASE_MEM': {
+            'Request': '^3101FF00([0-9A-Z][0-9A-Z])+' + ELM_FOOTER,
+            # UDS Routine Control (31): Start (01), Erase memory (FF 00)
+            'Descr': 'UDS Routine Control - Erase memory',
+            'Header': ECU_ADDR_E,
+            'Task': "task_erase_memory"
+        },
+        # -------------------------------------------------------------------
     # UDS - MODE 3E - Tester Present
         'UDS_TESTER_PRESENT': {
             'Request': '^3E00' + ELM_FOOTER,
@@ -2425,52 +2438,11 @@ ObdMessage = {
             'Header': ECU_ADDR_E,
             'Response': HD(ECU_R_ADDR_E) + SZ('03') + DT('7F 3E 12')
         },
-        'UDS_RCEM4': {
+        'UDS_TP_NA': {
             'Request': '^3E80' + ELM_FOOTER,
-            'Descr': 'RoutineControl - Erase memory / 4',
+            'Descr': 'UDS Tester Present - no answer',
             'Header': ECU_ADDR_E,
-            'Response': HD(ECU_R_ADDR_E) + SZ('02') + DT('3E 80') # to be revised.....
-        },
-    # -------------------------------------------------------------------
-    # UDS - RCEM1 (test)
-        'UDS_TEST': {
-            'Request': '^40' + ELM_FOOTER,
-            'Descr': 'UDS Test',
-            'Header': ECU_ADDR_E,
-            'Task': "task_routine"
-        },
-        'UDS_RCEM1': {
-            'Request': '^0A3101FF000068' + ELM_FOOTER, # [10] start routine 0xFF00
-            'Descr': 'RoutineControl - Erase memory / 1',
-            'Header': ECU_ADDR_E,
-            'Response': HD(ECU_R_ADDR_E) + SZ('30') + DT('01 00')
-        },
-        'UDS_RCEM2': {
-            'Request': '^0002ABFF' + ELM_FOOTER, # [21]
-            'Descr': 'RoutineControl - Erase memory / 2',
-            'Header': ECU_ADDR_E,
-            'Response': HD(ECU_R_ADDR_E) + SZ('04') + DT('71 01 FF 00') # positive answer
-        },
-        'UDS_RCEM3': {
-            'Request': '^3103FF00' + ELM_FOOTER,
-            'Descr': 'RoutineControl - Erase memory / 3',
-            'Header': ECU_ADDR_E,
-            'Response': HD(ECU_R_ADDR_E) + SZ('03') + DT('7F 31 78') + # 2 Ways: Wait or ask about the status of the deletion.
-                        HD(ECU_R_ADDR_E) + SZ('04') + DT('71 03 FF 00')
-        },
-        # -------------------------------------------------------------------
-        # UDS - other msgs (test)
-        'UDS_WF1': {
-            'Request': '^0C2EF15A000414' + ELM_FOOTER, # 2E: F15A => 0004140606FFFFFFFF
-            'Descr': 'Write Fingerprint',
-            'Header': ECU_ADDR_M,
-            'Response': HD(ECU_R_ADDR_M) + SZ('30') + DT('20 00')
-        },
-        'UDS_WF2': {
-            'Request': '^0606FFFFFFFF00' + ELM_FOOTER, # see above
-            'Descr': 'Write Fingerprint',
-            'Header': ECU_ADDR_M,
-            'Response': HD(ECU_R_ADDR_M) + SZ('03') + DT('6E F1 5A')
+            'Response': None
         },
     #------------------------------------------------------------
     # Custom OBD Commands - Toyota Prius

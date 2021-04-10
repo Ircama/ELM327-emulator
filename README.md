@@ -201,6 +201,7 @@ The key used in the dictionary consists of a unique identifier for each PID. All
 - `'Action'`: can be set to 'skip' in order to skip the processing of the PID
 - `'Header'`: if set, process the command only if the corresponding header matches
 - `'Priority'=number`: when set, the key has higher priority than the default (highest number = 1, lowest = 10 = default)
+- `'Task'`: if set, the related header/request activates a specific task referring to an installed plugin. All *Response* tags are ignored.
 
 The emulator provides a monitoring front-end, supporting commands and controlling the backend thread which executes the actual process.
 
@@ -218,6 +219,7 @@ Command|Description
 `loglevel`|If an argument is given, set the logging level, otherwise show the current one. Valid numbers: CRITICAL=50, ERROR=40, WARNING=30, INFO=20, DEBUG=10.
 `quit`|quit the program  (or end-of-file/Control-D, or break/Control-C)
 `counters`|print the number of each executed PIDs (upper case names), the values associated to some 'AT' PIDs (*cmd_...*), the unknown requests, the emulator response delay, the total number of executed commands (*commands*) and the current scenario (*scenario*). The related dictionary is `emulator.counters`.
+`tasks`|Print all available plugins and all active tasks.
 `pause`|pause the execution. (Related attribute is `emulator.threadState = emulator.THREAD.PAUSED`.)
 `prompt`|toggle prompt off/on if no argument is used, or change the prompt if using an argument
 `resume`|resume the execution after pausing; also prints the used device. (Related attribute is `emulator.threadState = emulator.THREAD.ACTIVE`)
@@ -613,6 +615,54 @@ verify <header>7E0</header><size>03</size><data>01 02 03</data>
 The output will be `'7E003010203\r\r>'`.
 
 To write the output of a `test` command to the application, copy its *Raw command* output and paste it to a `write` command.
+
+## Tasks
+
+*ELM327-emulator* provides an extendable plugin architecture defining *tasks*, which are entities that allow the implementation of multi-frame communication flows between *ELM327-emulator* and a client application, including for instance bootloaders, routines, and data transfer actions.
+
+When *ELM327-emulator* starts, it enumerates all available plugins in its *plugins* subdirectory. Each plugin defines a single and specific task, named with the file name of the plugin. All the file names of the plugins must start with *task_*. Plugins must comply with a specific structure.
+
+A task is defined with the `'Task'` tag in the dictionary, that refers to the name of an installed plugin. If a request associating a task is matched (including *Request* and *Header* tags), its related task is activated by instantiating the *Task* class of the invoked plugin. After startup, the task remains active and receives all subsequent requests related to the same header, allowing to implement a communication flow within a dedicated namespace.
+
+Tasks are interrupted by one of the following conditions:
+
+- task termination performed by the plugin itself (method return code)
+- communication reset (e.g., communication disconnection, or. "ATZ" or *reset* command)
+- any AT command
+
+For instance, a plugin named *plugins/task_write_fingerprint.py* defines the task *task_write_fingerprint*, which is configured in a dictionary element like the following one:
+
+```json
+    'UDS_WF': {
+        'Request': '^2EF15A([0-9A-Z][0-9A-Z])+' + ELM_FOOTER,
+        'Descr': 'Write Fingerprint',
+        'Header': ECU_ADDR_M,
+        'Task': "task_write_fingerprint"
+    },
+```
+
+In such case, a request of type `2EF15A...` with header ECU_ADDR_M will start the task *task_write_fingerprint*, which will also process any subsequent request (also if not matching `2EF15A...`), until the plugin is terminated.
+
+A plugin must always define a class named *Task*, which has to inherit the *Tasks* class.
+
+At least the *run()* method should be implemented, overriding the default method. Allowed methods:
+
+- *start()*: invoked to process the first request
+- *stop()*: invoked to process a request before interrupting the task
+- *run()*: invoked on any request after the first one; if *start()* is not implemented, *run()* is always invoked.
+
+All methods can return:
+
+- an XML string, which is processed and written to the application;
+- *None*, to skip output processing, keeping the task active;
+- *False*, to stop the task with no output processing;
+- a tuple or a list including the output string to be processed and the termination state (*True* or *False*).
+
+The helper function *multiline_request()* allows processing multiline requests and shall be called on each request fragment, passing the standard method parameters, until data is returned.
+
+The helper function `self.emulator.process_response(xml_string, do_write=True)` can always be called inside the task to generate an output string.
+
+Check the *Tasks* class and the available plugins for details.
 
 ## Available interfaces
 

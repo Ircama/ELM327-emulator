@@ -241,7 +241,7 @@ class Interpreter(Cmd):
             return
         print("______Raw command:_______________")
         try:
-            ret = self.emulator.handle(arg)
+            ret = self.emulator.handle(arg, do_write=False)
             if ret is None:
                 return
             if not ret:

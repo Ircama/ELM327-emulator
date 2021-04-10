@@ -58,6 +58,86 @@ def setup_logging(
         logging.basicConfig(level=default_level)
 
 
+class Tasks:
+    TASK_TERMINATE = False
+    TASK_CONTINUE = True
+
+    def __init__(self, emulator, header, msg, do_write=False):
+        self.emulator = emulator # reference to the emulator namespace
+        self.header = header # request header
+        self.logging = emulator.logger # logger reference
+        self.msg = msg # request message
+        self.do_write = do_write # (boolean) will write to the application
+        self.frame = None # multiline request frame counter
+        self.length = None # multiline request length counter
+        self.flow_control = 0 # multiline request flow control
+        self.flow_control_end = 0x20 # multiline request flow control repetitions
+        self.answer = hex(int(header, 16) + 8)[2:].upper() # computed answer header
+
+    def SZ(self, size):
+        return ('<size>' + size + '</size>')
+
+    def HD(self, header):
+        return ('<header>' + header + '</header>')
+
+    def DT(self, data):
+        return ('<data>' + data + '</data>')
+
+    def multiline_request(self, length, frame, cmd):
+        """
+        Compose a multiline request. Call it on each request fragment,
+        passing the standard method parameters, until data is returned.
+
+        :param length:
+        :param frame:
+        :param cmd:
+        :return:
+            False: error
+            None: incomplete request
+            data: complete request
+        """
+        if frame and frame == 0 and length > 0:
+            if self.frame or self.length:
+                self.logging.error('Invalid initial frame %s %s', length, cmd)
+                return False
+            self.req = cmd
+            self.frame = 1
+            self.length = length
+        elif frame and frame > 0 and self.frame == frame and length is None:
+            self.req += cmd
+            self.frame += 1
+        elif length > 0 and frame is None and self.frame is None:
+            self.req = cmd
+            self.length = length
+            return self.req[:self.length * 2]
+        else:
+            self.logging.error('Invalid consecutive frame %s %s', frame, cmd)
+            return False
+
+        if self.flow_control:
+            self.flow_control -= 1
+        else:
+            self.emulator.process_response(
+                self.HD(self.answer) + self.SZ('30') +
+                self.DT(hex(self.flow_control_end)[2:].upper() +
+                        ' 00'), do_write=self.do_write)
+            self.flow_control = self.flow_control_end - 1
+
+        if self.length * 2 <= len(self.req):
+            self.frame = None
+            return self.req[:self.length * 2]
+        return None
+
+    def start(self, length, frame, cmd):
+        return self.run(length, frame, cmd)
+
+    def stop(self, length, frame, cmd):
+        return self.run(length, frame, cmd)
+
+    def run(self, length, frame, cmd):
+        return False
+
+
 class Elm:
     ELM_VALID_CHARS = r"[a-zA-Z0-9 \n\r]*"
 
@@ -392,6 +472,7 @@ class Elm:
                     "Task class not available in plugin %s", k)
                 remove += [k]
                 continue
+            """
             if (not (hasattr(v.Task, "start")) or
                     not inspect.isfunction(v.Task.start)):
                 logging.critical(
@@ -410,6 +491,7 @@ class Elm:
                     '"run" method missing in Task class of plugin %s', k)
                 remove += [k]
                 continue
+            """
         for k in remove:
             del self.plugins[k]
 
@@ -439,7 +521,7 @@ class Elm:
             # if it didn't contain any egregious errors, handle it
             if self.validate(self.cmd):
                 try:
-                    resp = self.handle(self.cmd)
+                    resp = self.handle(self.cmd, do_write=True)
                 except Exception as e:
                     logging.critical("Error while processing %s:\n%s\n%s",
                                      repr(self.cmd), e, traceback.format_exc())
@@ -962,7 +1044,7 @@ class Elm:
             return False
         return True
 
-    def handle(self, cmd):
+    def handle(self, cmd, do_write=False):
         """ handles all commands """
 
         # Sanitize cmd
@@ -993,27 +1075,45 @@ class Elm:
             self.counters['cmd_use_header'] = True
             cmd = cmd[3:]
 
-        # manages cmd_caf
+        # manages cmd_caf, length, frame
         size = cmd[:2]
+        length = None
+        frame = None
         if ('cmd_caf' in self.counters and
                 not self.counters['cmd_caf'] and
                 size != 'AT' and self.is_hex_sp(size)):
             try:
                 int_size = int(size, 16)
             except ValueError as e:
-                logging.error('Improper size "%s" for request "%s": %s',
-                              repr(cmd), repr(size), e)
+                logging.error('Improper size %s for request %s: %s',
+                              repr(size), repr(cmd), e)
                 return ""
             payload = cmd[2:]
             if not payload:
                 logging.error('Missing data for request "%s"', repr(cmd))
                 return ""
-            if int_size < 16 and len(payload) < int_size * 2:
-                logging.error(
-                    'In request "%s", data "%s" has an improper length '
-                    'of %s bytes', repr(cmd), repr(payload), size)
-                return ""
-            cmd = payload[:int_size * 2]
+            if int_size < 16:
+                if len(payload) < int_size * 2:
+                    logging.error(
+                        'In request %s, data %s has an improper length '
+                        'of %s bytes', repr(cmd), repr(payload), size)
+                    return ""
+                cmd = payload[:int_size * 2]
+                length = int_size
+            elif int_size == 16:
+                try:
+                    length = int(cmd[2:4], 16)
+                except ValueError as e:
+                    logging.error('Improper size %s for request %s: %s',
+                                  repr(cmd[2:4]), repr(cmd), e)
+                    return ""
+                cmd = cmd[4:]
+                frame = 0
+            else:
+                cmd = cmd[2:]
+            if int_size > 32:
+                frame = int_size - 32
+            logging.debug("Length: %s, frame: %s, cmd: %s", length, frame, cmd)
 
         header = None
         if "cmd_set_header" in self.counters:
@@ -1022,11 +1122,12 @@ class Elm:
         # Manage active tasks
         if header in self.tasks:
             if self.is_hex_sp(cmd):
+                ret = False
+                ret_cmd = None
                 try:
-                    if not self.tasks[header].run(cmd):
-                        logging.warning('Terminated task with header "%s"',
-                                        header)
-                        del self.tasks[header]
+                    ret = self.tasks[header].run(length, frame, cmd)
+                    if isinstance(ret, list) or isinstance(ret, tuple):
+                        ret_cmd, ret = ret
                 except Exception as e:
                     logging.critical(
                         'Error in task "%s", header="%s", '
@@ -1034,11 +1135,21 @@ class Elm:
                         self.tasks[header].__module__,
                         header, e, exc_info=True)
                     del self.tasks[header]
-                return None
+                if ret is False:
+                    logging.debug(
+                        'Terminated task "%s" with header "%s"',
+                        self.tasks[header].__module__, header)
+                    del self.tasks[header]
+                return ret_cmd
             else:
-                logging.warning('Interrupted task with header "%s"', header)
+                logging.warning('Interrupted task "%s" with header "%s"',
+                                self.tasks[header].__module__, header)
+                ret = False
+                ret_cmd = None
                 try:
-                    self.tasks[header].stop(cmd)
+                    ret = self.tasks[header].stop(length, frame, cmd)
+                    if isinstance(ret, list) or isinstance(ret, tuple):
+                        ret_cmd, ret = ret
                 except Exception as e:
                     logging.critical(
                         'Error in task "%s", header="%s", '
@@ -1046,6 +1157,8 @@ class Elm:
                         self.tasks[header].__module__,
                         header, e, exc_info=True)
                 del self.tasks[header]
+                if ret_cmd:
+                    self.process_response(ret_cmd, do_write=True)
 
         # Process response for data stored in cmd
         for i in self.sortedOBDMsg:
@@ -1084,19 +1197,20 @@ class Elm:
                     if val['Task'] in self.plugins and 'Header' in val:
                         try:
                             self.tasks[header] = self.plugins[val['Task']].Task(
-                                self, header)
+                                self, header, val, do_write)
                         except Exception as e:
                             logging.critical(
                                 'Cannot start task "%s", header="%s": %s',
                                 val['Task'], header, e, exc_info=True)
                             return None
-                        logging.warning('Starting task with header "%s"',
-                                        header)
+                        logging.debug('Starting task "%s" with header "%s"',
+                                      self.tasks[header].__module__, header)
+                        ret = False
+                        ret_cmd = None
                         try:
-                            if not self.tasks[header].start(cmd):
-                                logging.warning(
-                                    'Terminated task with header "%s"', header)
-                                del self.tasks[header]
+                            ret = self.tasks[header].start(length, frame, cmd)
+                            if isinstance(ret, list) or isinstance(ret, tuple):
+                                ret_cmd, ret = ret
                         except Exception as e:
                             logging.critical(
                                 'Error in task "%s", header="%s", '
@@ -1104,7 +1218,12 @@ class Elm:
                                 self.tasks[header].__module__,
                                 header, e, exc_info=True)
                             del self.tasks[header]
-                        return None
+                        if ret is False:
+                            logging.debug(
+                                'Terminated task "%s" with header "%s"',
+                                self.tasks[header].__module__, header)
+                            del self.tasks[header]
+                        return ret_cmd
                     else:
                         logging.error(
                             'Unexisting plugin "%s" for pid "%s"',
@@ -1134,6 +1253,8 @@ class Elm:
                         footer = val['ResponseFooter'](
                             self, cmd, pid, val)
                     response = val['Response']
+                    if response is None:
+                        return None
                     if isinstance(response, (list, tuple)):
                         response = response[randint(0, len(response) - 1)]
                     return (header + response + footer)
