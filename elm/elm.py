@@ -37,7 +37,7 @@ import inspect
 FORWARD_READ_TIMEOUT = 0.2 # seconds
 SERIAL_BAUDRATE = 38400 # bps
 NETWORK_INTERFACES = ""
-PLUGIN_DIR = "elm.plugins"
+PLUGIN_DIR = __package__ + ".plugins"
 
 def setup_logging(
         default_path=Path(__file__).stem + '.yaml',
@@ -107,10 +107,14 @@ class Tasks:
               length is None): # valid Consecutive Frame (CF)
             self.req += cmd
             self.frame += 1
-        elif length > 0 and frame is None and self.frame is None: # Single Frame (SF)
+        elif ((length is None or length > 0) and
+              frame is None and self.frame is None): # Single Frame (SF)
             self.req = cmd
             self.length = length
-            return self.req[:self.length * 2]
+            if length:
+                return self.req[:self.length * 2]
+            else:
+                return self.req
         else:
             self.logging.error('Invalid consecutive frame %s %s', frame, cmd)
             return False
@@ -465,7 +469,8 @@ class Elm:
         self.plugins = {
             name: importlib.import_module(PLUGIN_DIR + "." + name)
             for finder, name, ispkg
-            in pkgutil.iter_modules([PLUGIN_DIR.replace('.', '/')])
+            in pkgutil.iter_modules(
+                importlib.import_module(PLUGIN_DIR).__path__)
             if name.startswith('task_')
         }
         remove = []

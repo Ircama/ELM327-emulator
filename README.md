@@ -658,7 +658,7 @@ In a plugin, at least the *run()* method should be implemented, overriding the d
 
 Arguments of all methods:
 
-- *length*: length of the request;
+- *length*: for multi-line commands, value of the *length* byte appearing in the First Frame, or *None* for single line commands;
 - *frame*: *None* for single line commands, or *0* for the first line of a multiline command, or a number greater than 0 for subsequent lines of a multiline command;
 - *cmd*: request message.
 
