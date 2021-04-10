@@ -632,7 +632,7 @@ Tasks are interrupted by one of the following conditions:
 
 For instance, a plugin named *plugins/task_write_fingerprint.py* defines the task *task_write_fingerprint*, which is configured in a dictionary element like the following one:
 
-```json
+```python
     'UDS_WF': {
         'Request': '^2EF15A([0-9A-Z][0-9A-Z])+' + ELM_FOOTER,
         'Descr': 'Write Fingerprint',
@@ -647,9 +647,15 @@ A plugin must always define a class named *Task*, which has to inherit the *Task
 
 At least the *run()* method should be implemented, overriding the default method. Allowed methods:
 
-- *start()*: invoked to process the first request
-- *stop()*: invoked to process a request before interrupting the task
+- *start()*: invoked to process the first request (not required)
+- *stop()*: invoked to process a request before interrupting the task (not required)
 - *run()*: invoked on any request after the first one; if *start()* is not implemented, *run()* is always invoked.
+
+Arguments of all methods:
+
+- *length*: length of the request;
+- *frame*: *None* for single line commands, or *0* for the first line of a multiline command, or a number greater than 0 for subsequent lines of a multiline command;
+- *cmd*: request message.
 
 All methods can return:
 
@@ -660,9 +666,9 @@ All methods can return:
 
 The helper function *multiline_request()* allows processing multiline requests and shall be called on each request fragment, passing the standard method parameters, until data is returned.
 
-The helper function `self.emulator.process_response(xml_string, do_write=True)` can always be called inside the task to generate an output string.
+The helper function `self.emulator.process_response(xml_string, do_write=True)` can always be called inside the task to generate an output string (e.g., for asynchronous output).
 
-Check the *Tasks* class and the available plugins for details.
+Check the *Tasks* class and the available plugins for details and for a list of the available attributes.
 
 ## Available interfaces
 
