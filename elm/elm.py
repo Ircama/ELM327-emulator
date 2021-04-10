@@ -37,7 +37,7 @@ import inspect
 FORWARD_READ_TIMEOUT = 0.2 # seconds
 SERIAL_BAUDRATE = 38400 # bps
 NETWORK_INTERFACES = ""
-PLUGIN_DIR = "plugins"
+PLUGIN_DIR = "elm.plugins"
 
 def setup_logging(
         default_path=Path(__file__).stem + '.yaml',
@@ -465,7 +465,7 @@ class Elm:
         self.plugins = {
             name: importlib.import_module(PLUGIN_DIR + "." + name)
             for finder, name, ispkg
-            in pkgutil.iter_modules([PLUGIN_DIR])
+            in pkgutil.iter_modules([PLUGIN_DIR.replace('.', '/')])
             if name.startswith('task_')
         }
         remove = []
