@@ -18,8 +18,9 @@ class Task(Tasks):
         if ret is False or ret is None:
             return ret
         if ret[:6] == '2EF190': # Write VIN
+            print("ALBE", ret[6:])
             self.logging.warning('Decoded VIN: %s',
-                                 bytearray.fromhex(ret[6:]).decode())
+                                 repr(bytearray.fromhex(ret[6:]).decode()))
         else:
             self.logging.error('Invalid data %s', self.req)
             return self.ST('NO DATA'), self.TASK_TERMINATE
