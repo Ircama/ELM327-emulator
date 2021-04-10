@@ -43,7 +43,8 @@ def ST(writeln):
 
 ELM_R_OK = ST("OK")
 ELM_R_UNKNOWN = ST("?")
-ELM_FOOTER = '[0123456]?$'
+ELM_FOOTER = r'[0123456]?$'
+ELM_DATA_FOOTER = r'([0-9A-Z][0-9A-Z])+$'
 
 # This dictionary uses the ISO 15765-4 CAN 11 bit ID 500 kbaud protocol
 
@@ -99,6 +100,22 @@ ObdMessage = {
             'Exec': 'self.counters["cmd_caf"] = (cmd[5] == "1")',
             'Log': '"Set CAN Automatic Formatting ON/OFF : %s", '
                    'self.counters["cmd_caf"]',
+            'Response': ELM_R_OK
+        },
+        'AT_CFC': {
+            'Request': '^ATCFC[01]$',
+            'Descr': 'AT CAN Fow Control',
+            'Exec': 'self.counters["cmd_cfc"] = (cmd[5] == "1")',
+            'Log': '"Set CAN Flow Control ON/OFF : %s", '
+                   'self.counters["cmd_cfc"]',
+            'Response': ELM_R_OK
+        },
+        'AT_FCSM': {
+            'Request': '^ATFCSM[01]$',
+            'Descr': 'AT Fow Control Set Mode',
+            'Exec': 'self.counters["cmd_fcsm"] = (cmd[6] == "1")',
+            'Log': '"Set Flow Control mode : %s", '
+                   'self.counters["cmd_fcsm"]',
             'Response': ELM_R_OK
         },
         'AT_RESPONSES': {
@@ -2273,7 +2290,7 @@ ObdMessage = {
             'Response': HD(ECU_R_ADDR_M) + SZ('06') + DT('50 03 00 14 00 C8')
         },
     # -------------------------------------------------------------------
-    # UDS - MODE 11 - ECU Reset
+    # UDS - MODE 11 - ECU Reset - hardReset
         'UDS_ECU_RESET': {
             'Request': '^1101' + ELM_FOOTER,
             'Descr': 'EcuReset',
@@ -2409,25 +2426,22 @@ ObdMessage = {
     # -------------------------------------------------------------------
     # UDS - MODE 2E - writeDataByIdentifier Service (Appl. Inc.)
     'UDS_WF': {
-        'Request': '^2EF15A([0-9A-Z][0-9A-Z])+' + ELM_FOOTER, # 2E,F1,5A Write Fingerprint (Continental)
+        'Request': '^2EF15A' + ELM_DATA_FOOTER, # 2E,F1,5A - Write Fingerprint (Continental)
         'Descr': 'Write Fingerprint',
-        'Header': ECU_ADDR_M,
         'Task': "task_write_fingerprint"
+    },
+    'UDS_W_VIN': {
+        'Request': '^2EF190' + ELM_DATA_FOOTER, # 2E,F1,90 - write dataIdentifier 0xF190 (VIN)
+        'Descr': 'Write VIN',
+        'Task': "task_write_vin"
     },
     # -------------------------------------------------------------------
     # UDS - MODE 31 - UDS Routine Control
-        'UDS_ERASE_BL': {
-            'Request': '^3101FF00([0-9A-Z][0-9A-Z])+' + ELM_FOOTER,
-            # UDS Routine Control (31): Start (01), Delete Area (FF 00), Bootloader (01 00)
-            'Descr': 'UDS Routine Control - delete Bootloader',
-            'Header': ECU_ADDR_M,
-            'Task': "task_erase_memory"
-        },
         'UDS_ERASE_MEM': {
-            'Request': '^3101FF00([0-9A-Z][0-9A-Z])+' + ELM_FOOTER,
-            # UDS Routine Control (31): Start (01), Erase memory (FF 00)
+            'Request': '^3101FF00' + ELM_DATA_FOOTER,
+            # UDS Routine Control (31): Start (01), Delete Area (FF 00), Bootloader (01 00)
             'Descr': 'UDS Routine Control - Erase memory',
-            'Header': ECU_ADDR_E,
+            'Header': ECU_ADDR_M,
             'Task': "task_erase_memory"
         },
         # -------------------------------------------------------------------

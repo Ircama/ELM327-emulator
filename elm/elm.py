@@ -88,25 +88,26 @@ class Tasks:
         Compose a multiline request. Call it on each request fragment,
         passing the standard method parameters, until data is returned.
 
-        :param length:
-        :param frame:
-        :param cmd:
+        :param length: decimal value of the length byte of a multiline frame
+        :param frame: can be None (single frame), 0 (First Frame) or > 0 (subsequent frame)
+        :param cmd: frame data (excluding header and length)
         :return:
             False: error
             None: incomplete request
             data: complete request
         """
-        if frame and frame == 0 and length > 0:
+        if frame is not None and frame == 0 and length > 0: # First Frame (FF)
             if self.frame or self.length:
                 self.logging.error('Invalid initial frame %s %s', length, cmd)
                 return False
             self.req = cmd
             self.frame = 1
             self.length = length
-        elif frame and frame > 0 and self.frame == frame and length is None:
+        elif (frame is not None and frame > 0 and self.frame == frame and
+              length is None): # valid Consecutive Frame (CF)
             self.req += cmd
             self.frame += 1
-        elif length > 0 and frame is None and self.frame is None:
+        elif length > 0 and frame is None and self.frame is None: # Single Frame (SF)
             self.req = cmd
             self.length = length
             return self.req[:self.length * 2]
@@ -114,13 +115,16 @@ class Tasks:
             self.logging.error('Invalid consecutive frame %s %s', frame, cmd)
             return False
 
+        # Process Flow Control (FC)
         if self.flow_control:
             self.flow_control -= 1
         else:
-            self.emulator.process_response(
-                self.HD(self.answer) + self.SZ('30') +
-                self.DT(hex(self.flow_control_end)[2:].upper() +
-                        ' 00'), do_write=self.do_write)
+            if ('cmd_cfc' not in self.emulator.counters or
+                    self.emulator.counters['cmd_cfc'] == 1):
+                self.emulator.process_response(
+                    self.HD(self.answer) + self.SZ('30') +
+                    self.DT(hex(self.flow_control_end)[2:].upper() +
+                            ' 00'), do_write=self.do_write)
             self.flow_control = self.flow_control_end - 1
 
         if self.length * 2 <= len(self.req):
@@ -1065,9 +1069,9 @@ class Elm:
             logging.error("Unknown scenario %s", repr(self.scenario))
             return ""
 
-        # cmd_can is experimental (to be removed)
-        if ('cmd_can' in self.counters and
-                self.counters['cmd_can'] and
+        # cmd_fcsm is experimental (to be removed)
+        if ('cmd_fcsm' in self.counters and
+                self.counters['cmd_fcsm'] and
                 cmd[:2] != 'AT'
                 and self.is_hex_sp(cmd [:3])):
             self.counters['cmd_set_header'] = cmd[:3]
@@ -1194,7 +1198,7 @@ class Elm:
                             "Error while processing '%s' for PID %s (%s)",
                             self.answer, pid, e)
                 if 'Task' in val:
-                    if val['Task'] in self.plugins and 'Header' in val:
+                    if val['Task'] in self.plugins:
                         try:
                             self.tasks[header] = self.plugins[val['Task']].Task(
                                 self, header, val, do_write)

@@ -199,7 +199,7 @@ The key used in the dictionary consists of a unique identifier for each PID. All
 - `'ResponseHeader'`: run a function and returns a header to the response (a [lambda function](https://docs.python.org/3/reference/expressions.html#lambda) can be used)
 - `'Response'`: returned data; can be a string, or a list/tuple of strings; if more strings are included, the emulator randomly select one of them each time
 - `'Action'`: can be set to 'skip' in order to skip the processing of the PID
-- `'Header'`: if set, process the command only if the corresponding header matches
+- `'Header'`: if set, process the command only if the corresponding header (CAN ID) matches
 - `'Priority'=number`: when set, the key has higher priority than the default (highest number = 1, lowest = 10 = default)
 - `'Task'`: if set, the related header/request activates a specific task referring to an installed plugin. All *Response* tags are ignored.
 
@@ -253,6 +253,8 @@ Special setter  |Related AT command     |Handled|Description
 `cmd_last_cmd`  |<carriage return>      |Yes    |Last executed command
 `cmd_cra`       |*ATCRAx* (x=hex digit) |Yes    |Set SET CAN Receive address filter argument
 `cmd_caf`       |*ATCAF0*, *ATCAF1*     |Yes    |Set CAN Auto formatting on/off
+`cmd_cfc`       |*ATCFC0*, *ATCFC1*     |Yes    |Set CAN Flow control off or on
+`cmd_fcsm`      |*ATFCSM0*, *ATFCSM1*   |Yes    |Include headers in CAN requests (experimental - to be removed)
 `cmd_proto`     |*ATSPx* (x=hex digit)  |No     |Set protocol
 `cmd_memory`    |*ATM0*, *ATM1*         |No     |Set Memory off or on
 `cmd_fcsh`      |*ATFCSHx* (x=hex digit)|No     |Set FLOW CONTROL set HEADER
@@ -270,10 +272,9 @@ Special setter  |Related AT command     |Handled|Description
 `cmd_brd`       |*ATBRDn* (n=two digits)|No     |Set UART baud rate divisor
 `cmd_long_msg`  |*ATAL*, *ATNL*         |No     |Set message length
 `cmd_iia`       |*ATIIA hh* (hh = addr) |No     |Set the ISO 5-baud init address to hh
-`cmd_rec_addr`  |*ATSR hh* (hh = addr)  /No     /Set receive address
-`cmd_hfm`       |*ATCM m* (m = addr)    /No     /Set the CAN hardware filter mask
-`cmd_brt`       |*ATBRT t* (t = timeout)/No     /Set UART baud rate timeout
-`cmd_can`       |(none)                 |Yes    |Include headers in CAN requests (experimental - to be removed)
+`cmd_rec_addr`  |*ATSR hh* (hh = addr)  |No     |Set receive address
+`cmd_hfm`       |*ATCM m* (m = addr)    |No     |Set the CAN hardware filter mask
+`cmd_brt`       |*ATBRT t* (t = timeout)|No     |Set UART baud rate timeout
 
 Unhandled setter means that the AT command is recognized, the related counter is valued but no process is currently associated.
 
@@ -302,7 +303,7 @@ Value|Behaviour|separator among lines|separator at the end of the response
 
 Space characters are inserted by default in the ECU response as per specification. To remove them, use the AT command *ATS0* or `emulator.counters['cmd_spaces'] = 0`.
 
-By default the header is not included in the ECU response. To add it, use the AT command *ATH1* or `emulator.counters['cmd_use_header'] = True`.
+By default the header (CAN ID) is not included in the ECU response. To add it, use the AT command *ATH1* or `emulator.counters['cmd_use_header'] = True`.
 
 The default ECU header is ECU_ADDR_E (e.g., "7E0", producing answer "7E8"; ref. *obd_message.py*). Use `cmd_set_header` to customize it.
 
@@ -620,13 +621,13 @@ To write the output of a `test` command to the application, copy its *Raw comman
 
 *ELM327-emulator* provides an extendable plugin architecture defining *tasks*, which are entities that allow the implementation of multi-frame communication flows between *ELM327-emulator* and a client application, including for instance bootloaders, routines, and data transfer actions.
 
-When *ELM327-emulator* starts, it enumerates all available plugins in its *plugins* subdirectory. Each plugin defines a single and specific task, named with the file name of the plugin. All the file names of the plugins must start with *task_*. Plugins must comply with a specific structure.
+When *ELM327-emulator* starts, it enumerates all available plugins in its *plugins* subdirectory. Each plugin defines an own task, named with the file name of the plugin. All the file names of the plugins must start with *task_*. Plugins must comply with a specific structure.
 
-A task is defined with the `'Task'` tag in the dictionary, that refers to the name of an installed plugin. If a request associating a task is matched (including *Request* and *Header* tags), its related task is activated by instantiating the *Task* class of the invoked plugin. After startup, the task remains active and receives all subsequent requests related to the same header, allowing to implement a communication flow within a dedicated namespace.
+A task is invoked in the dictionary through the `'Task'` tag, that refers to the name of an installed plugin. If a request associating a task is matched (including *Request* and possibly *Header* tags), its related task is activated by instantiating the *Task* class of the invoked plugin. After startup, the task remains active and receives all subsequent requests related to the same header, allowing to implement a communication flow within a dedicated namespace.
 
 Tasks are interrupted by one of the following conditions:
 
-- task termination performed by the plugin itself (method return code)
+- task termination performed by the plugin itself (e.g, returning a method with `False` or with `self.TASK_TERMINATE`)
 - communication reset (e.g., communication disconnection, or. "ATZ" or *reset* command)
 - any AT command
 
@@ -634,7 +635,7 @@ For instance, a plugin named *plugins/task_write_fingerprint.py* defines the tas
 
 ```python
     'UDS_WF': {
-        'Request': '^2EF15A([0-9A-Z][0-9A-Z])+' + ELM_FOOTER,
+        'Request': '^2EF15A' + ELM_DATA_FOOTER,
         'Descr': 'Write Fingerprint',
         'Header': ECU_ADDR_M,
         'Task': "task_write_fingerprint"
@@ -643,9 +644,13 @@ For instance, a plugin named *plugins/task_write_fingerprint.py* defines the tas
 
 In such case, a request of type `2EF15A...` with header ECU_ADDR_M will start the task *task_write_fingerprint*, which will also process any subsequent request (also if not matching `2EF15A...`), until the plugin is terminated.
 
+Tasks and plugins can be monitored through the `tasks` command.
+
+Multiple tasks can run with different headers (EQU ID).
+
 A plugin must always define a class named *Task*, which has to inherit the *Tasks* class.
 
-At least the *run()* method should be implemented, overriding the default method. Allowed methods:
+In a plugin, at least the *run()* method should be implemented, overriding the default method inherited from the *Tasks* class. Allowed methods:
 
 - *start()*: invoked to process the first request (not required)
 - *stop()*: invoked to process a request before interrupting the task (not required)
@@ -659,16 +664,43 @@ Arguments of all methods:
 
 All methods can return:
 
-- an XML string, which is processed and written to the application;
+- an XML response string, which is processed and written to the application;
 - *None*, to skip output processing, keeping the task active;
 - *False*, to stop the task with no output processing;
-- a tuple or a list including the output string to be processed and the termination state (*True* or *False*).
+- a tuple or a list including the XML response string and the termination state that can be *True* (or `self.TASK_CONTINUE`), or *False* (or `self.TASK_TERMINATE`).
 
-The helper function *multiline_request()* allows processing multiline requests and shall be called on each request fragment, passing the standard method parameters, until data is returned.
+The helper function *multiline_request()* allows processing multiline requests (SF, FF, CF) and shall be called on each frame, passing the standard method parameters, until data is returned. It is able to concatenate a multiline request so that the entire string is returned after the last line; it also internally processes flow control frames while concatenating acquired data, directly delivering `30` FC responses to the application. Return codes are:
+
+- *False*: error (the counterpart application sent invalid multiline frames)
+- *None*: incomplete request (a multiline frame is being acquired, but still not completed; additional lines are needed to return data)
+- data: string including the complete request (without header and length)
 
 The helper function `self.emulator.process_response(xml_string, do_write=True)` can always be called inside the task to generate an output string (e.g., for asynchronous output).
 
 Check the *Tasks* class and the available plugins for details and for a list of the available attributes.
+
+Example of a basic task related to a Python plugin named "task_no_data.py", which simply returns *NO DATA* when invoked:
+
+```python
+from elm import Tasks
+
+class Task(Tasks):
+    def run(self, *_):
+        return self.ST("NO DATA"), self.TASK_TERMINATE
+```
+
+Example of dictionary element (when `7E0 02 01 FF` is received, `NO DATA` is returned):
+
+```python
+    'UNSUPP_PID': {
+        'Request': '^01FF' + ELM_FOOTER,
+        'Header': ECU_ADDR_E,
+        'Descr': 'Example of unsupported pid returning NO DATA',
+        'Task': 'task_no_data'
+    },
+```
+
+As an example of a plugin processing a multiline request, check "task_write_vin.py" and related "task_write_vin" entry in the dictionary.
 
 ## Available interfaces
 

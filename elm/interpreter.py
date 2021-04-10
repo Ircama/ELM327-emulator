@@ -251,6 +251,7 @@ class Interpreter(Cmd):
         except Exception as e:
             print("Could not run test:", repr(e))
             print(traceback.format_exc())
+            return
         print("\n______Command output:____________")
         self.do_verify(ret)
 
