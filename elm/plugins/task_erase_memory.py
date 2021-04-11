@@ -13,15 +13,16 @@ import time
 
 EXECUTION_TIME = 0.5 # seconds
 
+
 # UDS - MODE 31 01 - RoutineControl SF (SID=31, routineControlType 01=startRoutine)
 # FF 00, erase_memory (RID)
 class Task(Tasks):
     def run(self, length, frame, cmd):
         ret = self.multiline_request(length, frame, cmd)
         if ret is False:
-            return (ret, self.TASK.TERMINATE, self.PROCESS.DONT_PROCESS)
+            return (None, self.TASK.TERMINATE, None)
         if ret is None:
-            return (ret, self.TASK.CONTINUE, self.PROCESS.DONT_PROCESS)
+            return (None, self.TASK.CONTINUE, None)
         if ret[:8] == '3101FF00':
             self.logging.warning('Erase memory, Data: %s', ret[8:])
         if time.time() < self.time_started + EXECUTION_TIME:
@@ -29,9 +30,9 @@ class Task(Tasks):
             return (self.HD(self.answer) + self.SZ('03') +
                     self.DT('7F 31 78'),
                     self.TASK.CONTINUE,
-                    ret[:8] != '3101FF00')
+                    None if ret[:8] == '3101FF00' else cmd)
         else:
             return (self.HD(self.answer) + self.SZ('05') +
-                    self.DT('71 01 FF 00 00'),
+                    self.DT('71 01 FF 00 00'), # Positive Response (SID + 40 hex)
                     self.TASK.TERMINATE,
-                    ret[:8] != '3101FF00') # Positive Response (SID + 40 hex)
+                    None if ret[:8] == '3101FF00' else cmd)

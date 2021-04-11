@@ -59,18 +59,16 @@ def setup_logging(
 
 
 class Tasks:
-    class ACTION:
-        START = 0
-        RUN = 1
-        STOP = 2
-
+    """
+    Base class for tasks.
+    All tasks/plugins shall implement a class named Task derived from Tasks.
+    """
     class TASK:
+        """
+        These are the possible values of the second parameter of the method return tuple
+        """
         TERMINATE = False
         CONTINUE = True
-
-    class PROCESS:
-        DO_PROCESS = True
-        DONT_PROCESS = False
 
     def __init__(self, emulator, header, msg, do_write=False):
         self.emulator = emulator # reference to the emulator namespace
@@ -150,19 +148,56 @@ class Tasks:
         return None
 
     def start(self, length, frame, cmd):
+        """
+        This method is executed when the task is started.
+        If not overridden, it calls run()
+        :param length: see run()
+        :param frame: see run()
+        :param cmd: see run()
+        :return: see run()
+        """
         return self.run(length, frame, cmd)
 
     def stop(self, length, frame, cmd):
+        """
+        This method is executed when the task is interrupted by an error.
+        If not overridden, it calls run()
+        :param length: see run()
+        :param frame: see run()
+        :param cmd: see run()
+        :return: see run()
+        """
         return self.run(length, frame, cmd)
 
     def run(self, length, frame, cmd):
-        return (cmd, self.TASK.TERMINATE, self.PROCESS.DO_PROCESS)
+        """
+        Main method to be overridden by the actual task; it is always run
+            if start and stop are not overridden, otherwise it is run for the
+            subsequent frames after the first one
+        :param length: decimal value of the size byte, or None if this data is
+                not available
+        :param frame: None = single frame; 0 = FF; > 0 = subsequent multiframes
+        :param cmd: request to process
+        :return: tuple of three values:
+            - XML response (or None for no output)
+            - boolean to terminate the task or to keep it active
+            - request to be subsequently processed after outputting the XML
+                response in the first element (or Null to disable subsequent
+                processing)
+        """
+        return (None, self.TASK.TERMINATE, cmd) # the default is a pass-through
 
 
 class Elm:
+    """
+    Main class of the ELM327-emulator
+    """
     ELM_VALID_CHARS = r"[a-zA-Z0-9 \n\r]*"
 
     class THREAD:
+        """
+        Possible states for the Context Manager thread
+        """
         STOPPED = 0
         STARTING = 1
         ACTIVE = 2
@@ -1047,6 +1082,20 @@ class Elm:
         return True
 
     def task_action(self, header, do_write, task_method, length, frame, cmd):
+        """
+        Call a task method (start(), run(), or stop()), manage the exception,
+         pre-process r_task and r_cont return values and return a tuple with
+         all the three return values of the invoked method.
+
+        :param header:
+        :param do_write:
+        :param task_method:
+        :param length:
+        :param frame:
+        :param cmd:
+        :return: a tuple of three elements with the same return parameters
+                as the task methods
+        """
         logging.debug(
             "Running task %s.%s(%s, %s, %s) with header %s",
             self.tasks[header].__module__, task_method.__name__, length,
@@ -1062,23 +1111,24 @@ class Elm:
                 task_method.__name__,
                 e, exc_info=True)
             del self.tasks[header]
-            return ("", Tasks.PROCESS.DONT_PROCESS)
+            return (None, Tasks.TASK.TERMINATE, None)
+        logging.debug("r_cmd=%s, r_task=%s, r_cont=%s", r_cmd, r_task, r_cont)
         if r_task is Tasks.TASK.TERMINATE:
             logging.debug(
                 'Terminated task "%s" with header "%s"',
                 self.tasks[header].__module__, header)
             self.account_task(header)
             del self.tasks[header]
-        if r_cont:
-            resp = self.process_response(r_cmd, do_write=do_write)
-            if not do_write:
-                logging.warning("Task with header %s returned %s",
-                                header, repr(resp))
+        if r_cont is not None:
+            if r_cmd is not None:
+                resp = self.process_response(r_cmd, do_write=do_write)
+                if not do_write:
+                    logging.warning("Task with header %s returned %s",
+                                    header, repr(resp))
             logging.debug(
                 "Continue processing command %s after execution of task "
-                "with header %s", repr(cmd), header)
-            return (cmd, r_cont)
-        return (r_cmd, r_cont)
+                "with header %s.", repr(r_cont), header)
+        return (r_cmd, r_task, r_cont)
 
     def account_task(self, header):
         if header not in self.tasks:
@@ -1092,7 +1142,20 @@ class Elm:
         self.counters[task_name] += 1
 
     def handle(self, cmd, do_write=False):
-        """ handles all commands """
+        """
+        It generates an XML response by processing a request,
+        returning a string to be processed by process_response(),
+        which creates the final output format. It returns None
+        if this there are no data to be processed.
+
+        In some cases, process_response() is implicitly called,
+        passing do_write.
+
+        :param cmd: the request to be processed
+        :param do_write: passed to process_response() when
+                        implicitly called, or used for logging.
+        :return: None or an XML string.
+        """
 
         # Sanitize cmd
         cmd = cmd.replace(" ", "")
@@ -1169,19 +1232,23 @@ class Elm:
         # Manage active tasks
         if header in self.tasks:
             if self.is_hex_sp(cmd):
-                cmd, cont = self.task_action(header, do_write,
+                cmd, *_, cont = self.task_action(header, do_write,
                     self.tasks[header].run, length, frame, cmd)
-                if cont is not Tasks.PROCESS.DO_PROCESS:
+                if cont is None:
                     return cmd
+                else:
+                    cmd = cont
             else:
                 logging.warning('Interrupted task "%s" with header "%s"',
                                 self.tasks[header].__module__, header)
-                cmd, cont = self.task_action(header, do_write,
+                cmd, *_, cont = self.task_action(header, do_write,
                     self.tasks[header].stop, length, frame, cmd)
                 if header in self.tasks:
                     del self.tasks[header]
-                if cont is not Tasks.PROCESS.DO_PROCESS:
+                if cont is None:
                     return cmd
+                else:
+                    cmd = cont
         # Process response for data stored in cmd
         for i in self.sortedOBDMsg:
             key = i[0]
@@ -1227,10 +1294,12 @@ class Elm:
                             return None
                         logging.debug('Starting task "%s" with header "%s"',
                                       self.tasks[header].__module__, header)
-                        cmd, cont = self.task_action(header, do_write,
+                        cmd, *_, cont = self.task_action(header, do_write,
                             self.tasks[header].start, length, frame, cmd)
-                        if cont is not Tasks.PROCESS.DO_PROCESS:
+                        if cont is None:
                             return cmd
+                        else:
+                            cmd = cont
                     else:
                         logging.error(
                             'Unexisting plugin "%s" for pid "%s"',

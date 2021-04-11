@@ -621,14 +621,14 @@ To write the output of a `test` command to the application, copy its *Raw comman
 
 *ELM327-emulator* provides an extendable plugin architecture defining *tasks*, which are entities that allow the implementation of multi-frame communication flows between *ELM327-emulator* and a client application, including for instance bootloaders, routines, and data transfer actions.
 
-When *ELM327-emulator* starts, it enumerates all available plugins in its *plugins* subdirectory. Each plugin defines an own task, named with the file name of the plugin. All the file names of the plugins must start with *task_*. Plugins must comply with a specific structure.
+When *ELM327-emulator* starts, it enumerates all available plugins in its *plugins* subdirectory (*elm/plugins*). Each plugin defines an own task, named with the file name of the plugin. All the file names of the plugins must start with *task_*. Plugins must comply with a specific structure.
 
 A task is invoked in the dictionary through the `'Task'` tag, that refers to the name of an installed plugin. If a request associating a task is matched (including *Request* and possibly *Header* tags), its related task is activated by instantiating the *Task* class of the invoked plugin. After startup, the task remains active and receives all subsequent requests related to the same header, allowing to implement a communication flow within a dedicated namespace.
 
 Tasks are interrupted by one of the following conditions:
 
-- task termination performed by the plugin itself (e.g, returning a method with `False` or with `self.TASK.TERMINATE`)
-- communication reset (e.g., communication disconnection, or. "ATZ" or *reset* command)
+- task termination performed by the plugin itself (e.g, returning a method with `False` or with `self.TASK.TERMINATE` in the tuple)
+- communication reset (e.g., communication disconnection, or "ATZ", or *reset* command)
 - any AT command
 
 For instance, a plugin named *plugins/task_write_fingerprint.py* defines the task *task_write_fingerprint*, which is configured in a dictionary element like the following one:
@@ -648,34 +648,40 @@ Tasks and plugins can be monitored through the `tasks` command.
 
 Multiple tasks can run with different headers (EQU ID).
 
-A plugin must always define a class named *Task*, which has to inherit the *Tasks* class.
+A plugin must always define a class named *Task*, derived from class *Tasks*.
 
-In a plugin, at least the *run()* method should be implemented, overriding the default method inherited from the *Tasks* class. Allowed methods:
+In a plugin, at least the *run()* method should be implemented, overriding the default method of the *Tasks* class. Allowed methods:
 
-- *start()*: invoked to process the first request (not required)
+- *start()*: invoked to process the first request of a just created task (not required)
 - *stop()*: invoked to process a request before interrupting the task (not required)
 - *run()*: invoked on any request after the first one; if *start()* is not implemented, *run()* is always invoked.
 
 Arguments of all methods:
 
-- *length*: for multi-line commands, value of the *length* byte appearing in the First Frame, or *None* for single line commands;
-- *frame*: *None* for single line commands, or *0* for the first line of a multiline command, or a number greater than 0 for subsequent lines of a multiline command;
+- *length*: for multi-line commands, value of the *length* byte appearing in the First Frame (FF), or *None* for requests where the size byte is missing;
+- *frame*: *None* for single line commands, or *0* for the first line of a multiline command, or a number greater than 0 for the subsequent lines of a multiline command;
 - *cmd*: request message.
 
 All methods return a tuple of three elements:
-- an XML response string, which is processed and written to the application;
-- a boolean (*True* = `self.TASK.CONTINUE`, or *False* = `self.TASK.TERMINATE`), to indicate the task continuation or termination
-- a boolean (*True* = `self.PROCESS.DO_PROCESS`, or *False* = `self.PROCESS.DONT_PROCESS`), to indicate whether the command needs or not standard processing.
+- an XML response string, which will be subsequently processed by *process_response()* and written to the client application; Null means nothing to output
+- a boolean (*True* = `self.TASK.CONTINUE`, or *False* = `self.TASK.TERMINATE`), to indicate whether the task remains active or terminates;
+- a request string (e.g., *cmd*) that will be subsequently processed by the standard procedure that generates an XML answer from the request; the value can be *Null*, meaning no response generation; this element allows a task to also act as a filter, that receives a request (*cmd*), possibly transforms it and forwards it to the standard response generator procedure.
+
+Special return codes:
+
+- `(None, self.TASK.TERMINATE, cmd)`: null task implementing a pure pass-through; the request is processed as if the task had not existed;
+- `(None, self.TASK.TERMINATE, None)`: task termination (generally with error), no output written, no request processed;
+- `(None, self.TASK.CONTINUE, None)`: do nothing (task continues, no output produced, no request processed).
 
 The helper function *multiline_request()* allows processing multiline requests (SF, FF, CF) and shall be called on each frame, passing the standard method parameters, until data is returned. It is able to concatenate a multiline request so that the entire string is returned after the last line; it also internally processes flow control frames while concatenating acquired data, directly delivering `30` FC responses to the application. Return codes are:
 
 - *False*: error (the counterpart application sent invalid multiline frames)
-- *None*: incomplete request (a multiline frame is being acquired, but still not completed; additional lines are needed to return data)
+- *None*: incomplete request (a multiline frame is being acquired, but still not completed; additional lines are needed)
 - data: string including the complete request (without header and length)
 
-The helper function `self.emulator.process_response(xml_string, do_write=True)` can always be called inside the task to generate an output string (e.g., for asynchronous output).
+The helper function `self.emulator.process_response(xml_string, do_write=True)` can always be called inside the task to generate an output string (e.g., for asynchronous output) from an XML response string.
 
-Check the *Tasks* class and the available plugins for details and for a list of the available attributes.
+Check the *Tasks* class for details and for a list of the available attributes.
 
 Example of a basic task related to a Python plugin named "task_no_data.py", which simply returns *NO DATA* when invoked:
 
@@ -683,24 +689,22 @@ Example of a basic task related to a Python plugin named "task_no_data.py", whic
 from elm import Tasks
 
 class Task(Tasks):
-    def run(self, *_):
-        return (self.ST("NO DATA"),
-                self.TASK.TERMINATE,
-                self.PROCESS.DONT_PROCESS)
+    def run(self, **_):
+        return self.ST("NO DATA"), self.TASK.TERMINATE, None
 ```
 
-Example of dictionary element (when `7E0 02 01 FF` is received, `NO DATA` is returned):
+Example of dictionary element (when `7E0 02 FF FF` is received, `NO DATA` is returned):
 
 ```python
     'UNSUPP_PID': {
-        'Request': '^01FF' + ELM_FOOTER,
+        'Request': '^FFFF$',
         'Header': ECU_ADDR_E,
-        'Descr': 'Example of unsupported pid returning NO DATA',
+        'Descr': 'Example of pid FFFF returning NO DATA',
         'Task': 'task_no_data'
     },
 ```
 
-As an example of a plugin processing a multiline request, check "task_write_vin.py" and related "task_write_vin" entry in the dictionary.
+As an example of a task processing a multiline request, check the "task_write_vin.py" plugin and related "task_write_vin" entry in the dictionary.
 
 ## Available interfaces
 

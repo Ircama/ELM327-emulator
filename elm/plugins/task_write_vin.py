@@ -17,17 +17,15 @@ class Task(Tasks):
     def run(self, length, frame, cmd):
         ret = self.multiline_request(length, frame, cmd)
         if ret is False:
-            return (ret, self.TASK.TERMINATE, self.PROCESS.DONT_PROCESS)
+            return (None, self.TASK.TERMINATE, None)
         if ret is None:
-            return (ret, self.TASK.CONTINUE, self.PROCESS.DONT_PROCESS)
+            return (None, self.TASK.CONTINUE, None)
         if ret[:6] == '2EF190':  # Write VIN
             self.logging.warning('Decoded VIN: %s',
                                  repr(bytearray.fromhex(ret[6:]).decode()))
             return (self.HD(self.answer) + self.SZ('03') +
-                    self.DT('6E F1 90'),  # WDBI message-SF response
+                    self.DT('6E F1 90'),  # WDBI message-SF positive response (6E=2E (SID) + 40 hex)
                     self.TASK.TERMINATE,
-                    self.PROCESS.DONT_PROCESS)
+                    None)
         else:
-            return (ret,
-                    self.TASK.TERMINATE,
-                    self.PROCESS.DO_PROCESS)
+            return (None, self.TASK.TERMINATE, cmd)

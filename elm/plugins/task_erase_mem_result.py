@@ -13,23 +13,24 @@ import time
 
 EXECUTION_TIME = 0.5 # seconds
 
+
 # UDS - MODE 31 03 - RoutineControl SF (SID=31, routineControlType 03=Request Routine Result)
 # FF 00, erase_memory (RID)
 class Task(Tasks):
     def run(self, length, frame, cmd):
         ret = self.multiline_request(length, frame, cmd)
         if ret is False:
-            return (ret, self.TASK.TERMINATE, self.PROCESS.DONT_PROCESS)
+            return (None, self.TASK.TERMINATE, None)
         if ret is None:
-            return (ret, self.TASK.CONTINUE, self.PROCESS.DONT_PROCESS)
+            return (None, self.TASK.CONTINUE, None)
         if time.time() < self.time_started + EXECUTION_TIME:
             # 7F=Negative Response, SID 31, 78=requestCorrectlyReceived-ResponsePending
             return (self.HD(self.answer) + self.SZ('03') +
                     self.DT('7F 31 78'),
                     self.TASK.CONTINUE,
-                    ret[:8] != '3103FF00')
+                    None if ret[:8] == '3103FF00' else cmd)
         else:
             return (self.HD(self.answer) + self.SZ('05') +
-                    self.DT('71 03 FF 00 00'),
+                    self.DT('71 03 FF 00 00'), # Positive Response (SID + 40 hex)
                     self.TASK.TERMINATE,
-                    ret[:8] != '3103FF00') # Positive Response (SID + 40 hex)
+                    None if ret[:8] == '3103FF00' else cmd)

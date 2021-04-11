@@ -2418,7 +2418,7 @@ ObdMessage = {
             'Request': '^2712B151D58F' + ELM_FOOTER,
             'Descr': 'UDS Send Key',
             'Header': ECU_ADDR_M,
-            'Response': HD(ECU_R_ADDR_M) + SZ('02') + DT('67 12')
+            'Response': HD(ECU_R_ADDR_M) + SZ('02') + DT('67 12') # 67 = positive answer = SID 27 + 40 hex
         },
     # -------------------------------------------------------------------
     # UDS - MODE 2E - writeDataByIdentifier Service (Appl. Inc.)

@@ -10,20 +10,21 @@
 
 from elm import Tasks
 
+
 # UDS - MODE 2E - writeDataByIdentifier Service (Appl. Inc.)
 # F15A, write_fingerprint
 class Task(Tasks):
     def run(self, length, frame, cmd):
         ret = self.multiline_request(length, frame, cmd)
         if ret is False:
-            return (ret, self.TASK.TERMINATE, self.PROCESS.DONT_PROCESS)
+            return (None, self.TASK.TERMINATE, None)
         if ret is None:
-            return (ret, self.TASK.CONTINUE, self.PROCESS.DONT_PROCESS)
+            return (None, self.TASK.CONTINUE, None)
         if ret[:6] == '2EF15A': # Write Fingerprint
             self.logging.warning('Decoded fingerprint: %s', ret[6:])
             return (self.HD(self.answer) + self.SZ('03') + self.DT('6E F1 5A'),
-                    self.TASK.TERMINATE,
-                    self.PROCESS.DONT_PROCESS)
+                    self.TASK.TERMINATE, # 6E = 2E (SID) + 40 hex (positive answer)
+                    None)
         else:
             self.logging.error('Invalid data %s', self.req)
-            return (ret, self.TASK.TERMINATE, self.PROCESS.DO_PROCESS)
+            return (None, self.TASK.TERMINATE, cmd)
