@@ -22,7 +22,7 @@ class Task(Tasks):
                                  repr(bytearray.fromhex(ret[6:]).decode()))
         else:
             self.logging.error('Invalid data %s', self.req)
-            return self.ST('NO DATA'), self.TASK_TERMINATE
+            return self.ST('NO DATA'), self.TASK.TERMINATE
         return (self.HD(self.answer) + self.SZ('03') +
                 self.DT('6E F1 90'), # WDBI message-SF response
-                self.TASK_TERMINATE)
+                self.TASK.TERMINATE)

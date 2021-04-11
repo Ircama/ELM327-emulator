@@ -59,8 +59,15 @@ def setup_logging(
 
 
 class Tasks:
-    TASK_TERMINATE = False
-    TASK_CONTINUE = True
+    class ACTION:
+        START = 0
+        RUN = 1
+        STOP = 2
+
+    class TASK:
+        TERMINATE = False
+        PROCESS_COMMAND = None
+        CONTINUE = True
 
     def __init__(self, emulator, header, msg, do_write=False):
         self.emulator = emulator # reference to the emulator namespace
@@ -482,26 +489,6 @@ class Elm:
                     "Task class not available in plugin %s", k)
                 remove += [k]
                 continue
-            """
-            if (not (hasattr(v.Task, "start")) or
-                    not inspect.isfunction(v.Task.start)):
-                logging.critical(
-                    '"start" method missing in Task class of plugin %s', k)
-                remove += [k]
-                continue
-            if (not (hasattr(v.Task, "stop")) or
-                    not inspect.isfunction(v.Task.stop)):
-                logging.critical(
-                    '"stop" method missing in Task class of plugin %s', k)
-                remove += [k]
-                continue
-            if (not (hasattr(v.Task, "run")) or
-                    not inspect.isfunction(v.Task.run)):
-                logging.error(
-                    '"run" method missing in Task class of plugin %s', k)
-                remove += [k]
-                continue
-            """
         for k in remove:
             del self.plugins[k]
 
@@ -1054,6 +1041,30 @@ class Elm:
             return False
         return True
 
+    def task_action(self, header, task_method, length, frame, cmd):
+        ret = False
+        ret_cmd = None
+        try:
+            ret = task_method(length, frame, cmd)
+            if isinstance(ret, list) or isinstance(ret, tuple):
+                ret_cmd, ret = ret
+        except Exception as e:
+            logging.critical(
+                'Error in task "%s", header="%s", '
+                'method=%s(): %s',
+                self.tasks[header].__module__,
+                header,
+                task_method.__name__,
+                e, exc_info=True)
+            del self.tasks[header]
+        if ret is Tasks.TASK.TERMINATE:
+            logging.debug(
+                'Terminated task "%s" with header "%s"',
+                self.tasks[header].__module__, header)
+            self.account_task(header)
+            del self.tasks[header]
+        return ret_cmd
+
     def account_task(self, header):
         if header not in self.tasks:
             return
@@ -1143,45 +1154,19 @@ class Elm:
         # Manage active tasks
         if header in self.tasks:
             if self.is_hex_sp(cmd):
-                ret = False
-                ret_cmd = None
-                try:
-                    ret = self.tasks[header].run(length, frame, cmd)
-                    if isinstance(ret, list) or isinstance(ret, tuple):
-                        ret_cmd, ret = ret
-                except Exception as e:
-                    logging.critical(
-                        'Error in task "%s", header="%s", '
-                        'run() method: %s',
-                        self.tasks[header].__module__,
-                        header, e, exc_info=True)
-                    del self.tasks[header]
-                if ret is False:
-                    logging.debug(
-                        'Terminated task "%s" with header "%s"',
-                        self.tasks[header].__module__, header)
-                    self.account_task(header)
-                    del self.tasks[header]
-                return ret_cmd
+                ret = self.task_action(
+                    header, self.tasks[header].run, length, frame, cmd)
+                if ret is not True:
+                    return ret
             else:
                 logging.warning('Interrupted task "%s" with header "%s"',
                                 self.tasks[header].__module__, header)
-                ret = False
-                ret_cmd = None
-                try:
-                    ret = self.tasks[header].stop(length, frame, cmd)
-                    if isinstance(ret, list) or isinstance(ret, tuple):
-                        ret_cmd, ret = ret
-                except Exception as e:
-                    logging.critical(
-                        'Error in task "%s", header="%s", '
-                        'stop() method: %s',
-                        self.tasks[header].__module__,
-                        header, e, exc_info=True)
-                del self.tasks[header]
-                if ret_cmd:
-                    self.process_response(ret_cmd, do_write=True)
-
+                ret = self.task_action(
+                    header, self.tasks[header].stop, length, frame, cmd)
+                if header in self.tasks:
+                    del self.tasks[header]
+                if ret is not True:
+                    return ret
         # Process response for data stored in cmd
         for i in self.sortedOBDMsg:
             key = i[0]
@@ -1227,26 +1212,10 @@ class Elm:
                             return None
                         logging.debug('Starting task "%s" with header "%s"',
                                       self.tasks[header].__module__, header)
-                        ret = False
-                        ret_cmd = None
-                        try:
-                            ret = self.tasks[header].start(length, frame, cmd)
-                            if isinstance(ret, list) or isinstance(ret, tuple):
-                                ret_cmd, ret = ret
-                        except Exception as e:
-                            logging.critical(
-                                'Error in task "%s", header="%s", '
-                                'start() method: %s',
-                                self.tasks[header].__module__,
-                                header, e, exc_info=True)
-                            del self.tasks[header]
-                        if ret is False:
-                            logging.debug(
-                                'Terminated task "%s" with header "%s"',
-                                self.tasks[header].__module__, header)
-                            self.account_task(header)
-                            del self.tasks[header]
-                        return ret_cmd
+                        ret = self.task_action(
+                            header, self.tasks[header].start, length, frame, cmd)
+                        if ret is not True:
+                            return ret
                     else:
                         logging.error(
                             'Unexisting plugin "%s" for pid "%s"',

@@ -21,6 +21,6 @@ class Task(Tasks):
             self.logging.warning('Decoded fingerprint: %s', ret[6:])
         else:
             self.logging.error('Invalid data %s', self.req)
-            return self.ST('NO DATA'), self.TASK_TERMINATE
+            return self.ST('NO DATA'), self.TASK.TERMINATE
         return (self.HD(self.answer) + self.SZ('03') + self.DT('6E F1 5A'),
-                self.TASK_TERMINATE)
+                self.TASK.TERMINATE)

@@ -627,7 +627,7 @@ A task is invoked in the dictionary through the `'Task'` tag, that refers to the
 
 Tasks are interrupted by one of the following conditions:
 
-- task termination performed by the plugin itself (e.g, returning a method with `False` or with `self.TASK_TERMINATE`)
+- task termination performed by the plugin itself (e.g, returning a method with `False` or with `self.TASK.TERMINATE`)
 - communication reset (e.g., communication disconnection, or. "ATZ" or *reset* command)
 - any AT command
 
@@ -665,9 +665,10 @@ Arguments of all methods:
 All methods can return:
 
 - an XML response string, which is processed and written to the application;
-- *None*, to skip output processing, keeping the task active;
-- *False*, to stop the task with no output processing;
-- a tuple or a list including the XML response string and the termination state that can be *True* (or `self.TASK_CONTINUE`), or *False* (or `self.TASK_TERMINATE`).
+- *None*, or `self.TASK.CONTINUE`, to skip output processing, keeping the task active;
+- *False*, or `self.TASK.TERMINATE`, to stop the task with no output processing;
+- *True*, or `self.TASK.PROCESS_COMMAND`, to process the task output and in addition to go on processing the received command in the normal way 
+- a tuple or a list including the XML response string and the termination state that can be *None* (`self.TASK.CONTINUE`), or *False* (`self.TASK.TERMINATE`), or *True* (`self.TASK.PROCESS_COMMAND`).
 
 The helper function *multiline_request()* allows processing multiline requests (SF, FF, CF) and shall be called on each frame, passing the standard method parameters, until data is returned. It is able to concatenate a multiline request so that the entire string is returned after the last line; it also internally processes flow control frames while concatenating acquired data, directly delivering `30` FC responses to the application. Return codes are:
 
@@ -686,7 +687,7 @@ from elm import Tasks
 
 class Task(Tasks):
     def run(self, *_):
-        return self.ST("NO DATA"), self.TASK_TERMINATE
+        return self.ST("NO DATA"), self.TASK.TERMINATE
 ```
 
 Example of dictionary element (when `7E0 02 01 FF` is received, `NO DATA` is returned):
