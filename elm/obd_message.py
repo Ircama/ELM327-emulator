@@ -2298,11 +2298,10 @@ ObdMessage = {
             'Response': HD(ECU_R_ADDR_E) + SZ('02') + DT('51 01')
         },
         'UDS_HR': {
-            'Request': '^1101' + ELM_FOOTER,
+            'Request': '^1101$',
             'Descr': 'UDS Hardware Reset',
             'Header': ECU_ADDR_M,
-            'Response': HD(ECU_R_ADDR_M) + SZ('03') + DT('7F 11 78') +
-                        HD(ECU_R_ADDR_M) + SZ('02') + DT('51 01')
+            'Task': 'task_hardware_reset'
         },
     # -------------------------------------------------------------------
     # UDS - MODE 1A
@@ -2413,11 +2412,9 @@ ObdMessage = {
             'Request': '^2711' + ELM_FOOTER,
             'Descr': 'UDS Request Seed',
             'Header': ECU_ADDR_M,
-            'Response': HD(ECU_R_ADDR_M) + SZ('03') + DT('7F 27 78') +
-                        HD(ECU_R_ADDR_M) + SZ('06') + DT('67 11 A6 41 B5 E9')
+            'Task': 'task_request_seed'
         },
         'UDS_SK': {
-            'Request': '^2712B151D58F' + ELM_FOOTER,
             'Request': '^2712B151D58F' + ELM_FOOTER,
             'Descr': 'UDS Send Key',
             'Header': ECU_ADDR_M,

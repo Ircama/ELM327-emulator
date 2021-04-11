@@ -18,18 +18,20 @@ EXECUTION_TIME = 0.5 # seconds
 class Task(Tasks):
     def run(self, length, frame, cmd):
         ret = self.multiline_request(length, frame, cmd)
-        if ret is False or ret is None:
-            return ret
+        if ret is False:
+            return (ret, self.TASK.TERMINATE, self.PROCESS.DONT_PROCESS)
+        if ret is None:
+            return (ret, self.TASK.CONTINUE, self.PROCESS.DONT_PROCESS)
         if ret[:8] == '3101FF00':
             self.logging.warning('Erase memory, Data: %s', ret[8:])
         if time.time() < self.time_started + EXECUTION_TIME:
             # 7F=Negative Response, SID 31, 78=requestCorrectlyReceived-ResponsePending
             return (self.HD(self.answer) + self.SZ('03') +
                     self.DT('7F 31 78'),
-                    self.TASK.PROCESS_COMMAND)
-        if ret[:2] == '3E' or ret[:8] == '3101FF00': # tester present or erase_memory
+                    self.TASK.CONTINUE,
+                    ret[:8] != '3101FF00')
+        else:
             return (self.HD(self.answer) + self.SZ('05') +
                     self.DT('71 01 FF 00 00'),
-                    self.TASK.PROCESS_COMMAND) # Positive Response (SID + 40 hex)
-        self.logging.error('Invalid request: %s', ret)
-        return None
+                    self.TASK.TERMINATE,
+                    ret[:8] != '3101FF00') # Positive Response (SID + 40 hex)

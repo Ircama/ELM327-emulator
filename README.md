@@ -662,13 +662,10 @@ Arguments of all methods:
 - *frame*: *None* for single line commands, or *0* for the first line of a multiline command, or a number greater than 0 for subsequent lines of a multiline command;
 - *cmd*: request message.
 
-All methods can return:
-
+All methods return a tuple of three elements:
 - an XML response string, which is processed and written to the application;
-- *None*, or `self.TASK.CONTINUE`, to skip output processing, keeping the task active;
-- *False*, or `self.TASK.TERMINATE`, to stop the task with no output processing;
-- *True*, or `self.TASK.PROCESS_COMMAND`, to process the task output and in addition to go on processing the received command in the normal way 
-- a tuple or a list including the XML response string and the termination state that can be *None* (`self.TASK.CONTINUE`), or *False* (`self.TASK.TERMINATE`), or *True* (`self.TASK.PROCESS_COMMAND`).
+- a boolean (*True* = `self.TASK.CONTINUE`, or *False* = `self.TASK.TERMINATE`), to indicate the task continuation or termination
+- a boolean (*True* = `self.PROCESS.DO_PROCESS`, or *False* = `self.PROCESS.DONT_PROCESS`), to indicate whether the command needs or not standard processing.
 
 The helper function *multiline_request()* allows processing multiline requests (SF, FF, CF) and shall be called on each frame, passing the standard method parameters, until data is returned. It is able to concatenate a multiline request so that the entire string is returned after the last line; it also internally processes flow control frames while concatenating acquired data, directly delivering `30` FC responses to the application. Return codes are:
 
@@ -687,7 +684,9 @@ from elm import Tasks
 
 class Task(Tasks):
     def run(self, *_):
-        return self.ST("NO DATA"), self.TASK.TERMINATE
+        return (self.ST("NO DATA"),
+                self.TASK.TERMINATE,
+                self.PROCESS.DONT_PROCESS)
 ```
 
 Example of dictionary element (when `7E0 02 01 FF` is received, `NO DATA` is returned):

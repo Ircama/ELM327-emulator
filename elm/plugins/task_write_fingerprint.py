@@ -15,12 +15,15 @@ from elm import Tasks
 class Task(Tasks):
     def run(self, length, frame, cmd):
         ret = self.multiline_request(length, frame, cmd)
-        if ret is False or ret is None:
-            return ret
+        if ret is False:
+            return (ret, self.TASK.TERMINATE, self.PROCESS.DONT_PROCESS)
+        if ret is None:
+            return (ret, self.TASK.CONTINUE, self.PROCESS.DONT_PROCESS)
         if ret[:6] == '2EF15A': # Write Fingerprint
             self.logging.warning('Decoded fingerprint: %s', ret[6:])
+            return (self.HD(self.answer) + self.SZ('03') + self.DT('6E F1 5A'),
+                    self.TASK.TERMINATE,
+                    self.PROCESS.DONT_PROCESS)
         else:
             self.logging.error('Invalid data %s', self.req)
-            return self.ST('NO DATA'), self.TASK.TERMINATE
-        return (self.HD(self.answer) + self.SZ('03') + self.DT('6E F1 5A'),
-                self.TASK.TERMINATE)
+            return (ret, self.TASK.TERMINATE, self.PROCESS.DO_PROCESS)

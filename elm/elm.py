@@ -66,8 +66,11 @@ class Tasks:
 
     class TASK:
         TERMINATE = False
-        PROCESS_COMMAND = None
         CONTINUE = True
+
+    class PROCESS:
+        DO_PROCESS = True
+        DONT_PROCESS = False
 
     def __init__(self, emulator, header, msg, do_write=False):
         self.emulator = emulator # reference to the emulator namespace
@@ -133,10 +136,12 @@ class Tasks:
         else:
             if ('cmd_cfc' not in self.emulator.counters or
                     self.emulator.counters['cmd_cfc'] == 1):
-                self.emulator.process_response(
+                resp = self.emulator.process_response(
                     self.HD(self.answer) + self.SZ('30') +
                     self.DT(hex(self.flow_control_end)[2:].upper() +
                             ' 00'), do_write=self.do_write)
+                if not self.do_write:
+                    self.logging.warning("Output data: %s", repr(resp))
             self.flow_control = self.flow_control_end - 1
 
         if self.length * 2 <= len(self.req):
@@ -151,7 +156,7 @@ class Tasks:
         return self.run(length, frame, cmd)
 
     def run(self, length, frame, cmd):
-        return False
+        return (cmd, self.TASK.TERMINATE, self.PROCESS.DO_PROCESS)
 
 
 class Elm:
@@ -1041,13 +1046,13 @@ class Elm:
             return False
         return True
 
-    def task_action(self, header, task_method, length, frame, cmd):
-        ret = False
-        ret_cmd = None
+    def task_action(self, header, do_write, task_method, length, frame, cmd):
+        logging.debug(
+            "Running task %s.%s(%s, %s, %s) with header %s",
+            self.tasks[header].__module__, task_method.__name__, length,
+            frame, cmd, header)
         try:
-            ret = task_method(length, frame, cmd)
-            if isinstance(ret, list) or isinstance(ret, tuple):
-                ret_cmd, ret = ret
+            r_cmd, r_task, r_cont = task_method(length, frame, cmd)
         except Exception as e:
             logging.critical(
                 'Error in task "%s", header="%s", '
@@ -1057,13 +1062,23 @@ class Elm:
                 task_method.__name__,
                 e, exc_info=True)
             del self.tasks[header]
-        if ret is Tasks.TASK.TERMINATE:
+            return ("", Tasks.PROCESS.DONT_PROCESS)
+        if r_task is Tasks.TASK.TERMINATE:
             logging.debug(
                 'Terminated task "%s" with header "%s"',
                 self.tasks[header].__module__, header)
             self.account_task(header)
             del self.tasks[header]
-        return ret_cmd
+        if r_cont:
+            resp = self.process_response(r_cmd, do_write=do_write)
+            if not do_write:
+                logging.warning("Task with header %s returned %s",
+                                header, repr(resp))
+            logging.debug(
+                "Continue processing command %s after execution of task "
+                "with header %s", repr(cmd), header)
+            return (cmd, r_cont)
+        return (r_cmd, r_cont)
 
     def account_task(self, header):
         if header not in self.tasks:
@@ -1154,19 +1169,19 @@ class Elm:
         # Manage active tasks
         if header in self.tasks:
             if self.is_hex_sp(cmd):
-                ret = self.task_action(
-                    header, self.tasks[header].run, length, frame, cmd)
-                if ret is not True:
-                    return ret
+                cmd, cont = self.task_action(header, do_write,
+                    self.tasks[header].run, length, frame, cmd)
+                if cont is not Tasks.PROCESS.DO_PROCESS:
+                    return cmd
             else:
                 logging.warning('Interrupted task "%s" with header "%s"',
                                 self.tasks[header].__module__, header)
-                ret = self.task_action(
-                    header, self.tasks[header].stop, length, frame, cmd)
+                cmd, cont = self.task_action(header, do_write,
+                    self.tasks[header].stop, length, frame, cmd)
                 if header in self.tasks:
                     del self.tasks[header]
-                if ret is not True:
-                    return ret
+                if cont is not Tasks.PROCESS.DO_PROCESS:
+                    return cmd
         # Process response for data stored in cmd
         for i in self.sortedOBDMsg:
             key = i[0]
@@ -1212,10 +1227,10 @@ class Elm:
                             return None
                         logging.debug('Starting task "%s" with header "%s"',
                                       self.tasks[header].__module__, header)
-                        ret = self.task_action(
-                            header, self.tasks[header].start, length, frame, cmd)
-                        if ret is not True:
-                            return ret
+                        cmd, cont = self.task_action(header, do_write,
+                            self.tasks[header].start, length, frame, cmd)
+                        if cont is not Tasks.PROCESS.DO_PROCESS:
+                            return cmd
                     else:
                         logging.error(
                             'Unexisting plugin "%s" for pid "%s"',

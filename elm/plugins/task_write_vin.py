@@ -10,19 +10,24 @@
 
 from elm import Tasks
 
+
 # UDS - MODE 2E - writeDataByIdentifier Service (Appl. Inc.)
 # F190, write_VIN
 class Task(Tasks):
     def run(self, length, frame, cmd):
         ret = self.multiline_request(length, frame, cmd)
-        if ret is False or ret is None:
-            return ret
-        if ret[:6] == '2EF190': # Write VIN
+        if ret is False:
+            return (ret, self.TASK.TERMINATE, self.PROCESS.DONT_PROCESS)
+        if ret is None:
+            return (ret, self.TASK.CONTINUE, self.PROCESS.DONT_PROCESS)
+        if ret[:6] == '2EF190':  # Write VIN
             self.logging.warning('Decoded VIN: %s',
                                  repr(bytearray.fromhex(ret[6:]).decode()))
+            return (self.HD(self.answer) + self.SZ('03') +
+                    self.DT('6E F1 90'),  # WDBI message-SF response
+                    self.TASK.TERMINATE,
+                    self.PROCESS.DONT_PROCESS)
         else:
-            self.logging.error('Invalid data %s', self.req)
-            return self.ST('NO DATA'), self.TASK.TERMINATE
-        return (self.HD(self.answer) + self.SZ('03') +
-                self.DT('6E F1 90'), # WDBI message-SF response
-                self.TASK.TERMINATE)
+            return (ret,
+                    self.TASK.TERMINATE,
+                    self.PROCESS.DO_PROCESS)
