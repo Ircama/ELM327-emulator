@@ -68,6 +68,7 @@ class Tasks:
         self.logging = emulator.logger # logger reference
         self.msg = msg # request message
         self.do_write = do_write # (boolean) will write to the application
+        self.time_started = time.time() # timer (to be used to simulate background processing)
         self.frame = None # multiline request frame counter
         self.length = None # multiline request length counter
         self.flow_control = 0 # multiline request flow control
@@ -1053,6 +1054,17 @@ class Elm:
             return False
         return True
 
+    def account_task(self, header):
+        if header not in self.tasks:
+            return
+        try:
+            task_name = self.tasks[header].__module__[12:]
+        except Exception:
+            return
+        if task_name not in self.counters:
+            self.counters[task_name] = 0
+        self.counters[task_name] += 1
+
     def handle(self, cmd, do_write=False):
         """ handles all commands """
 
@@ -1148,6 +1160,7 @@ class Elm:
                     logging.debug(
                         'Terminated task "%s" with header "%s"',
                         self.tasks[header].__module__, header)
+                    self.account_task(header)
                     del self.tasks[header]
                 return ret_cmd
             else:
@@ -1231,6 +1244,7 @@ class Elm:
                             logging.debug(
                                 'Terminated task "%s" with header "%s"',
                                 self.tasks[header].__module__, header)
+                            self.account_task(header)
                             del self.tasks[header]
                         return ret_cmd
                     else:

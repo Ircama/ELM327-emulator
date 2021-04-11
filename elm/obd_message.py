@@ -2444,18 +2444,31 @@ ObdMessage = {
             'Header': ECU_ADDR_M,
             'Task': "task_erase_memory"
         },
+        'UDS_RR_ERASE_MEM': {
+            'Request': '^3103FF00$',
+            # UDS Routine Control (SID=31): routineControlType 03=Request Routine Result, Delete Area (FF 00)
+            'Descr': 'UDS Routine Control - Erase memory - Request Routine Result',
+            'Header': ECU_ADDR_M,
+            'Task': "task_erase_mem_result"
+        },
         # -------------------------------------------------------------------
     # UDS - MODE 3E - Tester Present
-        'UDS_TESTER_PRESENT': {
+        'UDS_TP_AURIS': { # keep-alive function, Auris
             'Request': '^3E00' + ELM_FOOTER,
             'Descr': 'UDS Tester Present',
             'Header': ECU_ADDR_E,
             'Response': HD(ECU_R_ADDR_E) + SZ('03') + DT('7F 3E 12')
+            # 7F=Negative Response, 3E=SID, 12=subFunctionNotSupported
         },
-        'UDS_TP_NA': {
-            'Request': '^3E80' + ELM_FOOTER,
+        'UDS_TESTER_PRESENT': { # keep-alive function, general positive answer
+            'Request': '^3E00' + ELM_FOOTER, # Tester Present, Sub Function 00
+            'Descr': 'UDS Tester Present',
+            'Response': HD(ECU_R_ADDR_E) + SZ('02') + DT('7E 00')
+            # 7E=Positive Response = SID + 40
+        },
+        'UDS_TP_NA': { # Tester present with suppression of the positive response
+            'Request': '^3E80' + ELM_FOOTER, # Tester Present, Sub Function 80
             'Descr': 'UDS Tester Present - no answer',
-            'Header': ECU_ADDR_E,
             'Response': None
         },
     #------------------------------------------------------------

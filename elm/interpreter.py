@@ -296,11 +296,11 @@ class Interpreter(Cmd):
         if self.emulator.counters:
             print("PID Counters:")
             for i in sorted(self.emulator.counters):
-                print("  {:20s} = {}".format(i, self.emulator.counters[i]))
+                print("  {:22s} = {}".format(i, self.emulator.counters[i]))
         else:
             print("No counters available.")
-        print("  {:20s} = {}".format("delay", self.emulator.delay))
-        print("  {:20s} = {}".format("scenario", self.emulator.scenario))
+        print("  {:22s} = {}".format("delay", self.emulator.delay))
+        print("  {:22s} = {}".format("scenario", self.emulator.scenario))
 
     def do_pause(self, arg):
         "Pause the execution."
