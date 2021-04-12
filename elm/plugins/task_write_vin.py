@@ -14,15 +14,10 @@ from elm import Tasks
 # UDS - MODE 2E - writeDataByIdentifier Service (Appl. Inc.)
 # F190, write_VIN
 class Task(Tasks):
-    def run(self, length, frame, cmd):
-        ret = self.multiline_request(length, frame, cmd)
-        if ret is False:
-            return (None, self.TASK.TERMINATE, None)
-        if ret is None:
-            return (None, self.TASK.CONTINUE, None)
-        if self.task_request_matched(ret):
+    def run(self, cmd):
+        if self.task_request_matched(cmd):
             self.logging.warning('Decoded VIN: %s',
-                                 repr(bytearray.fromhex(ret[6:]).decode()))
+                                 repr(bytearray.fromhex(cmd[6:]).decode()))
             return (self.HD(self.answer) + self.SZ('03') +
                     self.DT('6E F1 90'),  # WDBI message-SF positive response (6E=2E (SID) + 40 hex)
                     self.TASK.TERMINATE,

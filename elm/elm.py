@@ -171,36 +171,39 @@ class Tasks:
             return self.req[:self.length * 2]
         return None
 
-    def start(self, length, frame, cmd):
+    def start(self, cmd):
         """
         This method is executed when the task is started.
         If not overridden, it calls run()
-        :param length: see run()
-        :param frame: see run()
-        :param cmd: see run()
-        :return: see run()
+        :param cmd: request to process
+        :return: tuple of three values:
+            - XML response (or None for no output)
+            - boolean to terminate the task or to keep it active
+            - request to be subsequently processed after outputting the XML
+                response in the first element (or Null to disable subsequent
+                processing)
         """
-        return self.run(length, frame, cmd)
+        return self.run(cmd)
 
-    def stop(self, length, frame, cmd):
+    def stop(self, cmd):
         """
         This method is executed when the task is interrupted by an error.
         If not overridden, it calls run()
-        :param length: see run()
-        :param frame: see run()
-        :param cmd: see run()
-        :return: see run()
+        :param cmd: request to process
+        :return: tuple of three values:
+            - XML response (or None for no output)
+            - boolean to terminate the task or to keep it active
+            - request to be subsequently processed after outputting the XML
+                response in the first element (or Null to disable subsequent
+                processing)
         """
-        return self.run(length, frame, cmd)
+        return self.run(cmd)
 
-    def run(self, length, frame, cmd):
+    def run(self, cmd):
         """
         Main method to be overridden by the actual task; it is always run
             if start and stop are not overridden, otherwise it is run for the
             subsequent frames after the first one
-        :param length: decimal value of the size byte, or None if this data is
-                not available
-        :param frame: None = single frame; 0 = FF; > 0 = subsequent multiframes
         :param cmd: request to process
         :return: tuple of three values:
             - XML response (or None for no output)
@@ -1124,18 +1127,28 @@ class Elm:
             "Running task %s.%s(%s, %s, %s) with header %s",
             self.tasks[header].__module__, task_method.__name__, length,
             frame, cmd, header)
-        try:
-            r_cmd, r_task, r_cont = task_method(length, frame, cmd)
-        except Exception as e:
-            logging.critical(
-                'Error in task "%s", header="%s", '
-                'method=%s(): %s',
-                self.tasks[header].__module__,
-                header,
-                task_method.__name__,
-                e, exc_info=True)
-            del self.tasks[header]
-            return (None, Tasks.TASK.TERMINATE, None)
+
+        r_cmd = None
+        r_task = Tasks.TASK.TERMINATE
+        r_cont = None
+        ret = self.tasks[header].multiline_request(length, frame, cmd)
+        if ret is None:
+            r_task = Tasks.TASK.CONTINUE
+            logging.debug("Incomplete multiframe received: %s", repr(cmd))
+            return (r_cmd, r_task, r_cont)
+        if ret is not False:
+            try:
+                r_cmd, r_task, r_cont = task_method(ret)
+            except Exception as e:
+                logging.critical(
+                    'Error in task "%s", header="%s", '
+                    'method=%s(): %s',
+                    self.tasks[header].__module__,
+                    header,
+                    task_method.__name__,
+                    e, exc_info=True)
+                del self.tasks[header]
+                return (None, Tasks.TASK.TERMINATE, None)
         logging.debug("r_cmd=%s, r_task=%s, r_cont=%s", r_cmd, r_task, r_cont)
         if r_task is Tasks.TASK.TERMINATE:
             logging.debug(

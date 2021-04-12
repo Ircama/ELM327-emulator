@@ -652,15 +652,11 @@ A plugin must always define a class named *Task*, derived from class *Tasks*.
 
 In a plugin, at least the *run()* method should be implemented, overriding the default method of the *Tasks* class. Allowed methods:
 
-- *start()*: invoked to process the first request of a just created task (not required)
-- *stop()*: invoked to process a request before interrupting the task (not required)
-- *run()*: invoked on any request after the first one; if *start()* is not implemented, *run()* is always invoked.
+- `def start(self, cmd)`: invoked to process the first request of a just created task (not required)
+- `def stop(self, cmd)`: invoked to process a request before interrupting the task (not required)
+- `def run(self, cmd)`: invoked on any request after the first one; if *start()* is not implemented, *run()* is always invoked.
 
-Arguments of all methods:
-
-- *length*: for multi-line commands, value of the *length* byte appearing in the First Frame (FF), or *None* for requests where the size byte is missing;
-- *frame*: *None* for single line commands, or *0* for the first line of a multiline command, or a number greater than 0 for the subsequent lines of a multiline command;
-- *cmd*: request message.
+The *cmd* argument includes the request message already concatenating multiline requests.
 
 All methods return a tuple of three elements:
 - an XML response string, which will be subsequently processed by *process_response()* and written to the client application; Null means nothing to output
@@ -677,7 +673,13 @@ Check the *Tasks* class for a list of the available variables initialized by the
 
 ### Helper functions
 
-The helper function `self.multiline_request()` allows processing multiline requests (SF, FF, CF) and shall be called on each frame, passing the standard method parameters, until data is returned. It is able to concatenate a multiline request so that the entire string is returned after the last line; it also internally processes flow control frames while concatenating acquired data, directly delivering `30` FC responses to the application. Return codes are:
+The helper function `self.multiline_request()` allows processing multiline requests (SF, FF, CF) and is called on each frame before executing the method (`start()`, `run()`, `stop()`), until data is returned. It is able to concatenate a multiline request so that the entire string is returned after the last line and this concatenated string is passed to the *cmd* argument of the method; it also internally processes flow control frames while concatenating acquired data, directly delivering `30` FC responses to the application. Its parameters are:
+
+- *length*: for multi-line commands, value of the *length* byte appearing in the First Frame (FF), or *None* for requests where the size byte is missing;
+- *frame*: *None* for single line commands, or *0* for the first line of a multiline command, or a number greater than 0 for the subsequent lines of a multiline command;
+- *cmd*: request message.
+
+Its return codes are:
 
 - *False*: error (the counterpart application sent invalid multiline frames)
 - *None*: incomplete request (a multiline frame is being acquired, but still not completed; additional lines are needed)
