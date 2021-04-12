@@ -673,15 +673,23 @@ Special return codes:
 - `(None, self.TASK.TERMINATE, None)`: task termination (generally with error), no output written, no request processed;
 - `(None, self.TASK.CONTINUE, None)`: do nothing (task continues, no output produced, no request processed).
 
-The helper function *multiline_request()* allows processing multiline requests (SF, FF, CF) and shall be called on each frame, passing the standard method parameters, until data is returned. It is able to concatenate a multiline request so that the entire string is returned after the last line; it also internally processes flow control frames while concatenating acquired data, directly delivering `30` FC responses to the application. Return codes are:
+Check the *Tasks* class for a list of the available variables initialized by the `__init__()` method.
+
+### Helper functions
+
+The helper function `self.multiline_request()` allows processing multiline requests (SF, FF, CF) and shall be called on each frame, passing the standard method parameters, until data is returned. It is able to concatenate a multiline request so that the entire string is returned after the last line; it also internally processes flow control frames while concatenating acquired data, directly delivering `30` FC responses to the application. Return codes are:
 
 - *False*: error (the counterpart application sent invalid multiline frames)
 - *None*: incomplete request (a multiline frame is being acquired, but still not completed; additional lines are needed)
 - data: string including the complete request (without header and length)
 
+The helper function `self.task_request_matched(request)` checks whether the request in the argument (typically returned by `self.multiline_request()`) matches the original request that invoked the task. This is because a task might be called more times if remaining active; this function can for instance differentiate a possible TesterPresent check (which can be forwarded to the standard processor) from the task request (which can be processed within the task, without forwarding it).
+
 The helper function `self.emulator.process_response(xml_string, do_write=True)` can always be called inside the task to generate an output string (e.g., for asynchronous output) from an XML response string.
 
-Check the *Tasks* class for details and for a list of the available attributes.
+The helper functions `self.HD(header)`, `self.SZ(size)` and `self.DT(data)` support the generation of an XML response given the header, size and data fields, similarly to the functions used in the dictionary.
+
+### Examples
 
 Example of a basic task related to a Python plugin named "task_no_data.py", which simply returns *NO DATA* when invoked:
 

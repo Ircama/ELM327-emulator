@@ -20,7 +20,7 @@ class Task(Tasks):
             return (None, self.TASK.TERMINATE, None)
         if ret is None:
             return (None, self.TASK.CONTINUE, None)
-        if ret[:6] == '2EF15A': # Write Fingerprint
+        if self.task_request_matched(ret): # Write Fingerprint
             self.logging.warning('Decoded fingerprint: %s', ret[6:])
             return (self.HD(self.answer) + self.SZ('03') + self.DT('6E F1 5A'),
                     self.TASK.TERMINATE, # 6E = 2E (SID) + 40 hex (positive answer)

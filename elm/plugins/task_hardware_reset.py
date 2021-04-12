@@ -27,9 +27,9 @@ class Task(Tasks):
             return (self.HD(self.answer) + self.SZ('03') +
                     self.DT('7F 11 78'),
                     self.TASK.CONTINUE,
-                    None if ret[:4] == '1101' else cmd)
+                    None if self.task_request_matched(ret) else cmd)
         else:
             return (self.HD(self.answer) + self.SZ('02') +
                     self.DT('51 01'), # positive response: SID=11 + 40 hex
                     self.TASK.TERMINATE,
-                    None if ret[:8] == '1101' else cmd)
+                    None if self.task_request_matched(ret) else cmd)

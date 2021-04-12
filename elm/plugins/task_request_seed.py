@@ -28,11 +28,11 @@ class Task(Tasks):
             return (self.HD(self.answer) + self.SZ('03') +
                     self.DT('7F 27 78'),
                     self.TASK.CONTINUE,
-                    None if ret[:4] == '2711' else cmd)
+                    None if self.task_request_matched(ret) else cmd)
         else:
             seed_bytes = " ".join(SEED[i:i + 2] for i in range(0, len(SEED), 2))
             self.logging.warning('Seed: %s', seed_bytes)
             return (self.HD(self.answer) + self.SZ('06') +
                     self.DT('67 11 ' + seed_bytes), # Positive answer =SID 27 + 40 hex, subfunction 11
                     self.TASK.TERMINATE,
-                    None if ret[:8] == '2711' else cmd)
+                    None if self.task_request_matched(ret) else cmd)

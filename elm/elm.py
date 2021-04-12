@@ -70,11 +70,11 @@ class Tasks:
         TERMINATE = False
         CONTINUE = True
 
-    def __init__(self, emulator, header, msg, do_write=False):
+    def __init__(self, emulator, header, dict, do_write=False):
         self.emulator = emulator # reference to the emulator namespace
         self.header = header # request header
         self.logging = emulator.logger # logger reference
-        self.msg = msg # request message
+        self.dict = dict # dictionary element
         self.do_write = do_write # (boolean) will write to the application
         self.time_started = time.time() # timer (to be used to simulate background processing)
         self.frame = None # multiline request frame counter
@@ -83,14 +83,38 @@ class Tasks:
         self.flow_control_end = 0x20 # multiline request flow control repetitions
         self.answer = hex(int(header, 16) + 8)[2:].upper() # computed answer header
 
-    def SZ(self, size):
-        return ('<size>' + size + '</size>')
-
     def HD(self, header):
+        """
+        Generates the XML tag related to the header byte of the response (EQU ID)
+        :param size: header (ECU ID)
+        :return: XML tag related to the header of the response
+        """
         return ('<header>' + header + '</header>')
 
+    def SZ(self, size):
+        """
+        Generates the XML tag related to the size byte of the response
+        :param size: string including the size byte
+        :return: XML tag related to the size byte of the response
+        """
+        return ('<size>' + size + '</size>')
+
     def DT(self, data):
+        """
+        Generates the XML tag related to the data part of the response (EQU ID)
+        :param size: data part (string of hex data spaced every two bytes)
+        :return: XML tag related to the data part of the response
+        """
         return ('<data>' + data + '</data>')
+
+    def task_request_matched(self, request):
+        """
+        Check whether the request in the argument matches the original request
+        that invoked the task.
+        :param request:
+        :return: boolean (true if the given request matches the original task request)
+        """
+        return re.match(self.dict['Request'], request)
 
     def multiline_request(self, length, frame, cmd):
         """

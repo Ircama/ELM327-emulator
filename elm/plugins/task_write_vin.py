@@ -20,7 +20,7 @@ class Task(Tasks):
             return (None, self.TASK.TERMINATE, None)
         if ret is None:
             return (None, self.TASK.CONTINUE, None)
-        if ret[:6] == '2EF190':  # Write VIN
+        if self.task_request_matched(ret):
             self.logging.warning('Decoded VIN: %s',
                                  repr(bytearray.fromhex(ret[6:]).decode()))
             return (self.HD(self.answer) + self.SZ('03') +
