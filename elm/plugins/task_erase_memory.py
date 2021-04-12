@@ -23,7 +23,7 @@ class Task(Tasks):
             return (None, self.TASK.TERMINATE, None)
         if ret is None:
             return (None, self.TASK.CONTINUE, None)
-        if ret[:8] == '3101FF00':
+        if self.task_request_matched(ret):
             self.logging.warning('Erase memory, Data: %s', ret[8:])
         if time.time() < self.time_started + EXECUTION_TIME:
             # 7F=Negative Response, SID 31, 78=requestCorrectlyReceived-ResponsePending
