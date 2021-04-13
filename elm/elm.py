@@ -1321,6 +1321,12 @@ class Elm:
                             self.answer, pid, e)
                 if 'Task' in val:
                     if val['Task'] in self.plugins:
+                        if header in self.tasks:
+                            logging.debug(
+                                'Another task %s was active on the same header'
+                                ' %s. Deleting it.',
+                                self.tasks[header].__module__, header)
+                            del self.tasks[header]
                         try:
                             self.tasks[header] = self.plugins[val['Task']].Task(
                                 self, header, val, do_write)
