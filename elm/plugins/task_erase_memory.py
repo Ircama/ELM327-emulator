@@ -17,9 +17,11 @@ EXECUTION_TIME = 0.5 # seconds
 # UDS - MODE 31 01 - RoutineControl SF (SID=31, routineControlType 01=startRoutine)
 # FF 00, erase_memory (RID)
 class Task(Tasks):
+    def start(self, cmd):
+        self.logging.warning('Erase memory, Data: %s', cmd[8:])
+        self.run(cmd)
+
     def run(self, cmd):
-        if self.task_request_matched(cmd):
-            self.logging.warning('Erase memory, Data: %s', cmd[8:])
         if time.time() < self.time_started + EXECUTION_TIME:
             # 7F=Negative Response, SID 31, 78=requestCorrectlyReceived-ResponsePending
             return (self.HD(self.answer) + self.SZ('03') +
