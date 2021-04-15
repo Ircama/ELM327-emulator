@@ -802,7 +802,9 @@ class Elm:
                 logging.error(
                     "Error while reading from network: %s", msg)
                 return None
-            if 'cmd_echo' in self.counters and self.counters['cmd_echo'] == 1:
+            if 'cmd_echo' not in self.counters or (
+                    'cmd_echo' in self.counters and
+                    self.counters['cmd_echo']):
                 self.sock_conn.sendall(c)
             return c
 
@@ -820,8 +822,9 @@ class Elm:
                     logging.debug(
                         'Error while reading from %s', self.get_port_name())
                     return None
-                if ('cmd_echo' in self.counters and
-                        self.counters['cmd_echo'] == 1):
+                if 'cmd_echo' not in self.counters or (
+                        'cmd_echo' in self.counters and
+                        self.counters['cmd_echo']):
                     self.serial_fd.write(c)
 
             # Device port (use os IO)
@@ -832,8 +835,9 @@ class Elm:
                     self.terminate()
                     return None
                 c = os.read(self.master_fd, bytes)
-                if ('cmd_echo' in self.counters and
-                        self.counters['cmd_echo'] == 1):
+                if 'cmd_echo' not in self.counters or (
+                        'cmd_echo' in self.counters and
+                        self.counters['cmd_echo']):
                     try:
                         os.write(self.master_fd, c)
                     except OSError as e:

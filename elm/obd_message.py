@@ -178,7 +178,7 @@ ObdMessage = {
         'AT_ECHO': {
             'Request': '^ATE[01]$',
             'Descr': 'AT ECHO',
-            'Exec': 'self.counters["cmd_echo"] = (cmd[3] == "1")',
+            'Exec': 'self.counters["cmd_echo"] = (not cmd[3] == "0")',
             'Log': '"set ECHO ON/OFF : %s", self.counters["cmd_echo"]',
             'Response': ELM_R_OK
         },
