@@ -275,6 +275,7 @@ Special setter  |Related AT command     |Handled|Description
 `cmd_rec_addr`  |*ATSR hh* (hh = addr)  |No     |Set receive address
 `cmd_hfm`       |*ATCM m* (m = addr)    |No     |Set the CAN hardware filter mask
 `cmd_brt`       |*ATBRT t* (t = timeout)|No     |Set UART baud rate timeout
+`cmd_wakeup`    |*ATSW hh* (hh = addr)  |Bo     |Set wakeup
 
 Unhandled setter means that the AT command is recognized, the related counter is valued but no process is currently associated.
 

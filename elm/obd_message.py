@@ -263,6 +263,14 @@ ObdMessage = {
                    'self.counters["cmd_cfp"]',
             'Response': ELM_R_OK
         },
+        'AT_WAKEUP': {
+            'Request': '^ATSW[0-9A-F]+$',
+            'Descr': 'AT Set wakeup',
+            'Exec': 'self.counters["cmd_wakeup"] = cmd[4:]',
+            'Log': '"Set wakeup to <%s>", '
+                   'self.counters["cmd_wakeup"]',
+            'Response': ELM_R_OK
+        },
         'AT_FCSH': {
             'Request': '^ATFCSH',
             'Descr': 'AT FLOW CONTROL SET HEADER',
