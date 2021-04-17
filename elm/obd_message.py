@@ -2433,13 +2433,17 @@ ObdMessage = {
     'UDS_WF': {
         'Request': '^2EF15A' + ELM_DATA_FOOTER, # 2E,F1,5A - Write Fingerprint (Continental)
         'Descr': 'Write Fingerprint',
-        'Task': "task_write_fingerprint"
+        'Log': '"Decoded fingerprint %s", cmd[6:]',
+        'Header': ECU_ADDR_M,
+        'Response': HD(ECU_R_ADDR_M) + SZ('03') + DT('6E F1 5A') # 6E = 2E (SID) + 40 hex (positive answer)
     },
     'UDS_W_VIN': {
         'Request': '^2EF190' + ELM_DATA_FOOTER, # 2E,F1,90 - write dataIdentifier 0xF190 (VIN)
         'Descr': 'Write VIN',
-        'Task': "task_write_vin"
-    },
+        'Log': '"Decoded VIN: %s", repr(bytearray.fromhex(cmd[6:]).decode())',
+        'Header': ECU_ADDR_M,
+        'Response': HD(ECU_R_ADDR_M) + SZ('03') + DT('6E F1 90')  # 6E = 2E (SID) + 40 hex (positive answer)
+        },
     # -------------------------------------------------------------------
     # UDS - MODE 31 - UDS Routine Control
         'UDS_ERASE_MEM': {

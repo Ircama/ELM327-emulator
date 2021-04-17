@@ -63,12 +63,16 @@ class Tasks:
     Base class for tasks.
     All tasks/plugins shall implement a class named Task derived from Tasks.
     """
+
     class TASK:
         """
-        These are the possible values of the second parameter of the method return tuple
+        method return values
         """
         TERMINATE = False
         CONTINUE = True
+        ERROR = (None, TERMINATE, None)
+        INCOMPLETE = (None, CONTINUE, None)
+        def PASSTHROUGH(cmd): return (None, Tasks.TASK.TERMINATE, cmd)
 
     def __init__(self, emulator, header, dict, do_write=False):
         self.emulator = emulator # reference to the emulator namespace
@@ -116,23 +120,73 @@ class Tasks:
         """
         return re.match(self.dict['Request'], request)
 
-    def multiline_request(self, length, frame, cmd):
+    def start(self, cmd, length=None, frame=None):
+        """
+        This method is executed when the task is started.
+        If not overridden, it calls run()
+        :param cmd: request to process
+        :return: tuple of three values:
+            - XML response (or None for no output)
+            - boolean to terminate the task or to keep it active
+            - request to be subsequently processed after outputting the XML
+                response in the first element (or Null to disable subsequent
+                processing)
+        """
+        return self.run(cmd, length, frame)
+
+    def stop(self, cmd, length=None, frame=None):
+        """
+        This method is executed when the task is interrupted by an error.
+        If not overridden, it calls run()
+        :param cmd: request to process
+        :return: tuple of three values:
+            - XML response (or None for no output)
+            - boolean to terminate the task or to keep it active
+            - request to be subsequently processed after outputting the XML
+                response in the first element (or Null to disable subsequent
+                processing)
+        """
+        return self.run(cmd, length, frame)
+
+    def run(self, cmd, length=None, frame=None):
+        """
+        Main method to be overridden by the actual task; it is always run
+            if start and stop are not overridden, otherwise it is run for the
+            subsequent frames after the first one
+        :param cmd: request to process
+        :return: tuple of three values:
+            - XML response (or None for no output)
+            - boolean to terminate the task or to keep it active
+            - request to be subsequently processed after outputting the XML
+                response in the first element (or Null to disable subsequent
+                processing)
+        """
+        return Tasks.TASK.PASSTHROUGH(cmd)
+
+
+class Multiline(Tasks):
+    """
+    Special task to aggregate a multiline request into a single string
+    before processing the request.
+    """
+
+    def run(self, cmd, length=None, frame=None):
         """
         Compose a multiline request. Call it on each request fragment,
         passing the standard method parameters, until data is returned.
 
+        :param cmd: frame data (excluding header and length)
         :param length: decimal value of the length byte of a multiline frame
         :param frame: can be None (single frame), 0 (First Frame) or > 0 (subsequent frame)
-        :param cmd: frame data (excluding header and length)
         :return:
-            False: error
-            None: incomplete request
-            data: complete request
+            error = Tasks.TASK.ERROR
+            incomplete request = Tasks.TASK.INCOMPLETE
+            complete request = Tasks.TASK.PASSTHROUGH(cmd)
         """
         if frame is not None and frame == 0 and length > 0: # First Frame (FF)
             if self.frame or self.length:
                 self.logging.error('Invalid initial frame %s %s', length, cmd)
-                return False
+                return Tasks.TASK.ERROR
             self.req = cmd
             self.frame = 1
             self.length = length
@@ -145,12 +199,12 @@ class Tasks:
             self.req = cmd
             self.length = length
             if length:
-                return self.req[:self.length * 2]
+                return Tasks.TASK.PASSTHROUGH(self.req[:self.length * 2])
             else:
-                return self.req
+                return Tasks.TASK.PASSTHROUGH(self.req)
         else:
             self.logging.error('Invalid consecutive frame %s %s', frame, cmd)
-            return False
+            return Tasks.TASK.ERROR
 
         # Process Flow Control (FC)
         if self.flow_control:
@@ -168,51 +222,8 @@ class Tasks:
 
         if self.length * 2 <= len(self.req):
             self.frame = None
-            return self.req[:self.length * 2]
-        return None
-
-    def start(self, cmd):
-        """
-        This method is executed when the task is started.
-        If not overridden, it calls run()
-        :param cmd: request to process
-        :return: tuple of three values:
-            - XML response (or None for no output)
-            - boolean to terminate the task or to keep it active
-            - request to be subsequently processed after outputting the XML
-                response in the first element (or Null to disable subsequent
-                processing)
-        """
-        return self.run(cmd)
-
-    def stop(self, cmd):
-        """
-        This method is executed when the task is interrupted by an error.
-        If not overridden, it calls run()
-        :param cmd: request to process
-        :return: tuple of three values:
-            - XML response (or None for no output)
-            - boolean to terminate the task or to keep it active
-            - request to be subsequently processed after outputting the XML
-                response in the first element (or Null to disable subsequent
-                processing)
-        """
-        return self.run(cmd)
-
-    def run(self, cmd):
-        """
-        Main method to be overridden by the actual task; it is always run
-            if start and stop are not overridden, otherwise it is run for the
-            subsequent frames after the first one
-        :param cmd: request to process
-        :return: tuple of three values:
-            - XML response (or None for no output)
-            - boolean to terminate the task or to keep it active
-            - request to be subsequently processed after outputting the XML
-                response in the first element (or Null to disable subsequent
-                processing)
-        """
-        return (None, self.TASK.TERMINATE, cmd) # the default is a pass-through
+            return Tasks.TASK.PASSTHROUGH(self.req[:self.length * 2])
+        return Tasks.TASK.INCOMPLETE
 
 
 class Elm:
@@ -1112,7 +1123,7 @@ class Elm:
             return False
         return True
 
-    def task_action(self, header, do_write, task_method, length, frame, cmd):
+    def task_action(self, header, do_write, task_method, cmd, length, frame):
         """
         Call a task method (start(), run(), or stop()), manage the exception,
          pre-process r_task and r_cont return values and return a tuple with
@@ -1125,7 +1136,7 @@ class Elm:
         :param frame:
         :param cmd:
         :return: a tuple of three elements with the same return parameters
-                as the task methods
+                as the Task methods
         """
         logging.debug(
             "Running task %s.%s(%s, %s, %s) with header %s",
@@ -1135,24 +1146,18 @@ class Elm:
         r_cmd = None
         r_task = Tasks.TASK.TERMINATE
         r_cont = None
-        ret = self.tasks[header].multiline_request(length, frame, cmd)
-        if ret is None:
-            r_task = Tasks.TASK.CONTINUE
-            logging.debug("Incomplete multiframe received: %s", repr(cmd))
-            return (r_cmd, r_task, r_cont)
-        if ret is not False:
-            try:
-                r_cmd, r_task, r_cont = task_method(ret)
-            except Exception as e:
-                logging.critical(
-                    'Error in task "%s", header="%s", '
-                    'method=%s(): %s',
-                    self.tasks[header].__module__,
-                    header,
-                    task_method.__name__,
-                    e, exc_info=True)
-                del self.tasks[header]
-                return (None, Tasks.TASK.TERMINATE, None)
+        try:
+            r_cmd, r_task, r_cont = task_method(cmd, length, frame)
+        except Exception as e:
+            logging.critical(
+                'Error in task "%s", header="%s", '
+                'method=%s(): %s',
+                self.tasks[header].__module__,
+                header,
+                task_method.__name__,
+                e, exc_info=True)
+            del self.tasks[header]
+            return Tasks.TASK.ERROR
         logging.debug("r_cmd=%s, r_task=%s, r_cont=%s", r_cmd, r_task, r_cont)
         if r_task is Tasks.TASK.TERMINATE:
             logging.debug(
@@ -1228,10 +1233,10 @@ class Elm:
 
         # manages cmd_caf, length, frame
         size = cmd[:2]
-        length = None
-        frame = None
+        length = None # no byte length in request
+        frame = None # Single Frame
         if ('cmd_caf' in self.counters and
-                not self.counters['cmd_caf'] and
+                not self.counters['cmd_caf'] and # PCI byte in requests
                 size != 'AT' and self.is_hex_sp(size)):
             try:
                 int_size = int(size, 16)
@@ -1271,25 +1276,31 @@ class Elm:
             header = self.counters['cmd_set_header']
 
         # Manage active tasks
+        if (header not in self.tasks and
+                length is not None and frame is not None):
+            self.tasks[header] = Multiline(self, header, None, do_write)
         if header in self.tasks:
             if self.is_hex_sp(cmd):
                 cmd, *_, cont = self.task_action(header, do_write,
-                    self.tasks[header].run, length, frame, cmd)
+                    self.tasks[header].run, cmd, length, frame)
                 if cont is None:
                     return cmd
                 else:
                     cmd = cont
+                    frame = None
+                    length = None
             else:
                 logging.warning('Interrupted task "%s" with header "%s"',
                                 self.tasks[header].__module__, header)
                 cmd, *_, cont = self.task_action(header, do_write,
-                    self.tasks[header].stop, length, frame, cmd)
+                    self.tasks[header].stop, cmd, length, frame)
                 if header in self.tasks:
                     del self.tasks[header]
                 if cont is None:
                     return cmd
                 else:
                     cmd = cont
+
         # Process response for data stored in cmd
         for i in self.sortedOBDMsg:
             key = i[0]
@@ -1342,7 +1353,7 @@ class Elm:
                         logging.debug('Starting task "%s" with header "%s"',
                                       self.tasks[header].__module__, header)
                         cmd, *_, cont = self.task_action(header, do_write,
-                            self.tasks[header].start, length, frame, cmd)
+                            self.tasks[header].start, cmd, length, frame)
                         if cont is None:
                             return cmd
                         else:

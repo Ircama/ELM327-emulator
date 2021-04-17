@@ -17,7 +17,7 @@ SEED = 'A641B5E9'
 
 # UDS - MODE 27 - Security Access - 11=request seed
 class Task(Tasks):
-    def run(self, cmd):
+    def run(self, cmd, *_):
         if time.time() < self.time_started + EXECUTION_TIME:
             # 7F=Negative Response, SID 27, 78=requestCorrectlyReceived-ResponsePending
             return (self.HD(self.answer) + self.SZ('03') +

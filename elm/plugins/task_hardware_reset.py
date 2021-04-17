@@ -16,7 +16,7 @@ EXECUTION_TIME = 0.5 # seconds
 
 # UDS - MODE 11 - ECU Reset - hardReset
 class Task(Tasks):
-    def run(self, cmd):
+    def run(self, cmd, *_):
         if time.time() < self.time_started + EXECUTION_TIME:
             # 7F=Negative Response, SID 11, 78=requestCorrectlyReceived-ResponsePending
             return (self.HD(self.answer) + self.SZ('03') +

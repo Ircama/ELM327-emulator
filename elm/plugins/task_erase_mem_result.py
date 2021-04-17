@@ -17,7 +17,7 @@ EXECUTION_TIME = 0.5 # seconds
 # UDS - MODE 31 03 - RoutineControl SF (SID=31, routineControlType 03=Request Routine Result)
 # FF 00, erase_memory (RID)
 class Task(Tasks):
-    def run(self, cmd):
+    def run(self, cmd, *_):
         if time.time() < self.time_started + EXECUTION_TIME:
             # 7F=Negative Response, SID 31, 78=requestCorrectlyReceived-ResponsePending
             return (self.HD(self.answer) + self.SZ('03') +
