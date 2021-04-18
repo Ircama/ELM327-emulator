@@ -806,7 +806,19 @@ ObdMessage = {
             'Request': '^090B' + ELM_FOOTER,
             'Descr': 'In-use performance tracking (compression ignition)',
             'Response': HD(ECU_R_ADDR_E) + SZ('04') + DT('00 00 00 00') # improper value at the moment (to be revised)
-        }
+        },
+        'START_COMM': {
+            'Request': '^81' + ELM_FOOTER,
+            'Descr': 'Start Communication',
+            'Exec': 'self.scenario = "mt05"; self.setSortedOBDMsg()',
+            'Response': ST('83 F1 11 C1 EF 8F C4')
+        },
+        'STOP_COMM': {
+            'Request': '^82' + ELM_FOOTER,
+            'Descr': 'Stop Communication',
+            'Exec': 'self.scenario = "default"; self.setSortedOBDMsg()',
+            'Response': ST('81 F1 11 C2 45')
+        },
     },
 # --------------------------------------------------------------------------
 # Pids of a Toyota Auris Hybrid car
@@ -4154,6 +4166,33 @@ ObdMessage = {
             'Unit': 'degrees/s',
             'Header': ECU_ADDR_S,
             'Response': HD(ECU_R_ADDR_S) + SZ('03') + DT('61 A1 80')
+        },
+    },
+    'mt05': {
+        'RPM': {
+            'Request': '^010C' + ELM_FOOTER,
+            'Descr': 'Engine RPM',
+            'ResponseFooter': \
+                lambda self, cmd, pid, val: \
+                    HD(ECU_R_ADDR_E) + SZ('04') + DT('41 0C ' \
+                                                     + self.Sequence(pid, base=2400, max=200, factor=80, n_bytes=2) \
+                                                     + ' ' + HD(ECU_R_ADDR_H) + SZ('04') + '41 0C ' \
+                                                     + self.Sequence(pid, base=2400, max=200, factor=80, n_bytes=2))
+        },
+        'SPEED': {
+            'Request': '^010D' + ELM_FOOTER,
+            'Descr': 'Vehicle Speed',
+            'ResponseFooter': \
+                lambda self, cmd, pid, val: \
+                    HD(ECU_R_ADDR_E) + SZ('03') + DT('41 0D ' \
+                                                     + self.Sequence(pid, base=0, max=30, factor=4, n_bytes=1) \
+                                                     + ' ' + HD(ECU_R_ADDR_H) + SZ('03') + '41 0D ' \
+                                                     + self.Sequence(pid, base=0, max=30, factor=4, n_bytes=1))
+        },
+        'OBD_COMPLIANCE': {
+            'Request': '^011C' + ELM_FOOTER,
+            'Descr': 'OBD Compliance',
+            'Response': ST('81 F1 11 03 86')
         },
     }
 }
