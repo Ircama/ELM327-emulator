@@ -23,6 +23,6 @@ class Task(Tasks):
                     self.TASK.CONTINUE,
                     None if self.task_request_matched(cmd) else cmd)
         else:
-            return (self.AW('51 01'), # positive response: SID=11 + 40 hex
+            return (self.PA(),
                     self.TASK.TERMINATE,
                     None if self.task_request_matched(cmd) else cmd)

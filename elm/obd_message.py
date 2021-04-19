@@ -44,6 +44,9 @@ def ST(writeln):
 def AW(answer):
     return ('<answer>' + answer + '</answer>')
 
+def PA(pos_answer):
+    return ('<pos_answer>' + pos_answer + '</pos_answer>')
+
 ELM_R_OK = ST("OK")
 ELM_R_UNKNOWN = ST("?")
 ELM_FOOTER = r'[0123456]?$'
@@ -4177,8 +4180,7 @@ ObdMessage = {
             'Descr': 'Engine RPM',
             'ResponseFooter': \
                 lambda self, cmd, pid, val: \
-                    AW('41 0C ' +
-                       self.Sequence(
+                    PA(self.Sequence(
                            pid, base=2400, max=200, factor=80, n_bytes=2))
         },
         'SPEED': {
@@ -4186,33 +4188,34 @@ ObdMessage = {
             'Descr': 'Vehicle Speed',
             'ResponseFooter': \
                 lambda self, cmd, pid, val: \
-                    AW('41 0D ' +
-                        self.Sequence(
+                    PA(self.Sequence(
                             pid, base=0, max=30, factor=4, n_bytes=1))
         },
         'OBD_COMPLIANCE': {
             'Request': '^011C' + ELM_FOOTER,
             'Descr': 'OBD Compliance',
-            'Response': AW('41 1C 01')
+            'Response': PA('03')
         },
         "CUSTOM_CAL'D_LOAD": {
             'Request': '^2101' + ELM_FOOTER,
             'Descr': 'Calculated Load',
-            'Response': AW('61 01' +
-                           '66 00 29 01 3B 24 37 61 66 11 26 53 00 9B 00 2A 7B 2A 04 00 33 00 5D 39 73' +
-                           '00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00' +
-                           '00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00' +
-                           '00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00')
+            'Response': PA(
+                '66 00 29 01 3B 24 37 61 66 11 26 53 00 9B 00 2A 7B 2A 04 00'
+                '33 00 5D 39 73 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00'
+                '00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00'
+                '00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00'
+                '00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00')
         },
         'CUSTOM_FR_WS': {
             'Request': '^2103' + ELM_FOOTER,
             'Descr': 'FR Wheel Speed',
-            'Response': AW('61 03 3E 3E 3D 3D'),
+            'Response': PA('3E 3E 3D 3D'),
         },
         'CUSTOM_TAFR': {
             'Request': '^2104' + ELM_FOOTER,
             'Descr': 'Target Air-Fuel Ratio',
-            'Response': AW('61 04 7F F2 7F 73 6A 11 7F 73 80 01 00 FF 00 00 00 00 00 00'),
+            'Response': PA(
+                '7F F2 7F 73 6A 11 7F 73 80 01 00 FF 00 00 00 00 00 00'),
         }
     }
 }

@@ -26,6 +26,6 @@ class Task(Tasks):
         else:
             seed_bytes = " ".join(SEED[i:i + 2] for i in range(0, len(SEED), 2))
             self.logging.warning('Seed: %s', seed_bytes)
-            return (self.AW('67 11 ' + seed_bytes), # Positive answer =SID 27 + 40 hex, subfunction 11
+            return (self.PA(seed_bytes),
                     self.TASK.TERMINATE,
                     None if self.task_request_matched(cmd) else cmd)

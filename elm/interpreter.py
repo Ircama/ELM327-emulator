@@ -207,7 +207,8 @@ class Interpreter(Cmd):
                 "Current logging level:",
                     logging.getLogger().handlers[0].level)
 
-    def do_verify(self, arg, do_write=False, request_header=None):
+    def do_verify(
+            self, arg, do_write=False, request_header=None, request_data=None):
         'Test the processing of the formatted XML response specified in\n'\
         'the argument (like "write", but without writing to the application).'
         if not arg:
@@ -216,7 +217,10 @@ class Interpreter(Cmd):
             return
         try:
             ret = self.emulator.process_response(
-                arg, do_write=do_write, request_header=request_header)
+                arg,
+                do_write=do_write,
+                request_header=request_header,
+                request_data=request_data)
             if ret is None:
                 print(
                     'Null data returned while processing XML response "{}".'.
@@ -254,7 +258,7 @@ class Interpreter(Cmd):
             print(traceback.format_exc())
             return
         print("\n______Command output:____________")
-        self.do_verify(ret, request_header=request_header)
+        self.do_verify(ret, request_header=request_header, request_data=arg)
 
     def do_port(self, arg):
         "Print the used TCP/IP port, or the used device, "\

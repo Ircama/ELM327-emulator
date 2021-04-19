@@ -119,6 +119,14 @@ class Tasks:
         """
         return ('<answer>' + answer + '</answer>')
 
+    def PA(pos_answer):
+        """
+        Generates a positive answer XML tag, including header, size and data.
+        :param answer: data part (string of hex data)
+        :return: XML tag related to the response
+        """
+        return ('<pos_answer>' + pos_answer + '</pos_answer>')
+
     def task_request_matched(self, request):
         """
         Check whether the request in the argument matches the original request
@@ -221,9 +229,11 @@ class Multiline(Tasks):
             if ('cmd_cfc' not in self.emulator.counters or
                     self.emulator.counters['cmd_cfc'] == 1):
                 resp = self.emulator.process_response(
-                    self.header,
                     ('<flow>' + hex(self.flow_control_end)[2:].upper() +
-                     ' 00</flow>'), do_write=self.do_write)
+                     ' 00</flow>'),
+                    do_write=self.do_write,
+                    request_header=self.header,
+                    request_data=cmd)
                 if not self.do_write:
                     self.logging.warning("Output data: %s", repr(resp))
             self.flow_control = self.flow_control_end - 1
@@ -612,8 +622,11 @@ class Elm:
                                      repr(self.cmd), e, traceback.format_exc())
                     continue
                 if resp is not None:
-                    resp = self.process_response(resp, do_write=True,
-                                                 request_header=request_header)
+                    resp = self.process_response(
+                        resp,
+                        do_write=True,
+                        request_header=request_header,
+                        request_data=self.cmd)
             else:
                 logging.warning("Invalid request: %s", repr(self.cmd))
         return True
@@ -1009,13 +1022,17 @@ class Elm:
                 answer = ("80 " + # Extra length byte follows
                           request_header[4:6] + " " +
                           request_header[2:4] + " " +
-                          hex(length)[2:].upper() + data)
+                          hex(length)[2:].upper() + " " + data)
             answer += " %02X" % (sum(bytearray.fromhex(answer)) % 256)
         else:
             logging.error('Invalid request header: %s', repr(request_header))
         return answer
 
-    def process_response(self, resp, do_write=False, request_header=None):
+    def process_response(self,
+                         resp,
+                         do_write=False,
+                         request_header=None,
+                         request_data=None):
         """ compute the response and returns data written to the device """
 
         logging.debug("Processing: %s", repr(resp))
@@ -1072,6 +1089,8 @@ class Elm:
                 break
             if i.tag.lower() == 'rh':
                 request_header = (i.text or "")
+            elif i.tag.lower() == 'rd':
+                request_data = (i.text or "")
             elif i.tag.lower() == 'string':
                 answ += (i.text or "")
             elif i.tag.lower() == 'writeln':
@@ -1111,6 +1130,23 @@ class Elm:
 
             elif i.tag.lower() == 'answer':
                 answ += self.compose_answer(i.text or "", request_header)
+
+            elif i.tag.lower() == 'pos_answer':
+                if not request_data:
+                    logging.error(
+                        'Missing request with <positive_answer> tag: %s.',
+                        repr(resp))
+                    break
+                try:
+                    request_data = (''.join('{:02x}'.format(x)
+                                     for x in bytearray.fromhex(
+                                        request_data)).upper())
+                except ValueError:
+                    logging.error('Invalid request: %s', repr(request_data))
+                    return ""
+                data = ("%02X"%(bytearray.fromhex(request_data[:2])[0] + 64) +
+                        request_data[2:] + (i.text or ""))
+                answ += self.compose_answer(data, request_header)
 
             elif i.tag.lower() == 'header':
                 answers = True
@@ -1228,7 +1264,11 @@ class Elm:
             del self.tasks[header]
         if r_cont is not None:
             if r_cmd is not None:
-                resp = self.process_response(header, r_cmd, do_write=do_write)
+                resp = self.process_response(
+                    r_cmd,
+                    do_write=do_write,
+                    request_header=header,
+                    request_data=cmd)
                 if not do_write:
                     logging.warning("Task with header %s returned %s",
                                     header, repr(resp))
