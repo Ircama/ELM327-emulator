@@ -41,6 +41,9 @@ def DT(data):
 def ST(writeln):
     return ('<writeln>' + writeln + '</writeln>')
 
+def AW(answer):
+    return ('<answer>' + answer + '</answer>')
+
 ELM_R_OK = ST("OK")
 ELM_R_UNKNOWN = ST("?")
 ELM_FOOTER = r'[0123456]?$'
@@ -810,14 +813,14 @@ ObdMessage = {
         'START_COMM': {
             'Request': '^81' + ELM_FOOTER,
             'Descr': 'Start Communication',
-            'Exec': 'self.scenario = "mt05"; self.setSortedOBDMsg()',
-            'Response': ST('83 F1 11 C1 EF 8F C4')
+            'Exec': 'self.setSortedOBDMsg("mt05")',
+            'Response': AW('C1 EF 8F') # 81 + 40 = C1 (positive answer)
         },
         'STOP_COMM': {
             'Request': '^82' + ELM_FOOTER,
             'Descr': 'Stop Communication',
-            'Exec': 'self.scenario = "default"; self.setSortedOBDMsg()',
-            'Response': ST('81 F1 11 C2 45')
+            'Exec': 'self.setSortedOBDMsg("default")',
+            'Response': AW('C2') # 82 + 40 = C2 (positive answer)
         },
     },
 # --------------------------------------------------------------------------
@@ -2445,14 +2448,14 @@ ObdMessage = {
     'UDS_WF': {
         'Request': '^2EF15A' + ELM_DATA_FOOTER, # 2E,F1,5A - Write Fingerprint (Continental)
         'Descr': 'Write Fingerprint',
-        'Log': '"Decoded fingerprint %s", cmd[6:]',
+        'Info': '"Decoded fingerprint %s", cmd[6:]',
         'Header': ECU_ADDR_M,
         'Response': HD(ECU_R_ADDR_M) + SZ('03') + DT('6E F1 5A') # 6E = 2E (SID) + 40 hex (positive answer)
     },
     'UDS_W_VIN': {
         'Request': '^2EF190' + ELM_DATA_FOOTER, # 2E,F1,90 - write dataIdentifier 0xF190 (VIN)
         'Descr': 'Write VIN',
-        'Log': '"Decoded VIN: %s", repr(bytearray.fromhex(cmd[6:]).decode())',
+        'Info': '"Decoded VIN: %s", repr(bytearray.fromhex(cmd[6:]).decode())',
         'Header': ECU_ADDR_M,
         'Response': HD(ECU_R_ADDR_M) + SZ('03') + DT('6E F1 90')  # 6E = 2E (SID) + 40 hex (positive answer)
         },
@@ -4174,25 +4177,42 @@ ObdMessage = {
             'Descr': 'Engine RPM',
             'ResponseFooter': \
                 lambda self, cmd, pid, val: \
-                    HD(ECU_R_ADDR_E) + SZ('04') + DT('41 0C ' \
-                                                     + self.Sequence(pid, base=2400, max=200, factor=80, n_bytes=2) \
-                                                     + ' ' + HD(ECU_R_ADDR_H) + SZ('04') + '41 0C ' \
-                                                     + self.Sequence(pid, base=2400, max=200, factor=80, n_bytes=2))
+                    AW('41 0C ' +
+                       self.Sequence(
+                           pid, base=2400, max=200, factor=80, n_bytes=2))
         },
         'SPEED': {
             'Request': '^010D' + ELM_FOOTER,
             'Descr': 'Vehicle Speed',
             'ResponseFooter': \
                 lambda self, cmd, pid, val: \
-                    HD(ECU_R_ADDR_E) + SZ('03') + DT('41 0D ' \
-                                                     + self.Sequence(pid, base=0, max=30, factor=4, n_bytes=1) \
-                                                     + ' ' + HD(ECU_R_ADDR_H) + SZ('03') + '41 0D ' \
-                                                     + self.Sequence(pid, base=0, max=30, factor=4, n_bytes=1))
+                    AW('41 0D ' +
+                        self.Sequence(
+                            pid, base=0, max=30, factor=4, n_bytes=1))
         },
         'OBD_COMPLIANCE': {
             'Request': '^011C' + ELM_FOOTER,
             'Descr': 'OBD Compliance',
-            'Response': ST('81 F1 11 03 86')
+            'Response': AW('41 1C 01')
         },
+        "CUSTOM_CAL'D_LOAD": {
+            'Request': '^2101' + ELM_FOOTER,
+            'Descr': 'Calculated Load',
+            'Response': AW('61 01' +
+                           '66 00 29 01 3B 24 37 61 66 11 26 53 00 9B 00 2A 7B 2A 04 00 33 00 5D 39 73' +
+                           '00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00' +
+                           '00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00' +
+                           '00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00')
+        },
+        'CUSTOM_FR_WS': {
+            'Request': '^2103' + ELM_FOOTER,
+            'Descr': 'FR Wheel Speed',
+            'Response': AW('61 03 3E 3E 3D 3D'),
+        },
+        'CUSTOM_TAFR': {
+            'Request': '^2104' + ELM_FOOTER,
+            'Descr': 'Target Air-Fuel Ratio',
+            'Response': AW('61 04 7F F2 7F 73 6A 11 7F 73 80 01 00 FF 00 00 00 00 00 00'),
+        }
     }
 }

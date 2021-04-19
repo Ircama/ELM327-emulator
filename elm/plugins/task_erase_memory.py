@@ -24,12 +24,10 @@ class Task(Tasks):
     def run(self, cmd, *_):
         if time.time() < self.time_started + EXECUTION_TIME:
             # 7F=Negative Response, SID 31, 78=requestCorrectlyReceived-ResponsePending
-            return (self.HD(self.answer) + self.SZ('03') +
-                    self.DT('7F 31 78'),
+            return (self.AW('7F 31 78'),
                     self.TASK.CONTINUE,
                     None if self.task_request_matched(cmd) else cmd)
         else:
-            return (self.HD(self.answer) + self.SZ('05') +
-                    self.DT('71 01 FF 00 00'), # Positive Response (SID + 40 hex)
+            return (self.AW('71 01 FF 00 00'), # Positive Response (SID + 40 hex)
                     self.TASK.TERMINATE,
                     None if self.task_request_matched(cmd) else cmd)
