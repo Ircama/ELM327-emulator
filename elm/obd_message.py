@@ -817,13 +817,13 @@ ObdMessage = {
             'Request': '^81' + ELM_FOOTER,
             'Descr': 'Start Communication',
             'Exec': 'self.setSortedOBDMsg("mt05")',
-            'Response': AW('C1 EF 8F') # 81 + 40 = C1 (positive answer)
+            'Response': PA('EF 8F')
         },
         'STOP_COMM': {
             'Request': '^82' + ELM_FOOTER,
             'Descr': 'Stop Communication',
             'Exec': 'self.setSortedOBDMsg("default")',
-            'Response': AW('C2') # 82 + 40 = C2 (positive answer)
+            'Response': PA('')
         },
     },
 # --------------------------------------------------------------------------
@@ -2444,7 +2444,7 @@ ObdMessage = {
             'Request': '^2712B151D58F' + ELM_FOOTER,
             'Descr': 'UDS Send Key',
             'Header': ECU_ADDR_M,
-            'Response': HD(ECU_R_ADDR_M) + SZ('02') + DT('67 12') # 67 = positive answer = SID 27 + 40 hex
+            'Response': AW('67 12') # 67 = positive answer = SID 27 + 40 hex
         },
     # -------------------------------------------------------------------
     # UDS - MODE 2E - writeDataByIdentifier Service (Appl. Inc.)
@@ -2453,14 +2453,14 @@ ObdMessage = {
         'Descr': 'Write Fingerprint',
         'Info': '"Decoded fingerprint %s", cmd[6:]',
         'Header': ECU_ADDR_M,
-        'Response': HD(ECU_R_ADDR_M) + SZ('03') + DT('6E F1 5A') # 6E = 2E (SID) + 40 hex (positive answer)
+        'Response': PA('')
     },
     'UDS_W_VIN': {
         'Request': '^2EF190' + ELM_DATA_FOOTER, # 2E,F1,90 - write dataIdentifier 0xF190 (VIN)
         'Descr': 'Write VIN',
         'Info': '"Decoded VIN: %s", repr(bytearray.fromhex(cmd[6:]).decode())',
         'Header': ECU_ADDR_M,
-        'Response': HD(ECU_R_ADDR_M) + SZ('03') + DT('6E F1 90')  # 6E = 2E (SID) + 40 hex (positive answer)
+        'Response': PA('')
         },
     # -------------------------------------------------------------------
     # UDS - MODE 31 - UDS Routine Control
@@ -2490,8 +2490,7 @@ ObdMessage = {
         'UDS_TESTER_PRESENT': { # keep-alive function, general positive answer
             'Request': '^3E00' + ELM_FOOTER, # Tester Present, Sub Function 00
             'Descr': 'UDS Tester Present',
-            'Response': HD(ECU_R_ADDR_E) + SZ('02') + DT('7E 00')
-            # 7E=Positive Response = SID + 40
+            'Response': PA('')
         },
         'UDS_TP_NA': { # Tester present with suppression of the positive response
             'Request': '^3E80' + ELM_FOOTER, # Tester Present, Sub Function 80
