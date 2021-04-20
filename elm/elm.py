@@ -127,6 +127,14 @@ class Tasks:
         """
         return ('<pos_answer>' + pos_answer + '</pos_answer>')
 
+    def NA(neg_answer):
+        """
+        Generates a negative answer XML tag, including header, size and data.
+        :param answer: data part (string of hex data)
+        :return: XML tag related to the response
+        """
+        return ('<neg_answer>' + neg_answer + '</neg_answer>')
+
     def task_request_matched(self, request):
         """
         Check whether the request in the argument matches the original request
@@ -1006,7 +1014,7 @@ class Elm:
             return ""
         if len(request_header) == 3 and flow_control:
             answer = (hex(int(request_header, 16) + 8)[2:].upper() +
-                      " " + flow_control + " " + data)
+                      " " + flow_control + " " + data + " ")
         elif len(request_header) == 3:
             answer = (hex(int(request_header, 16) + 8)[2:].upper() +
                       " %02X"%length + " " + data)
@@ -1125,16 +1133,18 @@ class Elm:
                         "Missing command to execute: %s", resp)
 
             elif i.tag.lower() == 'flow':
-                answ += self.compose_answer(i.text or "", request_header,
-                                            size='30')
+                answ += self.compose_answer(data=i.text or "",
+                                            request_header=request_header,
+                                            flow_control='30')
 
             elif i.tag.lower() == 'answer':
-                answ += self.compose_answer(i.text or "", request_header)
+                answ += self.compose_answer(data=i.text or "",
+                                            request_header=request_header)
 
             elif i.tag.lower() == 'pos_answer':
                 if not request_data:
                     logging.error(
-                        'Missing request with <positive_answer> tag: %s.',
+                        'Missing request with <pos_answer> tag: %s.',
                         repr(resp))
                     break
                 try:
@@ -1145,8 +1155,26 @@ class Elm:
                     logging.error('Invalid request: %s', repr(request_data))
                     return ""
                 data = ("%02X"%(bytearray.fromhex(request_data[:2])[0] + 64) +
-                        request_data[2:] + (i.text or ""))
-                answ += self.compose_answer(data, request_header)
+                        request_data[2:4] + (i.text or ""))
+                answ += self.compose_answer(data=data,
+                                            request_header=request_header)
+
+            elif i.tag.lower() == 'neg_answer':
+                if not request_data:
+                    logging.error(
+                        'Missing request with <neg_answer> tag: %s.',
+                        repr(resp))
+                    break
+                try:
+                    request_data = (''.join('{:02x}'.format(x)
+                                     for x in bytearray.fromhex(
+                                        request_data)).upper())
+                except ValueError:
+                    logging.error('Invalid request: %s', repr(request_data))
+                    return ""
+                data = "7F " + request_data[:2] + (i.text or "")
+                answ += self.compose_answer(data=data,
+                                            request_header=request_header)
 
             elif i.tag.lower() == 'header':
                 answers = True

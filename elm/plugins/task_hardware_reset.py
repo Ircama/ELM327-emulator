@@ -18,8 +18,8 @@ EXECUTION_TIME = 0.5 # seconds
 class Task(Tasks):
     def run(self, cmd, *_):
         if time.time() < self.time_started + EXECUTION_TIME:
-            # 7F=Negative Response, SID 11, 78=requestCorrectlyReceived-ResponsePending
-            return (self.AW('7F 11 78'),
+            # 78 in negative answer = requestCorrectlyReceived-ResponsePending
+            return (self.NA('78'),
                     self.TASK.CONTINUE,
                     None if self.task_request_matched(cmd) else cmd)
         else:

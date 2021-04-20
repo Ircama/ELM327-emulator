@@ -47,6 +47,9 @@ def AW(answer):
 def PA(pos_answer):
     return ('<pos_answer>' + pos_answer + '</pos_answer>')
 
+def NA(neg_answer):
+    return ('<neg_answer>' + neg_answer + '</neg_answer>')
+
 ELM_R_OK = ST("OK")
 ELM_R_UNKNOWN = ST("?")
 ELM_FOOTER = r'[0123456]?$'
@@ -1693,7 +1696,7 @@ ObdMessage = {
             'Request': '^0201' + ELM_FOOTER,
             'Descr': 'DTC Status since DTCs cleared',
             'Header': ECU_ADDR_E,
-            'Response': HD(ECU_R_ADDR_E) + SZ('03') + DT('7F 02 12')
+            'Response': NA('12')
             # invalid data returned by diagnostic request (mode 02)
         },
         'INJ_MF_2': {
@@ -1706,112 +1709,112 @@ ObdMessage = {
             'Request': '^0203' + ELM_FOOTER,
             'Descr': 'DTC Fuel System Status',
             'Header': ECU_ADDR_E,
-            'Response': HD(ECU_R_ADDR_E) + SZ('03') + DT('7F 02 12')
+            'Response': NA('12')
             # invalid data returned by diagnostic request (mode 02)
         },
         'DTC_ENGINE_LOAD': {
             'Request': '^0204' + ELM_FOOTER,
             'Descr': 'DTC Calculated Engine Load',
             'Header': ECU_ADDR_E,
-            'Response': HD(ECU_R_ADDR_E) + SZ('03') + DT('7F 02 12')
+            'Response': NA('12')
             # invalid data returned by diagnostic request (mode 02)
         },
         'DTC_COOLANT_TEMP': {
             'Request': '^0205' + ELM_FOOTER,
             'Descr': 'DTC Engine Coolant Temperature',
             'Header': ECU_ADDR_E,
-            'Response': HD(ECU_R_ADDR_E) + SZ('03') + DT('7F 02 12')
+            'Response': NA('12')
             # invalid data returned by diagnostic request (mode 02)
         },
         'DTC_SHORT_FUEL_TRIM_1': {
             'Request': '^0206' + ELM_FOOTER,
             'Descr': 'DTC Short Term Fuel Trim - Bank 1',
             'Header': ECU_ADDR_E,
-            'Response': HD(ECU_R_ADDR_E) + SZ('03') + DT('7F 02 12')
+            'Response': NA('12')
             # invalid data returned by diagnostic request (mode 02)
         },
         'DTC_LONG_FUEL_TRIM_1': {
             'Request': '^0207' + ELM_FOOTER,
             'Descr': 'DTC Long Term Fuel Trim - Bank 1',
             'Header': ECU_ADDR_E,
-            'Response': HD(ECU_R_ADDR_E) + SZ('03') + DT('7F 02 12')
+            'Response': NA('12')
             # invalid data returned by diagnostic request (mode 02)
         },
         'DTC_INTAKE_PRESSURE': {
             'Request': '^020B' + ELM_FOOTER,
             'Descr': 'DTC Intake Manifold Pressure',
             'Header': ECU_ADDR_E,
-            'Response': HD(ECU_R_ADDR_E) + SZ('03') + DT('7F 02 12')
+            'Response': NA('12')
             # invalid data returned by diagnostic request (mode 02)
         },
         'DTC_RPM': {
             'Request': '^020C' + ELM_FOOTER,
             'Descr': 'DTC Engine RPM',
             'Header': ECU_ADDR_E,
-            'Response': HD(ECU_R_ADDR_E) + SZ('03') + DT('7F 02 12')
+            'Response': NA('12')
             # invalid data returned by diagnostic request (mode 02)
         },
         'DTC_SPEED': {
             'Request': '^020D' + ELM_FOOTER,
             'Descr': 'DTC Vehicle Speed',
             'Header': ECU_ADDR_E,
-            'Response': HD(ECU_R_ADDR_E) + SZ('03') + DT('7F 02 12')
+            'Response': NA('12')
             # invalid data returned by diagnostic request (mode 02)
         },
         'DTC_TIMING_ADVANCE': {
             'Request': '^020E' + ELM_FOOTER,
             'Descr': 'DTC Timing Advance',
             'Header': ECU_ADDR_E,
-            'Response': HD(ECU_R_ADDR_E) + SZ('03') + DT('7F 02 12')
+            'Response': NA('12')
             # invalid data returned by diagnostic request (mode 02)
         },
         'DTC_INTAKE_TEMP': {
             'Request': '^020F' + ELM_FOOTER,
             'Descr': 'DTC Intake Air Temp',
             'Header': ECU_ADDR_E,
-            'Response': HD(ECU_R_ADDR_E) + SZ('03') + DT('7F 02 12')
+            'Response': NA('12')
             # invalid data returned by diagnostic request (mode 02)
         },
         'DTC_MAF': {
             'Request': '^0210' + ELM_FOOTER,
             'Descr': 'DTC Air Flow Rate (MAF)',
             'Header': ECU_ADDR_E,
-            'Response': HD(ECU_R_ADDR_E) + SZ('03') + DT('7F 02 12')
+            'Response': NA('12')
             # invalid data returned by diagnostic request (mode 02)
         },
         'DTC_THROTTLE_POS': {
             'Request': '^0211' + ELM_FOOTER,
             'Descr': 'DTC Throttle Position',
             'Header': ECU_ADDR_E,
-            'Response': HD(ECU_R_ADDR_E) + SZ('03') + DT('7F 02 12')
+            'Response': NA('12')
             # invalid data returned by diagnostic request (mode 02)
         },
         'DTC_O2_SENSORS': {
             'Request': '^0213' + ELM_FOOTER,
             'Descr': 'DTC O2 Sensors Present',
             'Header': ECU_ADDR_E,
-            'Response': HD(ECU_R_ADDR_E) + SZ('03') + DT('7F 02 12')
+            'Response': NA('12')
             # invalid data returned by diagnostic request (mode 02)
         },
         'DTC_O2_B1S2': {
             'Request': '^0215' + ELM_FOOTER,
             'Descr': 'DTC O2: Bank 1 - Sensor 2 Voltage',
             'Header': ECU_ADDR_E,
-            'Response': HD(ECU_R_ADDR_E) + SZ('03') + DT('7F 02 12')
+            'Response': NA('12')
             # invalid data returned by diagnostic request (mode 02)
         },
         'DTC_OBD_COMPLIANCE': {
             'Request': '^021C' + ELM_FOOTER,
             'Descr': 'DTC OBD Standards Compliance',
             'Header': ECU_ADDR_E,
-            'Response': HD(ECU_R_ADDR_E) + SZ('03') + DT('7F 02 12')
+            'Response': NA('12')
             # invalid data returned by diagnostic request (mode 02)
         },
         'DTC_RUN_TIME': {
             'Request': '^021F' + ELM_FOOTER,
             'Descr': 'DTC Engine Run Time',
             'Header': ECU_ADDR_E,
-            'Response': HD(ECU_R_ADDR_E) + SZ('03') + DT('7F 02 12')
+            'Response': NA('12')
             # invalid data returned by diagnostic request (mode 02)
         },
         'DTC_PIDS_B': {
@@ -1820,7 +1823,7 @@ ObdMessage = {
             'Header': ECU_ADDR_E,
             'Response': [
                         ST('NO DATA'),
-                        HD(ECU_R_ADDR_E) + SZ('03') + DT('7F 02 12')
+                        NA('12')
                         ]
             # invalid data returned by diagnostic request (mode 02)
         },
@@ -1828,28 +1831,28 @@ ObdMessage = {
             'Request': '^0221' + ELM_FOOTER,
             'Descr': 'DTC Distance Traveled with MIL on',
             'Header': ECU_ADDR_E,
-            'Response': HD(ECU_R_ADDR_E) + SZ('03') + DT('7F 02 12')
+            'Response': NA('12')
             # invalid data returned by diagnostic request (mode 02)
         },
         'DTC_O2_S1_WR_VOLTAGE': {
             'Request': '^0224' + ELM_FOOTER,
             'Descr': 'DTC 02 Sensor 1 WR Lambda Voltage',
             'Header': ECU_ADDR_E,
-            'Response': HD(ECU_R_ADDR_E) + SZ('03') + DT('7F 02 12')
+            'Response': NA('12')
             # invalid data returned by diagnostic request (mode 02)
         },
         'DTC_COMMANDED_EGR': {
             'Request': '^022C' + ELM_FOOTER,
             'Descr': 'DTC Commanded EGR',
             'Header': ECU_ADDR_E,
-            'Response': HD(ECU_R_ADDR_E) + SZ('03') + DT('7F 02 12')
+            'Response': NA('12')
             # invalid data returned by diagnostic request (mode 02)
         },
         'DTC_EVAPORATIVE_PURGE': {
             'Request': '^022E' + ELM_FOOTER,
             'Descr': 'DTC Commanded Evaporative Purge',
             'Header': ECU_ADDR_E,
-            'Response': HD(ECU_R_ADDR_E) + SZ('03') + DT('7F 02 12')
+            'Response': NA('12')
             # invalid data returned by diagnostic request (mode 02)
         },
         'DTC_WARMUPS_SINCE_DTC_CLEAR': {
@@ -1858,7 +1861,7 @@ ObdMessage = {
             'Header': ECU_ADDR_E,
             'Response': [
                         ST('NO DATA'),
-                        HD(ECU_R_ADDR_E) + SZ('03') + DT('7F 02 12')
+                        NA('12')
                         ]
             # invalid data returned by diagnostic request (mode 02)
         },
@@ -1866,98 +1869,98 @@ ObdMessage = {
             'Request': '^0231' + ELM_FOOTER,
             'Descr': 'DTC Distance traveled since codes cleared',
             'Header': ECU_ADDR_E,
-            'Response': HD(ECU_R_ADDR_E) + SZ('03') + DT('7F 02 12')
+            'Response': NA('12')
             # invalid data returned by diagnostic request (mode 02)
         },
         'DTC_BAROMETRIC_PRESSURE': {
             'Request': '^0233' + ELM_FOOTER,
             'Descr': 'DTC Barometric Pressure',
             'Header': ECU_ADDR_E,
-            'Response': HD(ECU_R_ADDR_E) + SZ('03') + DT('7F 02 12')
+            'Response': NA('12')
             # invalid data returned by diagnostic request (mode 02)
         },
         'DTC_O2_S1_WR_CURRENT': {
             'Request': '^0234' + ELM_FOOTER,
             'Descr': 'DTC 02 Sensor 1 WR Lambda Current',
             'Header': ECU_ADDR_E,
-            'Response': HD(ECU_R_ADDR_E) + SZ('03') + DT('7F 02 12')
+            'Response': NA('12')
             # invalid data returned by diagnostic request (mode 02)
         },
         'DTC_CATALYST_TEMP_B1S1': {
             'Request': '^023C' + ELM_FOOTER,
             'Descr': 'DTC Catalyst Temperature: Bank 1 - Sensor 1',
             'Header': ECU_ADDR_E,
-            'Response': HD(ECU_R_ADDR_E) + SZ('03') + DT('7F 02 12')
+            'Response': NA('12')
             # invalid data returned by diagnostic request (mode 02)
         },
         'DTC_CATALYST_TEMP_B1S2': {
             'Request': '^023E' + ELM_FOOTER,
             'Descr': 'DTC Catalyst Temperature: Bank 1 - Sensor 2',
             'Header': ECU_ADDR_E,
-            'Response': HD(ECU_R_ADDR_E) + SZ('03') + DT('7F 02 12')
+            'Response': NA('12')
             # invalid data returned by diagnostic request (mode 02)
         },
         'DTC_PIDS_C': {
             'Request': '^0240' + ELM_FOOTER,
             'Descr': 'DTC Supported PIDs [41-60]',
             'Header': ECU_ADDR_E,
-            'Response': HD(ECU_R_ADDR_E) + SZ('03') + DT('7F 02 12')
+            'Response': NA('12')
             # invalid data returned by diagnostic request (mode 02)
         },
         'DTC_CONTROL_MODULE_VOLTAGE': {
             'Request': '^0242' + ELM_FOOTER,
             'Descr': 'DTC Control module voltage',
             'Header': ECU_ADDR_E,
-            'Response': HD(ECU_R_ADDR_E) + SZ('03') + DT('7F 02 12')
+            'Response': NA('12')
             # invalid data returned by diagnostic request (mode 02)
         },
         'DTC_ABSOLUTE_LOAD': {
             'Request': '^0243' + ELM_FOOTER,
             'Descr': 'DTC Absolute load value',
             'Header': ECU_ADDR_E,
-            'Response': HD(ECU_R_ADDR_E) + SZ('03') + DT('7F 02 12')
+            'Response': NA('12')
             # invalid data returned by diagnostic request (mode 02)
         },
         'DTC_COMMANDED_EQUIV_RATIO': {
             'Request': '^0244' + ELM_FOOTER,
             'Descr': 'DTC Commanded equivalence ratio',
             'Header': ECU_ADDR_E,
-            'Response': HD(ECU_R_ADDR_E) + SZ('03') + DT('7F 02 12')
+            'Response': NA('12')
             # invalid data returned by diagnostic request (mode 02)
         },
         'DTC_RELATIVE_THROTTLE_POS': {
             'Request': '^0245' + ELM_FOOTER,
             'Descr': 'DTC Relative throttle position',
             'Header': ECU_ADDR_E,
-            'Response': HD(ECU_R_ADDR_E) + SZ('03') + DT('7F 02 12')
+            'Response': NA('12')
             # invalid data returned by diagnostic request (mode 02)
         },
         'DTC_THROTTLE_POS_B': {
             'Request': '^0247' + ELM_FOOTER,
             'Descr': 'DTC Absolute throttle position B',
             'Header': ECU_ADDR_E,
-            'Response': HD(ECU_R_ADDR_E) + SZ('03') + DT('7F 02 12')
+            'Response': NA('12')
             # invalid data returned by diagnostic request (mode 02)
         },
         'DTC_THROTTLE_ACTUATOR': {
             'Request': '^024C' + ELM_FOOTER,
             'Descr': 'DTC Commanded throttle actuator',
             'Header': ECU_ADDR_E,
-            'Response': HD(ECU_R_ADDR_E) + SZ('03') + DT('7F 02 12')
+            'Response': NA('12')
             # invalid data returned by diagnostic request (mode 02)
         },
         'DTC_RUN_TIME_MIL': {
             'Request': '^024D' + ELM_FOOTER,
             'Descr': 'DTC Time run with MIL on',
             'Header': ECU_ADDR_E,
-            'Response': HD(ECU_R_ADDR_E) + SZ('03') + DT('7F 02 12')
+            'Response': NA('12')
             # invalid data returned by diagnostic request (mode 02)
         },
         'DTC_TIME_SINCE_DTC_CLEARED': {
             'Request': '^024E' + ELM_FOOTER,
             'Descr': 'DTC Time since trouble codes cleared',
             'Header': ECU_ADDR_E,
-            'Response': HD(ECU_R_ADDR_E) + SZ('03') + DT('7F 02 12')
+            'Response': NA('12')
             # invalid data returned by diagnostic request (mode 02)
         },
         'DTC_FUEL_TYPE': {
@@ -1966,7 +1969,7 @@ ObdMessage = {
             'Header': ECU_ADDR_E,
             'Response': [
                         ST('NO DATA'),
-                        HD(ECU_R_ADDR_E) + SZ('03') + DT('7F 02 12')
+                        NA('12')
                         ]
             # invalid data returned by diagnostic request (mode 02)
         },
@@ -2266,7 +2269,7 @@ ObdMessage = {
             'Request': '^14' + ELM_FOOTER,
             'Descr': 'UNKNOWN_14',
             'Header': ECU_ADDR_E,
-            'Response': HD(ECU_R_ADDR_E) + SZ('03') + DT('7F 14 11')
+            'Response': NA('11')
         },
         'UNKNOWN_A801_U': {
             'Request': '^A801' + ELM_FOOTER,
@@ -2286,13 +2289,13 @@ ObdMessage = {
             'Request': '^1002' + ELM_FOOTER,
             'Descr': 'DiagnosticSessionControl - Programming Session',
             'Header': ECU_ADDR_E,
-            'Response': HD(ECU_R_ADDR_E) + SZ('03') + DT('7F 10 22')
+            'Response': NA('22')
         },
         'UDS_EDS': {
             'Request': '^1003' + ELM_FOOTER,
             'Descr': 'UDS Extended Diagnostics Session',
             'Header': ECU_ADDR_E,
-            'Response': HD(ECU_R_ADDR_E) + SZ('03') + DT('7F 10 12')
+            'Response': NA('12')
         },
         'UDS_SESSION_REQ': {
             'Request': '^1092' + ELM_FOOTER,
@@ -2432,7 +2435,7 @@ ObdMessage = {
             'Request': '^2711' + ELM_FOOTER,
             'Descr': 'UDS Request Seed',
             'Header': ECU_ADDR_E,
-            'Response': HD(ECU_R_ADDR_E) + SZ('03') + DT('7F 27 12')
+            'Response': NA('12')
         },
         'UDS_RS_M': {
             'Request': '^2711' + ELM_FOOTER,
@@ -2484,7 +2487,7 @@ ObdMessage = {
             'Request': '^3E00' + ELM_FOOTER,
             'Descr': 'UDS Tester Present',
             'Header': ECU_ADDR_E,
-            'Response': HD(ECU_R_ADDR_E) + SZ('03') + DT('7F 3E 12')
+            'Response': NA('12')
             # 7F=Negative Response, 3E=SID, 12=subFunctionNotSupported
         },
         'UDS_TESTER_PRESENT': { # keep-alive function, general positive answer
@@ -3136,7 +3139,7 @@ ObdMessage = {
             'Max': '0',
             'Unit': 'Number',
             'Header': ECU_ADDR_H,
-            'Response': HD(ECU_R_ADDR_H) + SZ('03') + DT('7F 21 12')
+            'Response': NA('12')
         },
         'CUSTOM_ECU_CODE': {
             'Request': '^21C2' + ELM_FOOTER,
@@ -3236,7 +3239,7 @@ ObdMessage = {
         'CUSTOM_SUB_TANK': {
             'Request': '^212A' + ELM_FOOTER,
             'Descr': 'Sub tank level',
-            'Response': HD(ECU_R_ADDR_I) + SZ('03') + DT('7F 21 12'),
+            'Response': NA('12'),
             'Header': ECU_ADDR_I
         },
         'CUSTOM_OIL_CHG_DIST': {
@@ -3247,7 +3250,7 @@ ObdMessage = {
             'Max': '41038',
             'Unit': 'km',
             'Header': ECU_ADDR_I,
-            'Response': HD(ECU_R_ADDR_I) + SZ('03') + DT('7F 21 12')
+            'Response': NA('12')
         },
         'CUSTOM_RHEOSTAT': {
             'Request': '^2168' + ELM_FOOTER,
@@ -3257,7 +3260,7 @@ ObdMessage = {
             'Max': '255',
             'Unit': 'Number',
             'Header': ECU_ADDR_I,
-            'Response': HD(ECU_R_ADDR_I) + SZ('03') + DT('7F 21 12')
+            'Response': NA('12')
         },
         'CUSTOM_SBB_QUERY': {
             'Request': '^21A7' + ELM_FOOTER,
@@ -3357,7 +3360,7 @@ ObdMessage = {
         'CUSTOM_SET_TEMP_D': {
             'Request': '^2129[012]?$',
             'Descr': 'Set Temperature (D side)',
-            'Response': HD(ECU_R_ADDR_P) + SZ('03') + DT('7F 21 12'),
+            'Response': NA('12'),
             'Header': ECU_ADDR_P
         },
         'CUSTOM_BLOWER_LEVEL': {
