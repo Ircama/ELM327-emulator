@@ -1140,7 +1140,7 @@ class Elm:
                         "Missing command to execute: %s", resp)
 
             elif i.tag.lower() == 'flow':
-                answ += self.compose_answer(ata=i.text or "",
+                answ += self.compose_answer(data=i.text or "",
                                             request_header=request_header,
                                             use_headers=use_headers,
                                             flow_control='30')
