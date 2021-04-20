@@ -996,7 +996,8 @@ class Elm:
                     self.terminate()
                     return
 
-    def compose_answer(self, data, request_header, flow_control=None):
+    def compose_answer(
+            self, data, request_header, use_headers, flow_control=None):
         answer = ""
         if request_header is None and "cmd_set_header" in self.counters:
             request_header = self.counters['cmd_set_header']
@@ -1013,15 +1014,21 @@ class Elm:
             logging.error('Invalid data in answer: %s', repr(data))
             return ""
         if len(request_header) == 3 and flow_control:
-            answer = (hex(int(request_header, 16) + 8)[2:].upper() +
-                      " " + flow_control + " " + data + " ")
+            if use_headers:
+                answer = hex(int(request_header, 16) + 8)[2:].upper() + " "
+            answer += flow_control + " " + data + " "
         elif len(request_header) == 3:
-            answer = (hex(int(request_header, 16) + 8)[2:].upper() +
-                      " %02X"%length + " " + data)
+            if use_headers:
+                answer = (hex(int(request_header, 16) + 8)[2:].upper() +
+                          " %02X"%length + " ")
+            answer += data
         elif len(request_header) == 6 and flow_control:
             logging.error('Unimplemented flow control.')
             return ""
         elif len(request_header) == 6:
+            if not use_headers:
+                logging.error('Unimplemented case.')
+                return ""
             if length < 10:
                 answer = ((hex(128 + length)[2:].upper() + " " +
                            request_header[4:6] + " " +
@@ -1133,14 +1140,15 @@ class Elm:
                         "Missing command to execute: %s", resp)
 
             elif i.tag.lower() == 'flow':
-                answ += self.compose_answer(data=i.text or "",
+                answ += self.compose_answer(ata=i.text or "",
                                             request_header=request_header,
+                                            use_headers=use_headers,
                                             flow_control='30')
 
             elif i.tag.lower() == 'answer':
                 answ += self.compose_answer(data=i.text or "",
-                                            request_header=request_header)
-
+                                            request_header=request_header,
+                                            use_headers=use_headers)
             elif i.tag.lower() == 'pos_answer':
                 if not request_data:
                     logging.error(
@@ -1157,7 +1165,8 @@ class Elm:
                 data = ("%02X"%(bytearray.fromhex(request_data[:2])[0] + 64) +
                         request_data[2:4] + (i.text or ""))
                 answ += self.compose_answer(data=data,
-                                            request_header=request_header)
+                                            request_header=request_header,
+                                            use_headers=use_headers)
 
             elif i.tag.lower() == 'neg_answer':
                 if not request_data:
@@ -1174,7 +1183,8 @@ class Elm:
                     return ""
                 data = "7F " + request_data[:2] + (i.text or "")
                 answ += self.compose_answer(data=data,
-                                            request_header=request_header)
+                                            request_header=request_header,
+                                            use_headers=use_headers)
 
             elif i.tag.lower() == 'header':
                 answers = True
