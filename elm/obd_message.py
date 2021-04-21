@@ -2456,14 +2456,14 @@ ObdMessage = {
         'Descr': 'Write Fingerprint',
         'Info': '"Decoded fingerprint %s", cmd[6:]',
         'Header': ECU_ADDR_M,
-        'Response': PA('')
+        'Response': PA('5A')
     },
     'UDS_W_VIN': {
         'Request': '^2EF190' + ELM_DATA_FOOTER, # 2E,F1,90 - write dataIdentifier 0xF190 (VIN)
         'Descr': 'Write VIN',
         'Info': '"Decoded VIN: %s", repr(bytearray.fromhex(cmd[6:]).decode())',
         'Header': ECU_ADDR_M,
-        'Response': PA('')
+        'Response': PA('90')
         },
     # -------------------------------------------------------------------
     # UDS - MODE 31 - UDS Routine Control

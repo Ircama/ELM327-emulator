@@ -23,6 +23,6 @@ class Task(Tasks):
                     self.TASK.CONTINUE,
                     None if self.task_request_matched(cmd) else cmd)
         else:
-            return (self.PA(),
+            return (self.PA(''),
                     self.TASK.TERMINATE,
                     None if self.task_request_matched(cmd) else cmd)

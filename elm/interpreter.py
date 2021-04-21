@@ -216,7 +216,7 @@ class Interpreter(Cmd):
                 "Invalid format. Add the formatted XML response as argument.")
             return
         try:
-            ret = self.emulator.process_response(
+            ret = self.emulator.handle_response(
                 arg,
                 do_write=do_write,
                 request_header=request_header,
@@ -246,19 +246,24 @@ class Interpreter(Cmd):
             return
         print("______Raw command:_______________")
         try:
-            request_header, ret = self.emulator.handle(arg, do_write=False)
-            if ret is None:
+            (request_header,
+             request_data,
+             response_data) = self.emulator.handle_request(arg, do_write=False)
+            if response_data is None:
                 return
-            if not ret:
+            if not response_data:
                 print("Error in request. No data returned.")
                 return
-            print(repr(ret))
+            print(repr(response_data))
         except Exception as e:
             print("Could not run test:", repr(e))
             print(traceback.format_exc())
             return
         print("\n______Command output:____________")
-        self.do_verify(ret, request_header=request_header, request_data=arg)
+        self.do_verify(
+            response_data,
+            request_header=request_header,
+            request_data=request_data)
 
     def do_port(self, arg):
         "Print the used TCP/IP port, or the used device, "\

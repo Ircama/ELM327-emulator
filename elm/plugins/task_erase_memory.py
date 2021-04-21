@@ -29,6 +29,6 @@ class Task(Tasks):
                     self.TASK.CONTINUE,
                     None if self.task_request_matched(cmd) else cmd)
         else:
-            return (self.PA('01 FF 00 00'),
+            return (self.PA('FF 00 00'),
                     self.TASK.TERMINATE,
                     None if self.task_request_matched(cmd) else cmd)

@@ -74,11 +74,12 @@ class Tasks:
         INCOMPLETE = (None, CONTINUE, None)
         def PASSTHROUGH(cmd): return (None, Tasks.TASK.TERMINATE, cmd)
 
-    def __init__(self, emulator, header, dict, do_write=False):
+    def __init__(self, emulator, header, request, attrib, do_write=False):
         self.emulator = emulator # reference to the emulator namespace
         self.header = header # request header
+        self.request = request # original request data (stored before running the start() method)
         self.logging = emulator.logger # logger reference
-        self.dict = dict # dictionary element
+        self.attrib = attrib # dictionary element
         self.do_write = do_write # (boolean) will write to the application
         self.time_started = time.time() # timer (to be used to simulate background processing)
         self.frame = None # multiline request frame counter
@@ -110,7 +111,7 @@ class Tasks:
         """
         return ('<data>' + data + '</data>')
 
-    def AW(answer):
+    def AW(self, answer):
         """
         Generates the XML tag related to the response, which will be
         automatically translated in header, size and data.
@@ -119,7 +120,7 @@ class Tasks:
         """
         return ('<answer>' + answer + '</answer>')
 
-    def PA(pos_answer):
+    def PA(self, pos_answer):
         """
         Generates a positive answer XML tag, including header, size and data.
         :param answer: data part (string of hex data)
@@ -127,13 +128,21 @@ class Tasks:
         """
         return ('<pos_answer>' + pos_answer + '</pos_answer>')
 
-    def NA(neg_answer):
+    def NA(self, neg_answer):
         """
         Generates a negative answer XML tag, including header, size and data.
         :param answer: data part (string of hex data)
         :return: XML tag related to the response
         """
         return ('<neg_answer>' + neg_answer + '</neg_answer>')
+
+    def task_get_request(self):
+        """
+        Get the original request command that initiated the task (used to
+        generate the answers)
+        :return: return the original request string
+        """
+        return self.request
 
     def task_request_matched(self, request):
         """
@@ -142,7 +151,7 @@ class Tasks:
         :param request:
         :return: boolean (true if the given request matches the original task request)
         """
-        return re.match(self.dict['Request'], request)
+        return re.match(self.attrib['Request'], request)
 
     def start(self, cmd, length=None, frame=None):
         """
@@ -236,7 +245,7 @@ class Multiline(Tasks):
         else:
             if ('cmd_cfc' not in self.emulator.counters or
                     self.emulator.counters['cmd_cfc'] == 1):
-                resp = self.emulator.process_response(
+                resp = self.emulator.handle_response(
                     ('<flow>' + hex(self.flow_control_end)[2:].upper() +
                      ' 00</flow>'),
                     do_write=self.do_write,
@@ -624,17 +633,18 @@ class Elm:
             # if it didn't contain any egregious errors, handle it
             if self.validate(self.cmd):
                 try:
-                    request_header, resp = self.handle(self.cmd, do_write=True)
+                    request_header, request_data, resp = self.handle_request(
+                        self.cmd, do_write=True)
                 except Exception as e:
                     logging.critical("Error while processing %s:\n%s\n%s",
                                      repr(self.cmd), e, traceback.format_exc())
                     continue
                 if resp is not None:
-                    resp = self.process_response(
+                    resp = self.handle_response(
                         resp,
                         do_write=True,
                         request_header=request_header,
-                        request_data=self.cmd)
+                        request_data=request_data)
             else:
                 logging.warning("Invalid request: %s", repr(self.cmd))
         return True
@@ -996,31 +1006,31 @@ class Elm:
                     self.terminate()
                     return
 
-    def compose_answer(
-            self, data, request_header, use_headers, flow_control=None):
+    def uds_answer(
+            self, data, request_header, use_headers, sp, flow_control=None):
         answer = ""
         if request_header is None and "cmd_set_header" in self.counters:
             request_header = self.counters['cmd_set_header']
         request_header = request_header.translate(
             request_header.maketrans('', '', string.whitespace)).upper()
         if not request_header:
-            logging.error('Invalid request header.')
+            logging.error('Invalid request header; request %s', repr(data))
             return ""
         try:
             length = len(bytearray.fromhex(data))
-            data = (' '.join('{:02x}'.format(x)
+            data = (sp.join('{:02x}'.format(x)
                              for x in bytearray.fromhex(data)).upper())
         except ValueError:
             logging.error('Invalid data in answer: %s', repr(data))
             return ""
         if len(request_header) == 3 and flow_control:
             if use_headers:
-                answer = hex(int(request_header, 16) + 8)[2:].upper() + " "
-            answer += flow_control + " " + data + " "
+                answer = hex(int(request_header, 16) + 8)[2:].upper() + sp
+            answer += flow_control + sp + data
         elif len(request_header) == 3:
             if use_headers:
-                answer = (hex(int(request_header, 16) + 8)[2:].upper() +
-                          " %02X"%length + " ")
+                answer = (hex(int(request_header, 16) + 8)[2:].upper() + sp +
+                          "%02X"%length + sp)
             answer += data
         elif len(request_header) == 6 and flow_control:
             logging.error('Unimplemented flow control.')
@@ -1030,24 +1040,24 @@ class Elm:
                 logging.error('Unimplemented case.')
                 return ""
             if length < 10:
-                answer = ((hex(128 + length)[2:].upper() + " " +
-                           request_header[4:6] + " " +
-                           request_header[2:4]) + " " + data)
+                answer = ((hex(128 + length)[2:].upper() + sp +
+                           request_header[4:6] + sp +
+                           request_header[2:4]) + sp + data)
             else:
                 answer = ("80 " + # Extra length byte follows
-                          request_header[4:6] + " " +
-                          request_header[2:4] + " " +
-                          hex(length)[2:].upper() + " " + data)
+                          request_header[4:6] + sp +
+                          request_header[2:4] + sp +
+                          hex(length)[2:].upper() + sp + data)
             answer += " %02X" % (sum(bytearray.fromhex(answer)) % 256)
         else:
             logging.error('Invalid request header: %s', repr(request_header))
         return answer
 
-    def process_response(self,
-                         resp,
-                         do_write=False,
-                         request_header=None,
-                         request_data=None):
+    def handle_response(self,
+                        resp,
+                        do_write=False,
+                        request_header=None,
+                        request_data=None):
         """ compute the response and returns data written to the device """
 
         logging.debug("Processing: %s", repr(resp))
@@ -1081,7 +1091,12 @@ class Elm:
         }
         nl = "\r"
         if 'cmd_linefeeds' in self.counters:
-            nl = nl_type[int(self.counters['cmd_linefeeds'])]
+            try:
+                nl = nl_type[int(self.counters['cmd_linefeeds'])]
+            except Exception:
+                logging.error(
+                    'Invalid "cmd_linefeeds" value: %s.',
+                    repr(self.counters['cmd_linefeeds']))
 
         # generate string
         incomplete_resp = False
@@ -1140,15 +1155,17 @@ class Elm:
                         "Missing command to execute: %s", resp)
 
             elif i.tag.lower() == 'flow':
-                answ += self.compose_answer(data=i.text or "",
-                                            request_header=request_header,
-                                            use_headers=use_headers,
-                                            flow_control='30')
+                answ += self.uds_answer(data=i.text or "",
+                                        request_header=request_header,
+                                        use_headers=use_headers,
+                                        sp=sp,
+                                        flow_control='30') + sp + nl
 
             elif i.tag.lower() == 'answer':
-                answ += self.compose_answer(data=i.text or "",
-                                            request_header=request_header,
-                                            use_headers=use_headers)
+                answ += self.uds_answer(data=i.text or "",
+                                        request_header=request_header,
+                                        use_headers=use_headers,
+                                        sp=sp) + sp + nl
             elif i.tag.lower() == 'pos_answer':
                 if not request_data:
                     logging.error(
@@ -1160,13 +1177,16 @@ class Elm:
                                      for x in bytearray.fromhex(
                                         request_data)).upper())
                 except ValueError:
-                    logging.error('Invalid request: %s', repr(request_data))
+                    logging.error('Invalid request %s related to response %s '
+                                  'including <pos_answer> tag.',
+                                  repr(request_data), repr(resp))
                     return ""
                 data = ("%02X"%(bytearray.fromhex(request_data[:2])[0] + 64) +
                         request_data[2:4] + (i.text or ""))
-                answ += self.compose_answer(data=data,
-                                            request_header=request_header,
-                                            use_headers=use_headers)
+                answ += self.uds_answer(data=data,
+                                        request_header=request_header,
+                                        use_headers=use_headers,
+                                        sp=sp) + sp + nl
 
             elif i.tag.lower() == 'neg_answer':
                 if not request_data:
@@ -1179,12 +1199,15 @@ class Elm:
                                      for x in bytearray.fromhex(
                                         request_data)).upper())
                 except ValueError:
-                    logging.error('Invalid request: %s', repr(request_data))
+                    logging.error('Invalid request %s related to response %s '
+                                  'including <neg_answer> tag.',
+                                  repr(request_data), repr(resp))
                     return ""
                 data = "7F " + request_data[:2] + (i.text or "")
-                answ += self.compose_answer(data=data,
-                                            request_header=request_header,
-                                            use_headers=use_headers)
+                answ += self.uds_answer(data=data,
+                                        request_header=request_header,
+                                        use_headers=use_headers,
+                                        sp=sp) + sp + nl
 
             elif i.tag.lower() == 'header':
                 answers = True
@@ -1275,8 +1298,8 @@ class Elm:
         """
         logging.debug(
             "Running task %s.%s(%s, %s, %s) with header %s",
-            self.tasks[header].__module__, task_method.__name__, length,
-            frame, cmd, header)
+            self.tasks[header].__module__, task_method.__name__, cmd, length,
+            frame, header)
 
         r_cmd = None
         r_task = Tasks.TASK.TERMINATE
@@ -1294,6 +1317,16 @@ class Elm:
             del self.tasks[header]
             return Tasks.TASK.ERROR
         logging.debug("r_cmd=%s, r_task=%s, r_cont=%s", r_cmd, r_task, r_cont)
+        if r_cont is not None:
+            if r_cmd is not None:
+                resp = self.handle_response(
+                    r_cmd,
+                    do_write=do_write,
+                    request_header=header,
+                    request_data=self.tasks[header].task_get_request())
+                if not do_write:
+                    logging.warning("Task with header %s returned %s",
+                                    header, repr(resp))
         if r_task is Tasks.TASK.TERMINATE:
             logging.debug(
                 'Terminated task "%s" with header "%s"',
@@ -1301,15 +1334,6 @@ class Elm:
             self.account_task(header)
             del self.tasks[header]
         if r_cont is not None:
-            if r_cmd is not None:
-                resp = self.process_response(
-                    r_cmd,
-                    do_write=do_write,
-                    request_header=header,
-                    request_data=cmd)
-                if not do_write:
-                    logging.warning("Task with header %s returned %s",
-                                    header, repr(resp))
             logging.debug(
                 "Continue processing command %s after execution of task "
                 "with header %s.", repr(r_cont), header)
@@ -1326,7 +1350,7 @@ class Elm:
             self.counters[task_name] = 0
         self.counters[task_name] += 1
 
-    def handle(self, cmd, do_write=False):
+    def handle_request(self, cmd, do_write=False):
         """
         It generates an XML response by processing a request,
         returning a string to be processed by process_response(),
@@ -1339,7 +1363,7 @@ class Elm:
         :param cmd: the request to be processed
         :param do_write: passed to process_response() when
                         implicitly called, or used for logging.
-        :return: (header, None or an XML string)
+        :return: (header, request, None or an XML string)
         """
 
         # Sanitize cmd
@@ -1362,7 +1386,7 @@ class Elm:
 
         if not self.scenario in self.ObdMessage:
             logging.error("Unknown scenario %s", repr(self.scenario))
-            return header, ""
+            return header, cmd, ""
 
         # cmd_fcsm is experimental (to be removed)
         if ('cmd_fcsm' in self.counters and
@@ -1370,6 +1394,7 @@ class Elm:
                 cmd[:2] != 'AT'
                 and self.is_hex_sp(cmd [:3])):
             self.counters['cmd_set_header'] = cmd[:3]
+            header = cmd[:3]
             self.counters['cmd_caf'] = False
             self.counters['cmd_use_header'] = True
             cmd = cmd[3:]
@@ -1386,17 +1411,17 @@ class Elm:
             except ValueError as e:
                 logging.error('Improper size %s for request %s: %s',
                               repr(size), repr(cmd), e)
-                return header, ""
+                return header, cmd, ""
             payload = cmd[2:]
             if not payload:
                 logging.error('Missing data for request "%s"', repr(cmd))
-                return header, ""
+                return header, cmd, ""
             if int_size < 16:
                 if len(payload) < int_size * 2:
                     logging.error(
                         'In request %s, data %s has an improper length '
                         'of %s bytes', repr(cmd), repr(payload), size)
-                    return header, ""
+                    return header, cmd, ""
                 cmd = payload[:int_size * 2]
                 length = int_size
             elif int_size == 16:
@@ -1405,40 +1430,42 @@ class Elm:
                 except ValueError as e:
                     logging.error('Improper size %s for request %s: %s',
                                   repr(cmd[2:4]), repr(cmd), e)
-                    return header, ""
+                    return header, cmd, ""
                 cmd = cmd[4:]
                 frame = 0
             else:
                 cmd = cmd[2:]
             if int_size > 32:
                 frame = int_size - 32
-            logging.debug("Length: %s, frame: %s, cmd: %s", length, frame, cmd)
+            logging.debug(
+                "Length: %s, frame: %s, header: %s, cmd: %s",
+                length, frame, header, cmd)
 
         # Manage active tasks
         if (header not in self.tasks and
                 length is not None and frame is not None):
-            self.tasks[header] = Multiline(self, header, None, do_write)
+            self.tasks[header] = Multiline(self, header, cmd, None, do_write)
         if header in self.tasks:
-            if self.is_hex_sp(cmd):
-                cmd, *_, cont = self.task_action(header, do_write,
+            if self.len_hex(cmd):
+                r_cmd, *_, r_cont = self.task_action(header, do_write,
                     self.tasks[header].run, cmd, length, frame)
-                if cont is None:
-                    return header, cmd
+                if r_cont is None:
+                    return header, cmd, r_cmd
                 else:
-                    cmd = cont
+                    cmd = r_cont
                     frame = None
                     length = None
             else:
                 logging.warning('Interrupted task "%s" with header "%s"',
                                 self.tasks[header].__module__, header)
-                cmd, *_, cont = self.task_action(header, do_write,
+                r_cmd, *_, r_cont = self.task_action(header, do_write,
                     self.tasks[header].stop, cmd, length, frame)
                 if header in self.tasks:
                     del self.tasks[header]
-                if cont is None:
-                    return header, cmd
+                if r_cont is None:
+                    return header, cmd, r_cmd
                 else:
-                    cmd = cont
+                    cmd = r_cont
 
         # Process response for data stored in cmd
         for i in self.sortedOBDMsg:
@@ -1468,7 +1495,7 @@ class Elm:
                         cmd, pid)
                 if pid in self.answer:
                     try:
-                        return header, self.answer[pid]
+                        return header, cmd, self.answer[pid]
                     except Exception as e:
                         logging.error(
                             "Error while processing '%s' for PID %s (%s)",
@@ -1483,25 +1510,25 @@ class Elm:
                             del self.tasks[header]
                         try:
                             self.tasks[header] = self.plugins[val['Task']].Task(
-                                self, header, val, do_write)
+                                self, header, cmd, val, do_write)
                         except Exception as e:
                             logging.critical(
                                 'Cannot start task "%s", header="%s": %s',
                                 val['Task'], header, e, exc_info=True)
-                            return header, None
+                            return header, cmd, None
                         logging.debug('Starting task "%s" with header "%s"',
                                       self.tasks[header].__module__, header)
-                        cmd, *_, cont = self.task_action(header, do_write,
+                        r_cmd, *_, r_cont = self.task_action(header, do_write,
                             self.tasks[header].start, cmd, length, frame)
-                        if cont is None:
-                            return header, cmd
+                        if r_cont is None:
+                            return header, cmd, r_cmd
                         else:
-                            cmd = cont
+                            cmd = r_cont
                     else:
                         logging.error(
                             'Unexisting plugin "%s" for pid "%s"',
                             val['Task'], pid)
-                        return header, None
+                        return header, cmd, None
                 if 'Exec' in val:
                     try:
                         exec(val['Exec'])
@@ -1509,16 +1536,16 @@ class Elm:
                         logging.error(
                             "Cannot execute '%s' for PID %s (%s)",
                             val['Exec'], pid, e)
-                logtype = ""
+                log_string = ""
                 if 'Info' in val:
-                    logtype = "logging.info(%s)"
+                    log_string = "logging.info(%s)"%val['Info']
                 if 'Warning' in val:
-                    logtype = "logging.warning(%s)"
+                    log_string = "logging.warning(%s)"%val['Warning']
                 if 'Log' in val:
-                    logtype = "logging.debug(%s)"
-                if logtype:
+                    log_string = "logging.debug(%s)"%val['Log']
+                if log_string:
                     try:
-                        exec(logtype%val['Log'])
+                        exec(log_string)
                     except Exception as e:
                         logging.error(
                             "Error while logging '%s' for PID %s (%s)",
@@ -1534,22 +1561,22 @@ class Elm:
                             self, cmd, pid, val)
                     r_response = val['Response']
                     if r_response is None:
-                        return header, None
+                        return header, cmd, None
                     if isinstance(r_response, (list, tuple)):
                         r_response = r_response[randint(0, len(r_response) - 1)]
-                    return header, (r_header + r_response + r_footer)
+                    return header, cmd, (r_header + r_response + r_footer)
                 else:
                     logging.error(
                         "Internal error - Missing response for %s, PID %s",
                         cmd, pid)
-                    return header, ELM_R_OK
+                    return header, cmd, ELM_R_OK
         # Here cmd is unknown
         if "unknown_" + repr(cmd) not in self.counters:
             self.counters["unknown_" + repr(cmd)] = 0
         self.counters["unknown_" + repr(cmd)] += 1
         if cmd == '':
             logging.info("No ELM command")
-            return header, ""
+            return header, cmd, ""
         fw_data = self.send_receive_forward((cmd + '\r').encode())
         if fw_data is not False:
             self.counters["unknown_" + repr(cmd) + "_R"] = repr(fw_data)
@@ -1560,19 +1587,25 @@ class Elm:
             logging.warning(
                 'Missing data in dictionary: %s. Answer:\n%s',
                 repr(cmd), repr(fw_data))
-        if self.is_hex_sp(cmd):
+        if self.len_hex(cmd):
             if header:
                 logging.info("Unknown request: %s, header=%s",
                              repr(cmd), self.counters["cmd_set_header"])
             else:
                 logging.info("Unknown request: %s", repr(cmd))
-            return header, ST('NO DATA')
+            return header, cmd, ST('NO DATA')
         if header:
             logging.info("Unknown ELM command: %s, header=%s",
                          repr(cmd), self.counters["cmd_set_header"])
         else:
             logging.info("Unknown ELM command: %s", repr(cmd))
-        return header, self.ELM_R_UNKNOWN
+        return header, cmd, self.ELM_R_UNKNOWN
 
     def is_hex_sp(self, s):
         return re.match(r"^[0-9a-fA-F \t\r\n]*$", s or "") is not None
+
+    def len_hex(self, s):
+        try:
+            return len(bytearray.fromhex(s))
+        except Exception:
+            return False
