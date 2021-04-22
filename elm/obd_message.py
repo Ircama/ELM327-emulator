@@ -4193,9 +4193,9 @@ ObdMessage = {
                     PA(self.Sequence(
                             pid, base=0, max=30, factor=4, n_bytes=1))
         },
-        'CUSTOM_0113': {
+        'O2_SENSORS': {
             'Request': '^0113' + ELM_FOOTER,
-            'Descr': '0113',
+            'Descr': 'O2 Sensors Present',
             'Response': PA('01')
         },
         'OBD_COMPLIANCE': {
@@ -4203,14 +4203,14 @@ ObdMessage = {
             'Descr': 'OBD Compliance',
             'Response': PA('03')
         },
-        'CUSTOM_0904': {
+        'CALIBRATION_ID': {
             'Request': '^0904' + ELM_FOOTER,
-            'Descr': '0904',
+            'Descr': 'Calibration ID',
             'Response': PA('42 4A 32 35 30 31 38 46')
         },
-        'CUSTOM_0906': {
+        'CVN': {
             'Request': '^0906' + ELM_FOOTER,
-            'Descr': '0906',
+            'Descr': 'Calibration Verification Numbers',
             'Response': PA('00 00 F2 29')
         },
         "MONITOR": {
@@ -4244,7 +4244,7 @@ ObdMessage = {
         },
         'ECU_IVN_B': {
             'Request': '^2104' + ELM_FOOTER,
-            'Descr': 'ECU internal version numbers - A',
+            'Descr': 'ECU internal version numbers - B',
             'Response': PA('01 AF FD D4'),
         },
         'IGNITION_COUNTER': {
