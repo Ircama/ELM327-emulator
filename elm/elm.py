@@ -39,6 +39,7 @@ SERIAL_BAUDRATE = 38400 # bps
 NETWORK_INTERFACES = ""
 PLUGIN_DIR = __package__ + ".plugins"
 MAX_TASKS = 20
+MULTILINE_MODULE = 'ISO-TP request pending'
 
 def setup_logging(
         default_path=Path(__file__).stem + '.yaml',
@@ -1448,14 +1449,21 @@ class Elm:
             if header not in self.tasks:
                 self.tasks[header] = []
             if len(self.tasks[header]) > MAX_TASKS:
-                logging.debug(
+                logging.critical(
                     'Too many active tasks with header %s while adding '
                     'a multiline frame. Latest task was %s.',
                     header, self.tasks[header][-1].__module__)
                 return header, cmd, ""
+            if (len(self.tasks[header]) and
+                self.tasks[header][-1].__module__ == MULTILINE_MODULE):
+                logging.error(
+                    'Improper frame within ISO-TP multiline. Header: %s, '
+                    'multiline data length: %s, frame: %s, data: %s',
+                    header, length, frame, cmd)
+                return header, cmd, ""
             self.tasks[header].append(
                 Multiline(self, header, cmd, None, do_write))
-            self.tasks[header][-1].__module__ = 'Multiline'
+            self.tasks[header][-1].__module__ = MULTILINE_MODULE
         if header in self.tasks and self.tasks[header]: # if a task exists
             if self.len_hex(cmd):
                 r_cmd, *_, r_cont = self.task_action(header, do_write,
@@ -1516,7 +1524,7 @@ class Elm:
                         if header not in self.tasks:
                             self.tasks[header] = []
                         if len(self.tasks[header]) > MAX_TASKS:
-                            logging.debug(
+                            logging.critical(
                                 'Too many active tasks with header %s. '
                                 'Latest one was %s.',
                                 header, self.tasks[header][-1].__module__)
