@@ -1041,16 +1041,21 @@ class Elm:
             if not use_headers:
                 logging.error('Unimplemented case.')
                 return ""
-            if length < 10:
-                answer = ((hex(128 + length)[2:].upper() + sp +
+            if length < 20:
+                answer = (("%02X"%(128 + length) + sp +
                            request_header[4:6] + sp +
                            request_header[2:4]) + sp + data)
             else:
-                answer = ("80 " + # Extra length byte follows
+                answer = ("80" + sp + # Extra length byte follows
                           request_header[4:6] + sp +
                           request_header[2:4] + sp +
-                          hex(length)[2:].upper() + sp + data)
-            answer += " %02X" % (sum(bytearray.fromhex(answer)) % 256)
+                          "%02X"%length + sp + data)
+            try: # calculate checksum
+                answer += sp + "%02X" % (sum(bytearray.fromhex(answer)) % 256)
+            except ValueError as e:
+                logging.error("Error in generated answer %s from HEX data "
+                              "%s with header %s: %s",
+                              answer, repr(data), repr(request_header), e)
         else:
             logging.error('Invalid request header: %s', repr(request_header))
         return answer

@@ -4193,31 +4193,69 @@ ObdMessage = {
                     PA(self.Sequence(
                             pid, base=0, max=30, factor=4, n_bytes=1))
         },
+        'CUSTOM_0113': {
+            'Request': '^0113' + ELM_FOOTER,
+            'Descr': '0113',
+            'Response': PA('01')
+        },
         'OBD_COMPLIANCE': {
             'Request': '^011C' + ELM_FOOTER,
             'Descr': 'OBD Compliance',
             'Response': PA('03')
         },
-        "CUSTOM_CAL'D_LOAD": {
+        'CUSTOM_0904': {
+            'Request': '^0904' + ELM_FOOTER,
+            'Descr': '0904',
+            'Response': PA('42 4A 32 35 30 31 38 46')
+        },
+        'CUSTOM_0906': {
+            'Request': '^0906' + ELM_FOOTER,
+            'Descr': '0906',
+            'Response': PA('00 00 F2 29')
+        },
+        "MONITOR": {
             'Request': '^2101' + ELM_FOOTER,
             'Descr': 'Monitor',
-            'Response': PA(
-                '80 00 34 50 34 50 80 00 80 00 08 43 08 43 00 00 00 00 00 00'
-                '00 00 00 21 00 00 00 00 00 00 72 DF 6E 76 78 14 48 00 00 00'
-                '00 00 00 00 00 00 00 04 2E 04 2E 00 00 00 5E 80 00 83 60 00'
-                '00 00 00 00 00 00 64 C8 07 E0 00 00 00 00 08 82 63 2F 55 00'
-                '55 08 45 BA 19 74 FD B1 00 00 00 00 00 00 1B 40 01 AC 00 00')
+            'Response': [
+                PA(
+                '80 00 34 50 34 50 80 00 80 00 08 43 08 43 00 00 00 00 00 00 '
+                '00 00 00 21 00 00 00 00 00 00 72 DF 6E 76 78 14 48 00 00 00 '
+                '00 00 00 00 00 00 00 04 2E 04 2E 00 00 00 5E 80 00 83 60 00 '
+                '00 00 00 00 00 00 64 C8 07 E0 00 00 00 00 08 82 63 2F 55 00 '
+                '55 08 45 BA 19 74 FD B1 00 00 00 00 00 00 1B 40 01 AC 00 00'),
+                PA(
+                '7B F2 66 A9 66 A9 80 00 80 00 18 02 18 02 00 00 00 00 00 00 '
+                '00 00 00 21 80 00 00 AF 01 18 45 AB 6E 76 1A 0E AD 1A 90 01 '
+                '94 00 00 00 00 00 CE 07 80 07 80 00 00 00 56 00 87 9F 6F E5 '
+                '02 04 00 00 00 00 64 6A 2A 20 00 00 17 CB 0E 9F 76 76 2D 44 '
+                '2D 62 2D 57 2A 01 D7 8C 1C 24 00 00 00 00 1B 40 00 A9 00 00'),
+                PA(
+                '7B F8 66 A9 66 A9 80 00 80 00 17 FD 17 FD 00 00 00 00 00 00 '
+                '00 00 00 21 80 00 00 AE 01 15 45 59 6E 76 1A 0E AD 1A 90 01 '
+                '9A 00 00 00 00 00 CE 07 80 07 80 00 00 00 56 00 87 9F 6F E5 '
+                '02 04 00 00 00 00 64 6A 2A 20 00 00 17 D5 0E 9F 75 A8 2D 45 '
+                '2D 63 2D 59 2A 01 D7 8C 1C 2A 00 00 00 00 1B 40 00 A9 00 00'),
+            ]
         },
-        'CUSTOM_FR_WS': {
+        'ECU_IVN_A': {
             'Request': '^2103' + ELM_FOOTER,
-            'Descr': 'FR Wheel Speed',
-            'Response': PA('3E 3E 3D 3D'),
+            'Descr': 'ECU internal version numbers - A',
+            'Response': PA('01 B3 D0 54'),
         },
-        'CUSTOM_TAFR': {
+        'ECU_IVN_B': {
             'Request': '^2104' + ELM_FOOTER,
-            'Descr': 'Target Air-Fuel Ratio',
-            'Response': PA(
-                '7F F2 7F 73 6A 11 7F 73 80 01 00 FF 00 00 00 00 00 00'),
-        }
+            'Descr': 'ECU internal version numbers - A',
+            'Response': PA('01 AF FD D4'),
+        },
+        'IGNITION_COUNTER': {
+            'Request': '^21FF' + ELM_FOOTER,
+            'Descr': 'Ignition counter',
+            'Response': PA('8E 01 00 00'),
+        },
+        'READ_MEM_BY_ADDR': {
+            'Request': '^23C0500008' + ELM_FOOTER,
+            'Descr': 'Read memory by address',
+            'Response': PA('32 30 31 31 30 33 32'),
+        },
     }
 }
