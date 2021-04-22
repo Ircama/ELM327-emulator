@@ -192,6 +192,7 @@ class Interpreter(Cmd):
             print ("Invalid format.")
             return
         self.emulator.set_defaults()
+        self.emulator.reset(0)
         print("Reset done.")
 
     def do_loglevel(self, arg):
@@ -288,8 +289,11 @@ class Interpreter(Cmd):
         if self.emulator.tasks:
             print("Active tasks:")
             for i in sorted(self.emulator.tasks):
-                print(" - {}, header {}".format(
-                    self.emulator.tasks[i].__module__, i))
+                if len(self.emulator.tasks[i]):
+                    for j in self.emulator.tasks[i]:
+                        print(" - {}, header {}".format(j.__module__, i))
+                else:
+                    print(" - (completed task), header {}".format(i))
         else:
             print("No task available.")
 

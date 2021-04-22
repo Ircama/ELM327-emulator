@@ -38,6 +38,7 @@ FORWARD_READ_TIMEOUT = 0.2 # seconds
 SERIAL_BAUDRATE = 38400 # bps
 NETWORK_INTERFACES = ""
 PLUGIN_DIR = __package__ + ".plugins"
+MAX_TASKS = 20
 
 def setup_logging(
         default_path=Path(__file__).stem + '.yaml',
@@ -1298,7 +1299,8 @@ class Elm:
         """
         logging.debug(
             "Running task %s.%s(%s, %s, %s) with header %s",
-            self.tasks[header].__module__, task_method.__name__, cmd, length,
+            self.tasks[header][-1].__module__,
+            task_method.__name__, cmd, length,
             frame, header)
 
         r_cmd = None
@@ -1310,11 +1312,11 @@ class Elm:
             logging.critical(
                 'Error in task "%s", header="%s", '
                 'method=%s(): %s',
-                self.tasks[header].__module__,
+                self.tasks[header][-1].__module__,
                 header,
                 task_method.__name__,
                 e, exc_info=True)
-            del self.tasks[header]
+            del self.tasks[header][-1]
             return Tasks.TASK.ERROR
         logging.debug("r_cmd=%s, r_task=%s, r_cont=%s", r_cmd, r_task, r_cont)
         if r_cont is not None:
@@ -1323,16 +1325,16 @@ class Elm:
                     r_cmd,
                     do_write=do_write,
                     request_header=header,
-                    request_data=self.tasks[header].task_get_request())
+                    request_data=self.tasks[header][-1].task_get_request())
                 if not do_write:
                     logging.warning("Task with header %s returned %s",
                                     header, repr(resp))
         if r_task is Tasks.TASK.TERMINATE:
             logging.debug(
                 'Terminated task "%s" with header "%s"',
-                self.tasks[header].__module__, header)
+                self.tasks[header][-1].__module__, header)
             self.account_task(header)
-            del self.tasks[header]
+            del self.tasks[header][-1]
         if r_cont is not None:
             logging.debug(
                 "Continue processing command %s after execution of task "
@@ -1343,7 +1345,7 @@ class Elm:
         if header not in self.tasks:
             return
         try:
-            task_name = self.tasks[header].__module__[12:]
+            task_name = self.tasks[header][-1].__module__[12:]
         except Exception:
             return
         if task_name not in self.counters:
@@ -1442,13 +1444,22 @@ class Elm:
                 length, frame, header, cmd)
 
         # Manage active tasks
-        if (header not in self.tasks and
-                length is not None and frame is not None):
-            self.tasks[header] = Multiline(self, header, cmd, None, do_write)
-        if header in self.tasks:
+        if length is not None and frame is not None: # multiline condition
+            if header not in self.tasks:
+                self.tasks[header] = []
+            if len(self.tasks[header]) > MAX_TASKS:
+                logging.debug(
+                    'Too many active tasks with header %s while adding '
+                    'a multiline frame. Latest task was %s.',
+                    header, self.tasks[header][-1].__module__)
+                return header, cmd, ""
+            self.tasks[header].append(
+                Multiline(self, header, cmd, None, do_write))
+            self.tasks[header][-1].__module__ = 'Multiline'
+        if header in self.tasks and self.tasks[header]: # if a task exists
             if self.len_hex(cmd):
                 r_cmd, *_, r_cont = self.task_action(header, do_write,
-                    self.tasks[header].run, cmd, length, frame)
+                    self.tasks[header][-1].run, cmd, length, frame)
                 if r_cont is None:
                     return header, cmd, r_cmd
                 else:
@@ -1457,11 +1468,11 @@ class Elm:
                     length = None
             else:
                 logging.warning('Interrupted task "%s" with header "%s"',
-                                self.tasks[header].__module__, header)
+                                self.tasks[header][-1].__module__, header)
                 r_cmd, *_, r_cont = self.task_action(header, do_write,
-                    self.tasks[header].stop, cmd, length, frame)
+                    self.tasks[header][-1].stop, cmd, length, frame)
                 if header in self.tasks:
-                    del self.tasks[header]
+                    del self.tasks[header][-1]
                 if r_cont is None:
                     return header, cmd, r_cmd
                 else:
@@ -1502,24 +1513,27 @@ class Elm:
                             self.answer, pid, e)
                 if 'Task' in val:
                     if val['Task'] in self.plugins:
-                        if header in self.tasks:
+                        if header not in self.tasks:
+                            self.tasks[header] = []
+                        if len(self.tasks[header]) > MAX_TASKS:
                             logging.debug(
-                                'Another task %s was active on the same header'
-                                ' %s. Deleting it.',
-                                self.tasks[header].__module__, header)
-                            del self.tasks[header]
+                                'Too many active tasks with header %s. '
+                                'Latest one was %s.',
+                                header, self.tasks[header][-1].__module__)
+                            return header, cmd, ""
                         try:
-                            self.tasks[header] = self.plugins[val['Task']].Task(
-                                self, header, cmd, val, do_write)
+                            self.tasks[header].append(
+                                self.plugins[val['Task']].Task(
+                                    self, header, cmd, val, do_write))
                         except Exception as e:
                             logging.critical(
-                                'Cannot start task "%s", header="%s": %s',
+                                'Cannot add task "%s", header="%s": %s',
                                 val['Task'], header, e, exc_info=True)
                             return header, cmd, None
                         logging.debug('Starting task "%s" with header "%s"',
-                                      self.tasks[header].__module__, header)
+                                      self.tasks[header][-1].__module__, header)
                         r_cmd, *_, r_cont = self.task_action(header, do_write,
-                            self.tasks[header].start, cmd, length, frame)
+                            self.tasks[header][-1].start, cmd, length, frame)
                         if r_cont is None:
                             return header, cmd, r_cmd
                         else:
