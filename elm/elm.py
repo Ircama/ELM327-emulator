@@ -90,7 +90,9 @@ class Tasks:
         self.length = None # multiline request length counter
         self.flow_control = 0 # multiline request flow control
         self.flow_control_end = 0x20 # multiline request flow control repetitions
-        self.shared = self.emulator.task_shared_ns[header] # shared namespace
+        self.shared = None # A multiline special task will not use a shared namespace
+        if header in self.emulator.task_shared_ns:
+            self.shared = self.emulator.task_shared_ns[header] # shared namespace
 
     def HD(self, header):
         """
@@ -301,6 +303,7 @@ class Elm:
             del (self.counters[i])
         self.counters['ELM_PIDS_A'] = 0
         self.counters['ELM_MIDS_A'] = 0
+        self.counters['cmd_echo'] = not self.no_echo
         self.counters['cmd_set_header'] = ECU_ADDR_E
         self.counters.update(self.presets)
         self.tasks = {}
@@ -338,6 +341,7 @@ class Elm:
             self,
             batch_mode=False,
             newline=False,
+            no_echo=False,
             serial_port=None,
             device_port=None,
             serial_baudrate="",
@@ -354,6 +358,7 @@ class Elm:
         self.setSortedOBDMsg()
         self.batch_mode = batch_mode
         self.newline = newline
+        self.no_echo = no_echo
         self.serial_port = serial_port
         self.device_port = device_port
         self.serial_baudrate = serial_baudrate
@@ -1186,11 +1191,11 @@ class Elm:
                 try:
                     request_data = (''.join('{:02x}'.format(x)
                                      for x in bytearray.fromhex(
-                                        request_data)).upper())
-                except ValueError:
+                                        request_data[:4])).upper())
+                except ValueError as e:
                     logging.error('Invalid request %s related to response %s '
-                                  'including <pos_answer> tag.',
-                                  repr(request_data), repr(resp))
+                                  'including <pos_answer> tag: %s',
+                                  repr(request_data), repr(resp), e)
                     return ""
                 data = ("%02X"%(bytearray.fromhex(request_data[:2])[0] + 64) +
                         request_data[2:4] + (i.text or ""))
@@ -1208,11 +1213,11 @@ class Elm:
                 try:
                     request_data = (''.join('{:02x}'.format(x)
                                      for x in bytearray.fromhex(
-                                        request_data)).upper())
-                except ValueError:
+                                        request_data[:4])).upper())
+                except ValueError as e:
                     logging.error('Invalid request %s related to response %s '
-                                  'including <neg_answer> tag.',
-                                  repr(request_data), repr(resp))
+                                  'including <neg_answer> tag: %s',
+                                  repr(request_data), repr(resp), e)
                     return ""
                 data = "7F" + sp + request_data[:2] + (i.text or "")
                 answ += self.uds_answer(data=data,
@@ -1392,7 +1397,7 @@ class Elm:
             header = self.counters['cmd_set_header']
 
         # manages delay
-        logging.debug("Handling: %s", repr(cmd))
+        logging.debug("Handling: %s, header %s", repr(cmd), repr(header))
         if self.delay > 0:
             time.sleep(self.delay)
 
@@ -1400,9 +1405,9 @@ class Elm:
             logging.error("Unknown scenario %s", repr(self.scenario))
             return header, cmd, ""
 
-        # cmd_fcsm is experimental (to be removed)
-        if ('cmd_fcsm' in self.counters and
-                self.counters['cmd_fcsm'] and
+        # cmd_can is experimental (to be removed)
+        if ('cmd_can' in self.counters and
+                self.counters['cmd_can'] and
                 cmd[:2] != 'AT'
                 and self.is_hex_sp(cmd [:3])):
             self.counters['cmd_set_header'] = cmd[:3]

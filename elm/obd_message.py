@@ -2360,11 +2360,7 @@ ObdMessage = {
         'UNKNOWN_2100_E': {
             'Request': '^2100' + ELM_FOOTER,
             'Descr': 'UNKNOWN_2100',
-            'Header': ECU_ADDR_E,
-            'Response': [
-                        HD(ECU_R_ADDR_E) + SZ('06') + DT('61 00 BC 00 00 01'),
-                        HD(ECU_R_ADDR_E) + SZ('10') + DT('08 61 00 05 00 90 8B')
-                        ]
+            'Response': PA('BC 00 00 01')
         },
         # UDS - Mode 22 - Read Data By Identifier
         'HB_SOC': {

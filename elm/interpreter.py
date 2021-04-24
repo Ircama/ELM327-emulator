@@ -620,6 +620,12 @@ def main():
         action='store_true',
         help="Print ELM327-emulator version and exit")
     parser.add_argument(
+        '-e',
+        "--no-echo",
+        dest='no_echo',
+        action='store_true',
+        help="Disable echo by default")
+    parser.add_argument(
         '-l',
         "--newline",
         dest='newline',
@@ -770,6 +776,7 @@ def main():
     emulator = Elm(
         batch_mode=args.batch_mode or args.daemon_mode,
         newline=args.newline,
+        no_echo=args.no_echo,
         serial_port=args.serial_port[0]
            if args.serial_port else None,
         device_port=args.device_port[0]
