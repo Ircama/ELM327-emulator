@@ -9,6 +9,7 @@
 
 import sys
 import traceback
+
 try:
     if sys.hexversion < 0x3060000:
         raise ImportError("Python version must be >= 3.6")
@@ -38,6 +39,8 @@ try:
     except ImportError:
         readline = None
     from .obd_message import ObdMessage, ECU_ADDR_E, ELM_R_OK
+    from random import randint
+    import xml.etree.ElementTree as ET
 except ImportError as detail:
     print("ELM327 OBD-II adapter emulator error:\n " + str(detail))
     sys.exit(1)
@@ -47,6 +50,67 @@ DAEMON_PIDFILE_DIR_NON_ROOT = '/tmp/'
 DAEMON_PIDFILE = 'ELM327_emulator.pid'
 DAEMON_UMASK = 0o002
 DAEMON_DIR = '/tmp'
+
+
+class Edit:
+    def __enter__(self):
+        if self.pid in self.emulator.answer:
+            self.original_entry = self.emulator.answer[self.pid]
+        return self
+
+    def answer(self, position, replace_bytes, pid=None):
+        if pid:
+            self.pid = pid
+        try:
+            r_response = self.emulator.ObdMessage[
+                self.emulator.scenario][self.pid]['Response']
+        except Exception as e:
+            logging.error('Unknown pid %s for scenario %s',
+                          self.pid, self.emulator.scenario)
+            return False
+        if isinstance(r_response, (list, tuple)):
+            r_response = r_response[randint(0, len(r_response) - 1)]
+        try:
+            root = ET.fromstring('<xml>' + r_response + '</xml>')
+        except ET.ParseError as e:
+            logging.error(
+                'Wrong response format for "%s"; %s', r_response, e)
+            return False
+        for i in root:
+            if i.tag.lower() in ['data', 'string', 'writeln', 'neg_answer',
+                                 'pos_answer', 'answer']:
+                try:
+                    org_ba = bytearray.fromhex(i.text)
+                    replace_ba = bytearray.fromhex(replace_bytes)
+                except Exception as e:
+                    logging.error('Wrong hex format for %s / %s: %s',
+                                  i.text, replace_bytes, e)
+                    return False
+                for j in replace_ba:
+                    try:
+                        org_ba[position] = j
+                    except Exception as e:
+                        logging.error(
+                            'Replaced string is too long. %s / %s: %s',
+                            i.text, replace_bytes, e)
+                        return False
+                    position += 1
+                i.text = ' '.join('{:02x}'.format(x) for x in org_ba).upper()
+        self.emulator.answer[self.pid] = ET.tostring(root).decode()[5:-6]
+        return True
+
+    def __exit__(self, exc_type, exc_val, exc_tb):
+        if self.original_entry:
+            self.emulator.answer[self.pid] = self.original_entry
+        else:
+            if self.pid in self.emulator.answer:
+                del self.emulator.answer[self.pid]
+
+    def __init__(self, emulator, pid):
+        self.pid = pid
+        self.emulator = emulator
+        self.original_entry = None
+
 
 class Interpreter(Cmd):
 
@@ -60,6 +124,7 @@ class Interpreter(Cmd):
         self.emulator = emulator
         self.args = args
 
+        self.traceback = None
         self.prompt_active = True
         self.color_active = True
         self.__set_ps_string('CMD')
@@ -294,6 +359,9 @@ class Interpreter(Cmd):
                         print(" - {}, header {}".format(j.__module__, i))
                 else:
                     print(" - (completed task), header {}".format(i))
+                if self.emulator.task_shared_ns[i]:
+                    print("   Shared {}".format(
+                        repr(self.emulator.task_shared_ns[i])))
         else:
             print("No task available.")
 
@@ -503,12 +571,17 @@ class Interpreter(Cmd):
     # Execution of unrecognized commands
     def default(self, arg):
         emulator = self.emulator # ref. host_lib
+        arg = '\n'.join(arg.split("\\n"))
+        arg = '\t'.join(arg.split("\\t"))
+        if '\n' in arg:
+            print("Multiline command:\n", arg)
         try:
             print(eval(arg, {**globals(), **locals()}))
         except Exception:
             try:
                 exec(arg, {**globals(), **locals()})
             except Exception as e:
+                self.traceback = traceback.format_exc(chain=False)
                 print("Error executing command: %s" % e)
 
     def cmdloop_with_keyboard_interrupt(self, arg):

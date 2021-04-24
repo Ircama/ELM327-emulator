@@ -33,6 +33,7 @@ import xml.etree.ElementTree as ET
 import importlib
 import pkgutil
 import inspect
+from types import SimpleNamespace
 
 FORWARD_READ_TIMEOUT = 0.2 # seconds
 SERIAL_BAUDRATE = 38400 # bps
@@ -76,8 +77,9 @@ class Tasks:
         INCOMPLETE = (None, CONTINUE, None)
         def PASSTHROUGH(cmd): return (None, Tasks.TASK.TERMINATE, cmd)
 
-    def __init__(self, emulator, header, request, attrib, do_write=False):
+    def __init__(self, emulator, pid, header, request, attrib, do_write=False):
         self.emulator = emulator # reference to the emulator namespace
+        self.pid = pid # PID label
         self.header = header # request header
         self.request = request # original request data (stored before running the start() method)
         self.logging = emulator.logger # logger reference
@@ -88,6 +90,7 @@ class Tasks:
         self.length = None # multiline request length counter
         self.flow_control = 0 # multiline request flow control
         self.flow_control_end = 0x20 # multiline request flow control repetitions
+        self.shared = self.emulator.task_shared_ns[header] # shared namespace
 
     def HD(self, header):
         """
@@ -301,6 +304,7 @@ class Elm:
         self.counters['cmd_set_header'] = ECU_ADDR_E
         self.counters.update(self.presets)
         self.tasks = {}
+        self.task_shared_ns = {}
 
     def set_defaults(self):
         """
@@ -1210,7 +1214,7 @@ class Elm:
                                   'including <neg_answer> tag.',
                                   repr(request_data), repr(resp))
                     return ""
-                data = "7F " + request_data[:2] + (i.text or "")
+                data = "7F" + sp + request_data[:2] + (i.text or "")
                 answ += self.uds_answer(data=data,
                                         request_header=request_header,
                                         use_headers=use_headers,
@@ -1449,7 +1453,7 @@ class Elm:
                 "Length: %s, frame: %s, header: %s, cmd: %s",
                 length, frame, header, cmd)
 
-        # Manage active tasks
+        # Manage multiline
         if length is not None and frame is not None: # multiline condition
             if header not in self.tasks:
                 self.tasks[header] = []
@@ -1467,8 +1471,9 @@ class Elm:
                     header, length, frame, cmd)
                 return header, cmd, ""
             self.tasks[header].append(
-                Multiline(self, header, cmd, None, do_write))
+                Multiline(self, "MULTILINE", header, cmd, None, do_write))
             self.tasks[header][-1].__module__ = MULTILINE_MODULE
+        # Manage active tasks
         if header in self.tasks and self.tasks[header]: # if a task exists
             if self.len_hex(cmd):
                 r_cmd, *_, r_cont = self.task_action(header, do_write,
@@ -1492,17 +1497,18 @@ class Elm:
                     cmd = r_cont
 
         # Process response for data stored in cmd
-        for i in self.sortedOBDMsg:
-            key = i[0]
-            val = i[1]
+        i_obd_msg = iter(self.sortedOBDMsg)
+        chained_command = 0
+        while True:
+            try:
+                key, val = next(i_obd_msg)
+            except StopIteration:
+                break
             if 'Request' in val and re.match(val['Request'], cmd):
                 if ('Header' in val and header and
                         val['Header'] != self.counters["cmd_set_header"]):
                     continue
-                if key:
-                    pid = key
-                else:
-                    pid = 'UNKNOWN'
+                pid = key if key else 'UNKNOWN'
                 if pid not in self.counters:
                     self.counters[pid] = 0
                 self.counters[pid] += 1
@@ -1514,7 +1520,7 @@ class Elm:
                     logging.debug("Description: %s, PID %s (%s)",
                                   val['Descr'], pid, cmd)
                 else:
-                    logging.error(
+                    logging.warning(
                         "Internal error - Missing description for %s, PID %s",
                         cmd, pid)
                 if pid in self.answer:
@@ -1528,6 +1534,7 @@ class Elm:
                     if val['Task'] in self.plugins:
                         if header not in self.tasks:
                             self.tasks[header] = []
+                            self.task_shared_ns[header] = SimpleNamespace()
                         if len(self.tasks[header]) > MAX_TASKS:
                             logging.critical(
                                 'Too many active tasks with header %s. '
@@ -1537,7 +1544,7 @@ class Elm:
                         try:
                             self.tasks[header].append(
                                 self.plugins[val['Task']].Task(
-                                    self, header, cmd, val, do_write))
+                                    self, pid, header, cmd, val, do_write))
                         except Exception as e:
                             logging.critical(
                                 'Cannot add task "%s", header="%s": %s',
@@ -1549,8 +1556,17 @@ class Elm:
                             self.tasks[header][-1].start, cmd, length, frame)
                         if r_cont is None:
                             return header, cmd, r_cmd
-                        else:
+                        else: # chain a subsequent command
+                            chained_command += 1
+                            if chained_command > MAX_TASKS:
+                                logging.critical(
+                                    'Too many subsequent chained commands '
+                                    'with header %s. Latest task was %s.',
+                                    header, val['Task'])
+                                return header, cmd, ""
                             cmd = r_cont
+                            i_obd_msg = iter(self.sortedOBDMsg)
+                            continue # restart the loop from the beginning
                     else:
                         logging.error(
                             'Unexisting plugin "%s" for pid "%s"',
@@ -1576,16 +1592,28 @@ class Elm:
                     except Exception as e:
                         logging.error(
                             "Error while logging '%s' for PID %s (%s)",
-                            val['Log'], pid, e)
+                            log_string, pid, e)
                 if 'Response' in val:
                     r_header = ''
                     if 'ResponseHeader' in val:
-                        r_header = val['ResponseHeader'](
-                            self, cmd, pid, val)
+                        try:
+                            r_header = val['ResponseHeader'](
+                                self, cmd, pid, val)
+                        except Exception as e:
+                            logging.error(
+                                "Error while running 'ResponseHeader' %s '"
+                                "for PID %s (%s)",
+                                val['ResponseHeader'], pid, e)
                     r_footer = ''
                     if 'ResponseFooter' in val:
-                        r_footer = val['ResponseFooter'](
-                            self, cmd, pid, val)
+                        try:
+                            r_footer = val['ResponseFooter'](
+                                self, cmd, pid, val)
+                        except Exception as e:
+                            logging.error(
+                                "Error while running 'ResponseFooter' %s '"
+                                "for PID %s (%s)",
+                                val['ResponseHeader'], pid, e)
                     r_response = val['Response']
                     if r_response is None:
                         return header, cmd, None
