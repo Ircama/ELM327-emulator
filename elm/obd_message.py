@@ -4233,6 +4233,16 @@ ObdMessage = {
                 '2D 63 2D 59 2A 01 D7 8C 1C 2A 00 00 00 00 1B 40 00 A9 00 00'),
             ]
         },
+        'READ_DTC': {
+            'Request': '^182E' + ELM_FOOTER,
+            'Descr': 'READ_DTC (invalid test - delete after testing!!)',
+            'Response': PA(
+                'C15570C11122334455667770C13870C129701122334455667711223344'
+                '5566771122334455667711223344556677112233445566771122334455'
+                '6677112233445566771122334455667711223344556677112233445566'
+                '7711223344556677112233445566771122334455667711223344556677'
+                '11223344556677112233445566771122334455667750'),
+        },
         'ECU_IVN_A': {
             'Request': '^2103' + ELM_FOOTER,
             'Descr': 'ECU internal version numbers - A',
@@ -4250,7 +4260,12 @@ ObdMessage = {
         },
         'READ_MEM_BY_ADDR': {
             'Request': '^23C0500008' + ELM_FOOTER,
-            'Descr': 'Read memory by address',
+            'Descr': 'UDS Read memory by address',
+            'Response': PA('32 30 31 31 30 33 32'),
+        },
+        'UNKNOWN_C1FF': {
+            'Request': '^23C1FFF008' + ELM_FOOTER,
+            'Descr': 'UDS Read memory by address',
             'Response': PA('32 30 31 31 30 33 32'),
         },
     }

@@ -35,12 +35,15 @@ import pkgutil
 import inspect
 from types import SimpleNamespace
 
+# Configuration constants
 FORWARD_READ_TIMEOUT = 0.2 # seconds
 SERIAL_BAUDRATE = 38400 # bps
 NETWORK_INTERFACES = ""
 PLUGIN_DIR = __package__ + ".plugins"
 MAX_TASKS = 20
 MULTILINE_MODULE = 'ISO-TP request pending'
+MIN_SIZE_UDS_LENGTH = 20 # Minimum size to use a UDS header with additional length byte (ISO 14230-2)
+
 
 def setup_logging(
         default_path=Path(__file__).stem + '.yaml',
@@ -234,6 +237,10 @@ class Multiline(Tasks):
               length is None): # valid Consecutive Frame (CF)
             self.req += cmd
             self.frame += 1
+        elif (frame is not None and frame == -1 and self.frame == 16 and
+                  length is None):  # valid Consecutive Frame (CF) - 20 after 2F
+            self.req += cmd
+            self.frame = 1 # re-cycle the input frame count to 21
         elif ((length is None or length > 0) and
               frame is None and self.frame is None): # Single Frame (SF)
             self.req = cmd
@@ -243,7 +250,9 @@ class Multiline(Tasks):
             else:
                 return Tasks.TASK.PASSTHROUGH(self.req)
         else:
-            self.logging.error('Invalid consecutive frame %s %s', frame, cmd)
+            self.logging.error(
+                'Invalid consecutive frame %s with data %s, stored frame: %s',
+                frame, repr(cmd), self.frame)
             return Tasks.TASK.ERROR
 
         # Process Flow Control (FC)
@@ -1019,6 +1028,21 @@ class Elm:
 
     def uds_answer(
             self, data, request_header, use_headers, sp, flow_control=None):
+        """
+        Generate an UDS envelope and answer basing on information included in parameters.
+        The format should be compliant with:
+        ISO 14230-2:1999 Data Link Layer:
+        https://www.sis.se/api/document/preview/612053/
+        ISO 14230-3:1999 Application Layer:
+        https://www.sis.se/api/document/preview/895162/
+        :param data: data bytes of the answer
+        :param request_header: string containing the hedader used in the request
+                (to be used to compute the response header)
+        :param use_headers: boolean to indicate whether the header shall be included
+        :param sp: space string
+        :param flow_control: string including the flow control byte
+        :return: string including the formatted UDS answer
+        """
         answer = ""
         if request_header is None and "cmd_set_header" in self.counters:
             request_header = self.counters['cmd_set_header']
@@ -1050,7 +1074,7 @@ class Elm:
             if not use_headers:
                 logging.error('Unimplemented case.')
                 return ""
-            if length < 20:
+            if length < MIN_SIZE_UDS_LENGTH:
                 answer = (("%02X"%(128 + length) + sp +
                            request_header[4:6] + sp +
                            request_header[2:4]) + sp + data)
@@ -1416,7 +1440,7 @@ class Elm:
             self.counters['cmd_use_header'] = True
             cmd = cmd[3:]
 
-        # manages cmd_caf, length, frame
+        # manages cmd_caf, length, frame - Process UDS multiframe data link
         size = cmd[:2]
         length = None # no byte length in request
         frame = None # Single Frame
@@ -1433,7 +1457,7 @@ class Elm:
             if not payload:
                 logging.error('Missing data for request "%s"', repr(cmd))
                 return header, cmd, ""
-            if int_size < 16:
+            if int_size < 16: # < 10 = single line
                 if len(payload) < int_size * 2:
                     logging.error(
                         'In request %s, data %s has an improper length '
@@ -1441,19 +1465,30 @@ class Elm:
                     return header, cmd, ""
                 cmd = payload[:int_size * 2]
                 length = int_size
-            elif int_size == 16:
+            elif int_size == 16: #10 = first frame of a multiline fequest
                 try:
-                    length = int(cmd[2:4], 16)
+                    length = int(cmd[2:4], 16) # read multiline length
+                    logging.debug(
+                        'Multiline message with length 0x%s = (int) %s '
+                        '(message %s)', repr(cmd[2:4]), length, repr(cmd))
                 except ValueError as e:
                     logging.error('Improper size %s for request %s: %s',
                                   repr(cmd[2:4]), repr(cmd), e)
                     return header, cmd, ""
                 cmd = cmd[4:]
                 frame = 0
-            else:
+            else: # process subsequent frames of a multiline request
                 cmd = cmd[2:]
-            if int_size > 32:
-                frame = int_size - 32
+            if int_size == 32: # the frame includes 20 after 1F
+                frame = -1 # Marker for Multiline() to detect a recycle
+            if int_size > 32 and int_size < 48: # from 21 to 2F
+                frame = int_size - 32 # compute the multframe count
+            if int_size >= 48: # from 30 on - Process flow control
+                logging.debug(
+                    'Flow control input is ignored by now: '
+                    'int_size: %s, length: %s, frame: %s, header: %s, cmd: %s',
+                    int_size, length, frame, header, cmd)
+                return header, cmd, None
             logging.debug(
                 "Length: %s, frame: %s, header: %s, cmd: %s",
                 length, frame, header, cmd)

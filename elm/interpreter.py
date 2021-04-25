@@ -359,11 +359,15 @@ class Interpreter(Cmd):
                         print(" - {}, header {}".format(j.__module__, i))
                 else:
                     print(" - (completed task), header {}".format(i))
-                if self.emulator.task_shared_ns[i]:
-                    print("   Shared {}".format(
-                        repr(self.emulator.task_shared_ns[i])))
         else:
             print("No task available.")
+        if self.emulator.task_shared_ns:
+            print("Shared namespaces:")
+            for i in sorted(self.emulator.task_shared_ns):
+                print(" - Shared {}, header {}".format(
+                    repr(self.emulator.task_shared_ns[i]), i))
+        else:
+            print("No shared namespaces available.")
 
     def do_counters(self, arg):
         "Print the number of each executed PID (upper case names), "\

@@ -252,7 +252,7 @@ Special setter  |Related AT command     |Handled|Description
 `cmd_use_header`|*ATH0*, *ATH1*         |Yes    |Headers off or on
 `cmd_last_cmd`  |<carriage return>      |Yes    |Last executed command
 `cmd_cra`       |*ATCRAx* (x=hex digit) |Yes    |Set SET CAN Receive address filter argument
-`cmd_caf`       |*ATCAF0*, *ATCAF1*     |Yes    |Set CAN Auto formatting on/off
+`cmd_caf`       |*ATCAF0*, *ATCAF1*     |Yes    |Set CAN Auto formatting on/off (0 = use PCI byte in requests)
 `cmd_cfc`       |*ATCFC0*, *ATCFC1*     |Yes    |Set CAN Flow control off or on
 `cmd_can`       |(none)                 |Yes    |Include headers in CAN requests (experimental - to be removed)
 `cmd_fcsm`      |*ATFCSM m* (m = mode)  |No     |Set flow control to mode m
