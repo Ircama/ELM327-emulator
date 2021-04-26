@@ -44,6 +44,27 @@ MAX_TASKS = 20
 MULTILINE_MODULE = 'ISO-TP request pending'
 MIN_SIZE_UDS_LENGTH = 20 # Minimum size to use a UDS header with additional length byte (ISO 14230-2)
 
+uds_answer = {
+    "01": 1,  # Show current data
+    "02": 1,  # Show freeze frame data
+    "05": 1,  # Test results, oxygen sensor monitoring
+    "09": 1,  # Request vehicle information
+    "10": 1,  # Start Diagnostic Session
+    "11": 1,  # ECU Reset - hardReset
+    "14": 1,  # Clear DTC
+    "21": 1,  # Read Data by Local Id
+    "27": 1,  # Security Access
+    "2E": 1,  # writeDataByIdentifier Service
+    "30": 1,  # IO Control by Local Id
+    "3101FF00": 3,  # Start Routine by Local ID, startRoutine, erase_memory
+    "3103FF00": 3,
+    # Start Routine by Local ID, Request Routine Result, erase_memory
+    "31": 1,  # Start Routine by Local ID
+    "38": 1,  # Start Routine by Address
+    "3D": 1,  # Write Memory by Address
+    "3E": 1,  # Tester Present
+}
+
 
 def setup_logging(
         default_path=Path(__file__).stem + '.yaml',
@@ -1027,7 +1048,8 @@ class Elm:
                     return
 
     def uds_answer(
-            self, data, request_header, use_headers, sp, flow_control=None):
+            self,
+            data, request_header, use_headers, sp, nl, is_flow_control=None):
         """
         Generate an UDS envelope and answer basing on information included in parameters.
         The format should be compliant with:
@@ -1040,7 +1062,8 @@ class Elm:
                 (to be used to compute the response header)
         :param use_headers: boolean to indicate whether the header shall be included
         :param sp: space string
-        :param flow_control: string including the flow control byte
+        :param nl: newline string
+        :param is_flow_control: string including the flow control byte
         :return: string including the formatted UDS answer
         """
         answer = ""
@@ -1058,16 +1081,38 @@ class Elm:
         except ValueError:
             logging.error('Invalid data in answer: %s', repr(data))
             return ""
-        if len(request_header) == 3 and flow_control:
+        if len(request_header) == 3 and is_flow_control:
             if use_headers:
                 answer = hex(int(request_header, 16) + 8)[2:].upper() + sp
-            answer += flow_control + sp + data
+            answer += is_flow_control + sp + data
         elif len(request_header) == 3:
             if use_headers:
-                answer = (hex(int(request_header, 16) + 8)[2:].upper() + sp +
-                          "%02X"%length + sp)
-            answer += data
-        elif len(request_header) == 6 and flow_control:
+                if length > 7: # produce a multframe output
+                    answer = (hex(int(request_header, 16) + 8)[2:].upper() +
+                              sp + "10" + sp + "%02X" % length + sp)
+                    bytes_to_add = 6
+                    answer += data[:(3 if sp else 2) * bytes_to_add] + nl
+                    remaining_length = length - bytes_to_add
+                    remaining_data = data[(3 if sp else 2) * bytes_to_add:]
+                    bytes_to_add += 1
+                    frame_count = 1
+                    while remaining_length > 0:
+                        if frame_count == 0x10:
+                            frame_count = 0
+                        answer += (hex(int(request_header, 16) + 8)[2:].upper()
+                                   + sp + "%02X" % (frame_count + 0x20) + sp)
+                        remaining_length -= bytes_to_add
+                        answer += (remaining_data[
+                                   :(3 if sp else 2) * bytes_to_add] + nl)
+                        remaining_data = remaining_data[
+                                         (3 if sp else 2) * bytes_to_add:]
+                        frame_count += 1
+                    answer = answer.rstrip(sp + nl)
+                else:
+                    answer = (hex(int(request_header, 16) + 8)[2:].upper() +
+                              sp + "%02X"%length + sp)
+                    answer += data
+        elif len(request_header) == 6 and is_flow_control:
             logging.error('Unimplemented flow control.')
             return ""
         elif len(request_header) == 6:
@@ -1151,6 +1196,23 @@ class Elm:
         answ = root.text.strip() if root is not None and root.text else ""
         answers = False
         i = None
+
+        # Calculate uds_pos_answ for uds_answer
+        uds_pos_answ = ''
+        try:
+            rd=''.join(request_data.split())
+            for sid in uds_answer:
+                if rd.startswith(sid):
+                    uds_pos_answ = (
+                        sp.join(
+                            '{:02x}'.format(x) for x in bytearray.fromhex(
+                            rd[2:2 + 2 * uds_answer[sid]])
+                        ).upper()
+                    )
+                    break
+        except:
+            uds_pos_answ = None
+
         while not incomplete_resp:
             try:
                 i = next(s)
@@ -1199,14 +1261,16 @@ class Elm:
                                         request_header=request_header,
                                         use_headers=use_headers,
                                         sp=sp,
-                                        flow_control='30') + sp + nl
+                                        nl=nl,
+                                        is_flow_control='30') + sp + nl
 
             elif i.tag.lower() == 'answer':
                 answ += self.uds_answer(data=i.text or "",
                                         request_header=request_header,
                                         use_headers=use_headers,
-                                        sp=sp) + sp + nl
-            elif i.tag.lower() == 'pos_answer':
+                                        sp=sp,
+                                        nl=nl) + sp + nl
+            elif i.tag.lower() == 'pos_answer' and uds_pos_answ is not None:
                 if not request_data:
                     logging.error(
                         'Missing request with <pos_answer> tag: %s.',
@@ -1221,23 +1285,25 @@ class Elm:
                                   'including <pos_answer> tag: %s',
                                   repr(request_data), repr(resp), e)
                     return ""
-                data = ("%02X"%(bytearray.fromhex(request_data[:2])[0] + 64) +
-                        request_data[2:4] + (i.text or ""))
+                data = ("%02X"%(bytearray.fromhex(request_data[:2])[0] + 0x40) +
+                        uds_pos_answ + (i.text or ""))
                 answ += self.uds_answer(data=data,
                                         request_header=request_header,
                                         use_headers=use_headers,
-                                        sp=sp) + sp + nl
+                                        sp=sp,
+                                        nl=nl) + sp + nl
 
-            elif i.tag.lower() == 'neg_answer':
+            elif i.tag.lower() == 'neg_answer' and uds_pos_answ is not None:
                 if not request_data:
                     logging.error(
                         'Missing request with <neg_answer> tag: %s.',
                         repr(resp))
                     break
                 try:
-                    request_data = (''.join('{:02x}'.format(x)
-                                     for x in bytearray.fromhex(
-                                        request_data[:4])).upper())
+                    request_data = (
+                        ''.join('{:02x}'.format(x)
+                                for x in bytearray.fromhex(
+                            request_data[:4])).upper())
                 except ValueError as e:
                     logging.error('Invalid request %s related to response %s '
                                   'including <neg_answer> tag: %s',
@@ -1247,7 +1313,8 @@ class Elm:
                 answ += self.uds_answer(data=data,
                                         request_header=request_header,
                                         use_headers=use_headers,
-                                        sp=sp) + sp + nl
+                                        sp=sp,
+                                        nl=nl) + sp + nl
 
             elif i.tag.lower() == 'header':
                 answers = True

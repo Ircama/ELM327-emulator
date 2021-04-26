@@ -796,7 +796,7 @@ ObdMessage = {
         },
         'VIN': { # Check this also: https://stackoverflow.com/a/26752855/10598800, https://www.autocheck.com/vehiclehistory/autocheck/en/vinbasics
             'Request': '^0902' + ELM_FOOTER,
-            'Descr': 'Get Vehicle Identification Number',
+            'Descr': 'Vehicle Identification Number',
             'Response': [
                         HD(ECU_R_ADDR_E) + SZ('10') + DT('14 49 02 01 57 50 30') +
                         HD(ECU_R_ADDR_E) + SZ('21') + DT('5A 5A 5A 39 39 5A 54') +
@@ -1977,7 +1977,7 @@ ObdMessage = {
     # MODE 03 - diagnostic trouble codes - Sending emission related malfunction code (DTC)
         'GET_DTC': {
             'Request': '^03' + ELM_FOOTER,
-            'Descr': 'Get DTCs',
+            'Descr': 'Get DTCs (Diagnostic Trouble Codes)',
             'Header': ECU_ADDR_E,
             'Response': HD(ECU_R_ADDR_E) + SZ('02') + DT('43 00')
         },
@@ -2129,7 +2129,7 @@ ObdMessage = {
         'VIN': {
             # Check this also: https://stackoverflow.com/a/26752855/10598800, https://www.autocheck.com/vehiclehistory/autocheck/en/vinbasics
             'Request': '^0902' + ELM_FOOTER,
-            'Descr': 'Get Vehicle Identification Number',
+            'Descr': 'Vehicle Identification Number',
             'Response': [
                 HD(ECU_R_ADDR_E) + SZ('10') + DT('14 49 02 01 57 50 30') +
                 HD(ECU_R_ADDR_E) + SZ('21') + DT('5A 5A 5A 39 39 5A 54') +
@@ -2265,9 +2265,9 @@ ObdMessage = {
             'Descr': 'UNKNOWN_13FF00',
             'Response': ST('NO DATA'),
         },
-        'UNKNOWN_14': {
+        'CLEAR_DTC': {
             'Request': '^14' + ELM_FOOTER,
-            'Descr': 'UNKNOWN_14',
+            'Descr': 'Clear DTC',
             'Header': ECU_ADDR_E,
             'Response': NA('11')
         },
@@ -2462,7 +2462,7 @@ ObdMessage = {
         'Response': PA('90')
         },
     # -------------------------------------------------------------------
-    # UDS - MODE 31 - UDS Routine Control
+    # UDS - MODE 31 - UDS Routine Control - Start routine by local ID
         'UDS_ERASE_MEM': {
             'Request': '^3101FF00' + ELM_DATA_FOOTER,
             # UDS Routine Control (31): Start (01), Delete Area (FF 00), Bootloader (01 00)
@@ -2521,7 +2521,7 @@ ObdMessage = {
             ]
         },
     #------------------------------------------------------------
-    # UDS - MODE 21 - Custom OBD Commands - Toyota Prius
+    # UDS - MODE 21 - Read Data By Local ID - Toyota Prius
         "CUSTOM_CAL'D_LOAD": {
             'Request': '^2101' + ELM_FOOTER,
             'Descr': 'Calculated Load',
@@ -4233,24 +4233,14 @@ ObdMessage = {
                 '2D 63 2D 59 2A 01 D7 8C 1C 2A 00 00 00 00 1B 40 00 A9 00 00'),
             ]
         },
-        'READ_DTC': {
-            'Request': '^182E' + ELM_FOOTER,
-            'Descr': 'READ_DTC (invalid test - delete after testing!!)',
-            'Response': PA(
-                'C15570C11122334455667770C13870C129701122334455667711223344'
-                '5566771122334455667711223344556677112233445566771122334455'
-                '6677112233445566771122334455667711223344556677112233445566'
-                '7711223344556677112233445566771122334455667711223344556677'
-                '11223344556677112233445566771122334455667750'),
-        },
-        'ECU_IVN_A': {
+        'ECU_IVN_HW': {
             'Request': '^2103' + ELM_FOOTER,
-            'Descr': 'ECU internal version numbers - A',
+            'Descr': 'ECU internal version numbers - Harware Part Number',
             'Response': PA('01 B3 D0 54'),
         },
-        'ECU_IVN_B': {
+        'ECU_IVN_SW': {
             'Request': '^2104' + ELM_FOOTER,
-            'Descr': 'ECU internal version numbers - B',
+            'Descr': 'ECU internal version numbers - Software Part Number',
             'Response': PA('01 AF FD D4'),
         },
         'IGNITION_COUNTER': {
@@ -4258,15 +4248,15 @@ ObdMessage = {
             'Descr': 'Ignition counter',
             'Response': PA('8E 01 00 00'),
         },
-        'READ_MEM_BY_ADDR': {
+        'RMBA_CALIB_VERS': {
             'Request': '^23C0500008' + ELM_FOOTER,
-            'Descr': 'UDS Read memory by address',
-            'Response': PA('32 30 31 31 30 33 32'),
+            'Descr': 'UDS Read memory by address - Calibration Version',
+            'Response': PA('42 4A 32 35 30 31 38 46'),
         },
-        'UNKNOWN_C1FF': {
+        'UNKNOWN_RM': {
             'Request': '^23C1FFF008' + ELM_FOOTER,
             'Descr': 'UDS Read memory by address',
-            'Response': PA('32 30 31 31 30 33 32'),
+            'Response': PA('00 00 00 00 32 38 30 39'),
         },
     }
 }

@@ -23,12 +23,13 @@ class Task(Tasks):
         return self.run(cmd)
 
     def run(self, cmd, *_):
+        print("ALBE")
         if time.time() < self.time_started + EXECUTION_TIME:
             # 78 in negative answer = requestCorrectlyReceived-ResponsePending
             return (self.NA('78'),
                     self.TASK.CONTINUE,
                     None if self.task_request_matched(cmd) else cmd)
         else:
-            return (self.PA('FF 00 00'),
+            return (self.PA('00'),
                     self.TASK.TERMINATE,
                     None if self.task_request_matched(cmd) else cmd)
