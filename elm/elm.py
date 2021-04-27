@@ -58,14 +58,15 @@ uds_bytes_pos_answer = {
     "11": 1,  # ECU Reset - hardReset
     "14": 1,  # Clear DTC
     "21": 1,  # Read Data by Local Id
+    "23": 0,  # Read memory by address
     "27": 1,  # Security Access
     "2E": 1,  # writeDataByIdentifier Service
     "30": 1,  # IO Control by Local Id
     "3101FF00": 3,  # Start Routine by Local ID, startRoutine, erase_memory
     "3103FF00": 3,  # Start Routine by Local ID, Request Routine Result, erase_memory
     "31": 1,  # Start Routine by Local ID
-    "38": 1,  # Start Routine by Address
-    "3D": 1,  # Write Memory by Address
+    "38": 0,  # Start Routine by Address
+    "3D": 0,  # Write Memory by Address
     "3E": 1,  # Tester Present
 }
 
@@ -97,13 +98,14 @@ class Tasks():
 
     class TASK:
         """
-        method return values
+        Return values for all Tasks methods
         """
         TERMINATE = False
         CONTINUE = True
         ERROR = (None, TERMINATE, None)
         INCOMPLETE = (None, CONTINUE, None)
         def PASSTHROUGH(cmd): return (None, Tasks.TASK.TERMINATE, cmd)
+        def ANSWER(pa): return (pa, Tasks.TASK.TERMINATE, None)
 
     def __init__(self, emulator, pid, header, request, attrib, do_write=False):
         self.emulator = emulator # reference to the emulator namespace
@@ -1732,7 +1734,8 @@ class Elm:
                         logging.error(
                             "Error while logging '%s' for PID %s (%s)",
                             log_string, pid, e)
-                if 'Response' in val:
+                if any(x in val for x in
+                       ['Response', 'ResponseHeader', 'ResponseFooter']):
                     r_header = ''
                     if 'ResponseHeader' in val:
                         try:
@@ -1753,12 +1756,14 @@ class Elm:
                                 "Error while running 'ResponseFooter' %s '"
                                 "for PID %s (%s)",
                                 val['ResponseHeader'], pid, e)
-                    r_response = val['Response']
-                    if r_response is None:
+                    r_response = ''
+                    if 'Response' in val:
+                        r_response = val['Response']
+                    if not any([r_response, r_header, r_footer]):
                         return header, cmd, None
                     if isinstance(r_response, (list, tuple)):
                         r_response = r_response[randint(0, len(r_response) - 1)]
-                    return header, cmd, (r_header + r_response + r_footer)
+                    return header, cmd, r_header + r_response + r_footer
                 else:
                     logging.error(
                         "Internal error - Missing response for %s, PID %s",

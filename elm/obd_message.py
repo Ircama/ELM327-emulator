@@ -2191,7 +2191,7 @@ ObdMessage = {
             'Response': ST('NO DATA'),
         },
         # -------------------------------------------------------------------
-    # Unknown pids tested on a Toyota Prius
+    # Unknown PIDs tested on a Toyota Prius
         'UNKNOWN_01AB': {
             'Request': '^01AB' + ELM_FOOTER,
             'Descr': 'UNKNOWN_01AB',
@@ -2275,7 +2275,7 @@ ObdMessage = {
             'Request': '^1092' + ELM_FOOTER,
             'Descr': 'UDS Session Request',
             'Header': ECU_ADDR_E,
-            'Response': HD(ECU_R_ADDR_E) + SZ('02') + DT('50 92')
+            'Response': PA('')
         },
         # USD tests with ECU_ADDR_M are simulating a Continental ECU
         # (these pids are unrelated to the ones of a Toyota Auris Hybrid)
@@ -2284,13 +2284,13 @@ ObdMessage = {
             'Request': '^1002' + ELM_FOOTER,
             'Descr': 'UDS Programming Session',
             'Header': ECU_ADDR_M,
-            'Response': HD(ECU_R_ADDR_M) + SZ('06') + DT('50 02 00 14 00 C8')
+            'Response': PA('00 14 00 C8')
         },
         'UDS_EDS_M': {
             'Request': '^1003' + ELM_FOOTER,
             'Descr': 'UDS Extended Diagnostics Session',
             'Header': ECU_ADDR_M,
-            'Response': HD(ECU_R_ADDR_M) + SZ('06') + DT('50 03 00 14 00 C8')
+            'Response': PA('00 14 00 C8')
         },
     # -------------------------------------------------------------------
     # UDS - MODE 11 - ECU Reset - hardReset
@@ -2298,7 +2298,7 @@ ObdMessage = {
             'Request': '^1101' + ELM_FOOTER,
             'Descr': 'EcuReset',
             'Header': ECU_ADDR_E,
-            'Response': HD(ECU_R_ADDR_E) + SZ('02') + DT('51 01')
+            'Response': PA('')
         },
         'UDS_HR': {
             'Request': '^1101$',
@@ -2307,21 +2307,19 @@ ObdMessage = {
             'Task': 'task_hardware_reset'
         },
     # -------------------------------------------------------------------
-    # UDS - MODE 1A
+    # UDS - MODE 1A (answer with 0 additional bytes)
         'UDS_SEI': {
             'Request': '^1A87' + ELM_FOOTER,
             'Descr': 'UDS Session ECU Info',
             'Header': ECU_ADDR_E,
-            'Response': HD(ECU_R_ADDR_E) + SZ('06') + DT('5A 80 00 00 00 00')
+            'Response': PA('80 00 00 00 00')
         },
         'UDS_SEI_M': {
             'Request': '^1A87' + ELM_FOOTER,
             'Descr': 'UDS Session ECU Info',
             'Header': ECU_ADDR_M,
-            'Response': HD(ECU_R_ADDR_M) + SZ('10') + DT('16 5A 87 01 22 05 14') +
-                        HD(ECU_R_ADDR_M) + SZ('21') + DT('FF 07 09 09 43 00 32') +
-                        HD(ECU_R_ADDR_M) + SZ('22') + DT('30 34 35 34 35 33 38') +
-                        HD(ECU_R_ADDR_M) + SZ('23') + DT('33 32')
+            'Response': PA('87 01 22 05 14 FF 07 09 09 43 00 32 30 34 '
+                           '35 34 35 33 38 33 32')
         },
         'UDS_SEI_1': {
             'Request': '^10165A8701220514$',
@@ -2336,7 +2334,9 @@ ObdMessage = {
             'Descr': 'UNKNOWN_2100',
             'Response': PA('BC 00 00 01')
         },
-        # UDS - Mode 22 - Read Data By Identifier
+    # -------------------------------------------------------------------
+    # UDS - Mode 22 - Read Data By Identifier  (answer with 0 additional bytes)
+    # All answers are wrong values at the moment
         'HB_SOC': {
             'Request': '^227A76' + ELM_FOOTER,
             'Descr': 'Hybrid Battery State of Charge',
@@ -2393,13 +2393,13 @@ ObdMessage = {
             'Request': '^2701' + ELM_FOOTER,
             'Descr': 'SecurityAccess #1',
             'Header': ECU_ADDR_E,
-            'Response': HD(ECU_R_ADDR_E) + SZ('06') + DT('67 01 D6 D0 63 12')
+            'Response': PA('D6 D0 63 12')
         },
         'UDS_SA2': {
             'Request': '^2702' + ELM_FOOTER,
             'Descr': 'SecurityAccess #2',
             'Header': ECU_ADDR_E,
-            'Response': HD(ECU_R_ADDR_E) + SZ('02') + DT('67 02')
+            'Response': PA('')
         },
         'UDS_RS': {
             'Request': '^2711' + ELM_FOOTER,
@@ -2417,7 +2417,7 @@ ObdMessage = {
             'Request': '^2712B151D58F' + ELM_FOOTER,
             'Descr': 'UDS Send Key',
             'Header': ECU_ADDR_M,
-            'Response': AW('67 12') # 67 = positive answer = SID 27 + 40 hex
+            'Response': PA('')
         },
     # -------------------------------------------------------------------
     # UDS - MODE 2E - writeDataByIdentifier Service (Appl. Inc.)
@@ -4222,15 +4222,51 @@ ObdMessage = {
             'Descr': 'Ignition counter',
             'Response': PA('8E 01 00 00'),
         },
-        'RMBA_CALIB_VERS': {
-            'Request': '^23C0500008' + ELM_FOOTER,
-            'Descr': 'UDS Read memory by address - Calibration Version',
-            'Response': PA('42 4A 32 35 30 31 38 46'),
+        'UNKNOWN_1081': {
+            'Request': '^1081' + ELM_FOOTER,
+            'Descr': 'UNKNOWN_1081',
+            'Response': PA('')
         },
-        'UNKNOWN_RM': {
-            'Request': '^23C1FFF008' + ELM_FOOTER,
+        'UNKNOWN_1085': {
+            'Request': '^1085' + ELM_FOOTER,
+            'Descr': 'UNKNOWN_1085',
+            'Response': PA('')
+        },
+        'UDS_SA1': {
+            'Request': '^2701' + ELM_FOOTER,
+            'Descr': 'SecurityAccess #1',
+            'Response': PA('12 34')
+        },
+        'UDS_SA2': {
+            'Request': '^2702' + ELM_DATA_FOOTER,
+            'Descr': 'SecurityAccess #2',
+            'Response': PA('34')
+        },
+        'UDS_READ_MEM_ADDR': {
+            'Request': '^23' + ELM_DATA_FOOTER,
             'Descr': 'UDS Read memory by address',
-            'Response': PA('00 00 00 00 32 38 30 39'),
+            'Task': 'task_mt05_read_mem_addr'
+        },
+        'UDS_START_ROUTINE_ADDR': {
+            'Request': '^38' + ELM_DATA_FOOTER,
+            'Descr': 'Start Routine by Address',
+            'Exec': 'self.shared.fail_next_read_mem = True',
+            'ResponseFooter': lambda self, cmd, pid, val: PA(cmd[2:]) # return the address after the SID
+        },
+        'UDS_WRITE_MEM_ADDR': {
+            'Request': '^3D' + ELM_DATA_FOOTER,
+            'Descr': 'UDS Write memory by address',
+            'Task': 'task_mt05_write_mem_addr'
+        },
+        'UDS_START_ROUTINE': {
+            'Request': '^3101' + ELM_DATA_FOOTER, # UDS Routine Control (31): Start (01)
+            'Descr': 'UDS Routine Control - start',
+            'Task': 'task_mt05_start_routine'
+        },
+        'UDS_STOP_ROUTINE': {
+            'Request': '^3102' + ELM_FOOTER, # UDS Routine Control (31): Stop (02)
+            'Descr': 'UDS Routine Control - stop',
+            'Task': 'task_mt05_stop_routine'
         },
     }
 }
