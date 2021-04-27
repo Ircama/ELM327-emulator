@@ -4209,7 +4209,7 @@ ObdMessage = {
         },
         'ECU_IVN_HW': {
             'Request': '^2103' + ELM_FOOTER,
-            'Descr': 'ECU internal version numbers - Harware Part Number',
+            'Descr': 'ECU internal version numbers - Hardware Part Number',
             'Response': PA('01 B3 D0 54'),
         },
         'ECU_IVN_SW': {

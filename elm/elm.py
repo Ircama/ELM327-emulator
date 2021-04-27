@@ -686,7 +686,7 @@ class Elm:
                                      repr(self.cmd), e, traceback.format_exc())
                     continue
                 if resp is not None:
-                    resp = self.handle_response(
+                    self.handle_response(
                         resp,
                         do_write=True,
                         request_header=request_header,
