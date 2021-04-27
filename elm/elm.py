@@ -44,7 +44,12 @@ MAX_TASKS = 20
 MULTILINE_MODULE = 'ISO-TP request pending'
 MIN_SIZE_UDS_LENGTH = 20 # Minimum size to use a UDS header with additional length byte (ISO 14230-2)
 
-uds_answer = {
+"""
+List of UDS requests which have additional bytes in the related positive
+answer. The value indicates the number of bytes for a specific request.
+UDS requests not included in this list have 0 additional bytes in the answer.
+"""
+uds_bytes_pos_answer = {
     "01": 1,  # Show current data
     "02": 1,  # Show freeze frame data
     "05": 1,  # Test results, oxygen sensor monitoring
@@ -57,8 +62,7 @@ uds_answer = {
     "2E": 1,  # writeDataByIdentifier Service
     "30": 1,  # IO Control by Local Id
     "3101FF00": 3,  # Start Routine by Local ID, startRoutine, erase_memory
-    "3103FF00": 3,
-    # Start Routine by Local ID, Request Routine Result, erase_memory
+    "3103FF00": 3,  # Start Routine by Local ID, Request Routine Result, erase_memory
     "31": 1,  # Start Routine by Local ID
     "38": 1,  # Start Routine by Address
     "3D": 1,  # Write Memory by Address
@@ -85,7 +89,7 @@ def setup_logging(
         logging.basicConfig(level=default_level)
 
 
-class Tasks:
+class Tasks():
     """
     Base class for tasks.
     All tasks/plugins shall implement a class named Task derived from Tasks.
@@ -338,6 +342,7 @@ class Elm:
         self.counters.update(self.presets)
         self.tasks = {}
         self.task_shared_ns = {}
+        self.shared = None
 
     def set_defaults(self):
         """
@@ -1058,7 +1063,7 @@ class Elm:
         ISO 14230-3:1999 Application Layer:
         https://www.sis.se/api/document/preview/895162/
         :param data: data bytes of the answer
-        :param request_header: string containing the hedader used in the request
+        :param request_header: string containing the header used in the request
                 (to be used to compute the response header)
         :param use_headers: boolean to indicate whether the header shall be included
         :param sp: space string
@@ -1112,6 +1117,41 @@ class Elm:
                     answer = (hex(int(request_header, 16) + 8)[2:].upper() +
                               sp + "%02X"%length + sp)
                     answer += data
+            else:
+                if length > 7:  # produce a multframe output
+                    if ('cmd_caf' in self.counters and
+                            not self.counters['cmd_caf']): # PCI byte in requests
+                        answer = "10" + sp + "%02X" % length + sp
+                        pci=True
+                    else:
+                        pci=False
+                        answer = "%03X" % length + nl + "0: "
+                    bytes_to_add = 6
+                    answer += data[:(3 if sp else 2) * bytes_to_add] + nl
+                    remaining_length = length - bytes_to_add
+                    remaining_data = data[(3 if sp else 2) * bytes_to_add:]
+                    bytes_to_add += 1
+                    frame_count = 1
+                    while remaining_length > 0:
+                        if frame_count == 0x10:
+                            frame_count = 0
+                        if pci:
+                            answer += "%02X" % (frame_count + 0x20) + sp
+                        else:
+                            answer += "%01X" % frame_count + ": "
+                        remaining_length -= bytes_to_add
+                        answer += (remaining_data[
+                                   :(3 if sp else 2) * bytes_to_add] + nl)
+                        remaining_data = remaining_data[
+                                         (3 if sp else 2) * bytes_to_add:]
+                        frame_count += 1
+                    answer = answer.rstrip(sp + nl)
+                else:
+                    if ('cmd_caf' in self.counters and
+                            not self.counters['cmd_caf']): # PCI byte in requests
+                        answer = "%02X" % length + sp + data
+                    else:
+                        answer = data
         elif len(request_header) == 6 and is_flow_control:
             logging.error('Unimplemented flow control.')
             return ""
@@ -1197,16 +1237,16 @@ class Elm:
         answers = False
         i = None
 
-        # Calculate uds_pos_answ for uds_answer
+        # Calculate uds_pos_answ for uds_pos_answer
         uds_pos_answ = ''
         try:
             rd=''.join(request_data.split())
-            for sid in uds_answer:
+            for sid in uds_bytes_pos_answer:
                 if rd.startswith(sid):
                     uds_pos_answ = (
                         sp.join(
                             '{:02x}'.format(x) for x in bytearray.fromhex(
-                            rd[2:2 + 2 * uds_answer[sid]])
+                                rd[2:2 + 2 * uds_bytes_pos_answer[sid]])
                         ).upper()
                     )
                     break
@@ -1270,11 +1310,15 @@ class Elm:
                                         use_headers=use_headers,
                                         sp=sp,
                                         nl=nl) + sp + nl
-            elif i.tag.lower() == 'pos_answer' and uds_pos_answ is not None:
+            elif i.tag.lower() == 'pos_answer' or i.tag.lower() == 'neg_answer':
                 if not request_data:
                     logging.error(
-                        'Missing request with <pos_answer> tag: %s.',
-                        repr(resp))
+                        'Missing request with <%s> tag: %s.',
+                        i.tag.lower(), repr(resp))
+                    break
+                if i.tag.lower() == 'pos_answer' and uds_pos_answ is None:
+                    logging.error(
+                        'Invalid <%s> tag: %s.', i.tag.lower(), repr(resp))
                     break
                 try:
                     request_data = (''.join('{:02x}'.format(x)
@@ -1282,34 +1326,16 @@ class Elm:
                                         request_data[:4])).upper())
                 except ValueError as e:
                     logging.error('Invalid request %s related to response %s '
-                                  'including <pos_answer> tag: %s',
-                                  repr(request_data), repr(resp), e)
+                                  'including <%s> tag: %s',
+                                  repr(request_data), repr(resp),
+                                  i.tag.lower(), e)
                     return ""
-                data = ("%02X"%(bytearray.fromhex(request_data[:2])[0] + 0x40) +
-                        uds_pos_answ + (i.text or ""))
-                answ += self.uds_answer(data=data,
-                                        request_header=request_header,
-                                        use_headers=use_headers,
-                                        sp=sp,
-                                        nl=nl) + sp + nl
-
-            elif i.tag.lower() == 'neg_answer' and uds_pos_answ is not None:
-                if not request_data:
-                    logging.error(
-                        'Missing request with <neg_answer> tag: %s.',
-                        repr(resp))
-                    break
-                try:
-                    request_data = (
-                        ''.join('{:02x}'.format(x)
-                                for x in bytearray.fromhex(
-                            request_data[:4])).upper())
-                except ValueError as e:
-                    logging.error('Invalid request %s related to response %s '
-                                  'including <neg_answer> tag: %s',
-                                  repr(request_data), repr(resp), e)
-                    return ""
-                data = "7F" + sp + request_data[:2] + (i.text or "")
+                if i.tag.lower() == 'pos_answer':
+                    data = ("%02X"%(bytearray.fromhex(request_data[:2])[0]
+                                    + 0x40) +
+                            uds_pos_answ + (i.text or ""))
+                else:
+                    data = "7F" + sp + request_data[:2] + (i.text or "")
                 answ += self.uds_answer(data=data,
                                         request_header=request_header,
                                         use_headers=use_headers,
@@ -1507,6 +1533,13 @@ class Elm:
             self.counters['cmd_use_header'] = True
             cmd = cmd[3:]
 
+        # create the namespace shared for the header if not existing
+        self.shared = None
+        if header:
+            if header not in self.task_shared_ns:
+                self.task_shared_ns[header] = SimpleNamespace()
+            self.shared = self.task_shared_ns[header]
+
         # manages cmd_caf, length, frame - Process UDS multiframe data link
         size = cmd[:2]
         length = None # no byte length in request
@@ -1596,7 +1629,7 @@ class Elm:
                                 self.tasks[header][-1].__module__, header)
                 r_cmd, *_, r_cont = self.task_action(header, do_write,
                     self.tasks[header][-1].stop, cmd, length, frame)
-                if header in self.tasks:
+                if header in self.tasks and self.tasks[header]:
                     del self.tasks[header][-1]
                 if r_cont is None:
                     return header, cmd, r_cmd
@@ -1641,7 +1674,6 @@ class Elm:
                     if val['Task'] in self.plugins:
                         if header not in self.tasks:
                             self.tasks[header] = []
-                            self.task_shared_ns[header] = SimpleNamespace()
                         if len(self.tasks[header]) > MAX_TASKS:
                             logging.critical(
                                 'Too many active tasks with header %s. '

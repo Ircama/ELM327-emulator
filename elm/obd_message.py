@@ -553,176 +553,150 @@ ObdMessage = {
         'FUEL_STATUS': {
             'Request': '^0103' + ELM_FOOTER,
             'Descr': 'Fuel System Status',
-            'Header': ECU_ADDR_E,
-            'Response': HD(ECU_R_ADDR_E) + SZ('04') + DT('41 03 00 00')
+            'Response': PA('00 00')
         },
         'ENGINE_LOAD': {
             'Request': '^0104' + ELM_FOOTER,
             'Descr': 'Calculated Engine Load',
-            'Header': ECU_ADDR_E,
-            'Response': HD(ECU_R_ADDR_E) + SZ('03') + DT('41 04 00')
+            'Response': PA('00')
         },
         'COOLANT_TEMP': {
             'Request': '^0105' + ELM_FOOTER,
             'Descr': 'Engine Coolant Temperature',
-            'Header': ECU_ADDR_E,
-            'Response': HD(ECU_R_ADDR_E) + SZ('03') + DT('41 05 7B')
+            'Response': PA('7B')
         },
         'INTAKE_PRESSURE': {
             'Request': '^010B' + ELM_FOOTER,
             'Descr': 'Intake Manifold Pressure',
-            'Header': ECU_ADDR_E,
-            'Response': HD(ECU_R_ADDR_E) + SZ('03') + DT('41 0B 73')
+            'Response': PA('73')
         },
         'RPM': {
             'Request': '^010C' + ELM_FOOTER,
             'Descr': 'Engine RPM',
-            'Header': ECU_ADDR_E,
             'Response': '',
             'ResponseFooter': \
-            lambda self, cmd, pid, val: \
-                HD(ECU_R_ADDR_E) + SZ('04') + DT('41 0C ' \
-                + self.Sequence(pid, base=2400, max=200, factor=80, n_bytes=2) \
-                + ' ' + HD(ECU_R_ADDR_H) + SZ('04') + '41 0C ' \
+            lambda self, cmd, pid, val: (
+                PA(self.Sequence(
+                    pid, base=2400, max=200, factor=80, n_bytes=2))
+                + ' ' + HD(ECU_R_ADDR_H) + SZ('04') + DT('41 0C '
                 + self.Sequence(pid, base=2400, max=200, factor=80, n_bytes=2))
+            )
         },
         'SPEED': {
             'Request': '^010D' + ELM_FOOTER,
             'Descr': 'Vehicle Speed',
-            'Header': ECU_ADDR_E,
             'Response': '',
             'ResponseFooter': \
-            lambda self, cmd, pid, val: \
-                HD(ECU_R_ADDR_E) + SZ('03') + DT('41 0D ' \
-                + self.Sequence(pid, base=0, max=30, factor=4, n_bytes=1) \
-                + ' ' + HD(ECU_R_ADDR_H) + SZ('03') + '41 0D ' \
+            lambda self, cmd, pid, val: (
+                PA(self.Sequence(pid, base=0, max=30, factor=4, n_bytes=1))
+                + ' ' + HD(ECU_R_ADDR_H) + SZ('03') + DT('41 0D '
                 + self.Sequence(pid, base=0, max=30, factor=4, n_bytes=1))
+            )
         },
         'INTAKE_TEMP': {
             'Request': '^010F' + ELM_FOOTER,
             'Descr': 'Intake Air Temp',
-            'Header': ECU_ADDR_E,
-            'Response': HD(ECU_R_ADDR_E) + SZ('03') + DT('41 0F 44')
+            'Response': PA('44')
         },
         'MAF': {
             'Request': '^0110' + ELM_FOOTER,
             'Descr': 'Air Flow Rate (MAF)',
-            'Header': ECU_ADDR_E,
-            'Response': HD(ECU_R_ADDR_E) + SZ('04') + DT('41 10 05 1F')
+            'Response': PA('05 1F')
         },
         'THROTTLE_POS': {
             'Request': '^0111' + ELM_FOOTER,
             'Descr': 'Throttle Position',
-            'Header': ECU_ADDR_E,
-            'Response': HD(ECU_R_ADDR_E) + SZ('03') + DT('41 11 FF')
+            'Response': PA('FF')
         },
         'OBD_COMPLIANCE': {
             'Request': '^011C' + ELM_FOOTER,
             'Descr': 'OBD Standards Compliance',
-            'Header': ECU_ADDR_E,
-            'Response': HD(ECU_R_ADDR_E) + SZ('03') + DT('41 1C 06')
+            'Response': PA('06')
         },
         'RUN_TIME': {
             'Request': '^011F' + ELM_FOOTER,
             'Descr': 'Engine Run Time',
-            'Header': ECU_ADDR_E,
-            'Response': HD(ECU_R_ADDR_E) + SZ('04') + DT('41 1F 00 8C')
+            'Response': PA('00 8C')
         },
         'DISTANCE_W_MIL': {
             'Request': '^0121' + ELM_FOOTER,
             'Descr': 'Distance Traveled with MIL on',
-            'Header': ECU_ADDR_E,
-            'Response': HD(ECU_R_ADDR_E) + SZ('04') + DT('41 21 00 00')
+            'Response': PA('00 00')
         },
         'FUEL_RAIL_PRESSURE_DIRECT': {
             'Request': '^0123' + ELM_FOOTER,
             'Descr': 'Fuel Rail Pressure (direct inject)',
-            'Header': ECU_ADDR_E,
-            'Response': HD(ECU_R_ADDR_E) + SZ('04') + DT('41 23 1A 0E')
+            'Response': PA('1A 0E')
         },
         'COMMANDED_EGR': {
             'Request': '^012C' + ELM_FOOTER,
             'Descr': 'Commanded EGR',
-            'Header': ECU_ADDR_E,
-            'Response': HD(ECU_R_ADDR_E) + SZ('03') + DT('41 2C 0D')
+            'Response': PA('0D')
         },
         'EGR_ERROR': {
             'Request': '^012D' + ELM_FOOTER,
             'Descr': 'EGR Error',
-            'Header': ECU_ADDR_E,
-            'Response': HD(ECU_R_ADDR_E) + SZ('03') + DT('41 2D 80')
+            'Response': PA('80')
         },
         'DISTANCE_SINCE_DTC_CLEAR': {
             'Request': '^0131' + ELM_FOOTER,
             'Descr': 'Distance traveled since codes cleared',
-            'Header': ECU_ADDR_E,
-            'Response': HD(ECU_R_ADDR_E) + SZ('04') + DT('41 31 C8 1F')
+            'Response': PA('C8 1F')
         },
         'BAROMETRIC_PRESSURE': {
             'Request': '^0133' + ELM_FOOTER,
             'Descr': 'Barometric Pressure',
-            'Header': ECU_ADDR_E,
-            'Response': HD(ECU_R_ADDR_E) + SZ('03') + DT('41 33 65')
+            'Response': PA('65')
         },
         'CATALYST_TEMP_B1S1': {
             'Request': '^013C' + ELM_FOOTER,
             'Descr': 'Catalyst Temperature: Bank 1 - Sensor 1',
-            'Header': ECU_ADDR_E,
-            'Response': HD(ECU_R_ADDR_E) + SZ('04') + DT('41 3C 04 44')
+            'Response': PA('04 44')
         },
         'CONTROL_MODULE_VOLTAGE': {
             'Request': '^0142' + ELM_FOOTER,
             'Descr': 'Control module voltage',
-            'Header': ECU_ADDR_E,
-            'Response': HD(ECU_R_ADDR_E) + SZ('04') + DT('41 42 39 D6')
+            'Response': PA('39 D6')
         },
         'AMBIANT_AIR_TEMP': {
             'Request': '^0146' + ELM_FOOTER,
             'Descr': 'Ambient air temperature',
-            'Header': ECU_ADDR_E,
-            'Response': HD(ECU_R_ADDR_E) + SZ('03') + DT('41 46 43')
+            'Response': PA('43')
         },
         'ACCELERATOR_POS_D': {
             'Request': '^0149' + ELM_FOOTER,
             'Descr': 'Accelerator pedal position D',
-            'Header': ECU_ADDR_E,
-            'Response': HD(ECU_R_ADDR_E) + SZ('03') + DT('41 49 00')
+            'Response': PA('00')
         },
         'ACCELERATOR_POS_E': {
             'Request': '^014A' + ELM_FOOTER,
             'Descr': 'Accelerator pedal position E',
-            'Header': ECU_ADDR_E,
-            'Response': HD(ECU_R_ADDR_E) + SZ('03') + DT('41 4A 45')
+            'Response': PA('45')
         },
         'THROTTLE_ACTUATOR': {
             'Request': '^014C' + ELM_FOOTER,
             'Descr': 'Commanded throttle actuator',
-            'Header': ECU_ADDR_E,
-            'Response': HD(ECU_R_ADDR_E) + SZ('03') + DT('41 4C 00')
+            'Response': PA('00')
         },
         'RUN_TIME_MIL': {
             'Request': '^014D' + ELM_FOOTER,
             'Descr': 'Time run with MIL on',
-            'Header': ECU_ADDR_E,
-            'Response': HD(ECU_R_ADDR_E) + SZ('04') + DT('41 4D 00 00')
+            'Response': PA('00 00')
         },
         'TIME_SINCE_DTC_CLEARED': {
             'Request': '^014E' + ELM_FOOTER,
             'Descr': 'Time since trouble codes cleared',
-            'Header': ECU_ADDR_E,
-            'Response': HD(ECU_R_ADDR_E) + SZ('04') + DT('41 4E 4C 69')
+            'Response': PA('4C 69')
         },
         'FUEL_TYPE': {
             'Request': '^0151' + ELM_FOOTER,
             'Descr': 'Fuel Type',
-            'Header': ECU_ADDR_E,
-            'Response': HD(ECU_R_ADDR_E) + SZ('03') + DT('41 51 01')
+            'Response': PA('01')
         },
         'FUEL_INJECT_TIMING': {
             'Request': '^015D' + ELM_FOOTER,
             'Descr': 'Fuel injection timing',
-            'Header': ECU_ADDR_E,
-            'Response': HD(ECU_R_ADDR_E) + SZ('04') + DT('41 5D 66 00')
+            'Response': PA('66 00')
         },
         # Supported PIDs for protocols
         'ELM_PIDS_A': {
@@ -735,87 +709,87 @@ ObdMessage = {
                         if self.counters[pid] == 1 else "",
             'Response':
             HD(ECU_R_ADDR_H) + SZ('06') + DT('41 00 98 3A 80 13') +
-            HD(ECU_R_ADDR_E) + SZ('06') + DT('41 00 BE 3F A8 13')
+            PA('BE 3F A8 13')
         },
         'ELM_PIDS_B': {
             'Request': '^0120' + ELM_FOOTER,
             'Descr': 'PIDS_B',
             'Response':
             HD(ECU_R_ADDR_H) + SZ('06') + DT('41 20 80 01 A0 01') +
-            HD(ECU_R_ADDR_E) + SZ('06') + DT('41 20 90 15 B0 15')
+            PA('90 15 B0 15')
         },
         'ELM_PIDS_C': {
             'Request': '^0140' + ELM_FOOTER,
             'Descr': 'PIDS_C',
             'Response':
             HD(ECU_R_ADDR_H) + SZ('06') + DT('41 40 44 CC 00 21') +
-            HD(ECU_R_ADDR_E) + SZ('06') + DT('41 40 7A 1C 80 00')
+            PA('7A 1C 80 00')
         },
         # Mode 06 Sending intermittent monitoring system test results (DMTR)
         'ELM_MIDS_A': {
             'Request': '^0600' + ELM_FOOTER,
             'Descr': 'MIDS_A',
-            'Response': HD(ECU_R_ADDR_E) + SZ('06') + DT('46 00 C0 00 00 01')
+            'Response': PA('C0 00 00 01')
         },
         'ELM_MIDS_B': {
             'Request': '^0620' + ELM_FOOTER,
             'Descr': 'MIDS_B',
-            'Response': HD(ECU_R_ADDR_E) + SZ('06') + DT('46 20 80 00 80 01')
+            'Response': PA('80 00 80 01')
         },
         'ELM_MIDS_C': {
             'Request': '^0640' + ELM_FOOTER,
             'Descr': 'MIDS_C',
-            'Response': HD(ECU_R_ADDR_E) + SZ('06') + DT('46 40 00 00 00 01')
+            'Response': PA('00 00 00 01')
         },
         'ELM_MIDS_D': {
             'Request': '^0660' + ELM_FOOTER,
             'Descr': 'MIDS_D',
-            'Response': HD(ECU_R_ADDR_E) + SZ('06') + DT('46 60 00 00 00 01')
+            'Response': PA('00 00 00 01')
         },
         'ELM_MIDS_E': {
             'Request': '^0680' + ELM_FOOTER,
             'Descr': 'MIDS_E',
-            'Response': HD(ECU_R_ADDR_E) + SZ('06') + DT('46 80 00 00 00 01')
+            'Response': PA('00 00 00 01')
         },
         'ELM_MIDS_F': {
             'Request': '^06A0' + ELM_FOOTER,
             'Descr': 'MIDS_F',
-            'Response': HD(ECU_R_ADDR_E) + SZ('06') + DT('46 A0 F8 00 00 00')
+            'Response': PA('F8 00 00 00')
         },
         # Mode 07 Sending continuous monitoring system test results (pending code)
         # Mode 09 Request vehicle information
         'ELM_PIDS_9A': {
             'Request': '^0900' + ELM_FOOTER,
             'Descr': 'PIDS_9A',
-            'Response': HD(ECU_R_ADDR_E) + SZ('06') + DT('49 00 FF FF FF FF')
+            'Response': PA('FF FF FF FF')
         },
         'VIN_MESSAGE_COUNT': {
             'Request': '^0901' + ELM_FOOTER,
             'Descr': 'VIN Message Count',
-            'Response': HD(ECU_R_ADDR_E) + SZ('03') + DT('49 01 01')
+            'Response': PA('01')
         },
         'VIN': { # Check this also: https://stackoverflow.com/a/26752855/10598800, https://www.autocheck.com/vehiclehistory/autocheck/en/vinbasics
             'Request': '^0902' + ELM_FOOTER,
             'Descr': 'Vehicle Identification Number',
             'Response': [
-                        HD(ECU_R_ADDR_E) + SZ('10') + DT('14 49 02 01 57 50 30') +
-                        HD(ECU_R_ADDR_E) + SZ('21') + DT('5A 5A 5A 39 39 5A 54') +
-                        HD(ECU_R_ADDR_E) + SZ('22') + DT('53 33 39 30 30 30 30'), # https://www.autodna.com/vin/WP0ZZZ99ZTS390000, https://it.vin-info.com/libro-denuncia/WP0ZZZ99ZTS390000
-                        HD(ECU_R_ADDR_E) + SZ('10') + DT('14 49 02 01 4D 41 54') + # https://community.carloop.io/t/how-to-request-vin/153/11
-                        HD(ECU_R_ADDR_E) + SZ('21') + DT('34 30 33 30 39 36 42') +
-                        HD(ECU_R_ADDR_E) + SZ('22') + DT('4E 4C 30 30 30 30 30')
+                        PA("01 57 50 30 5A 5A 5A 39 39 "
+                           "5A 54 53 33 39 30 30 30 30"), # https://www.autodna.com/vin/WP0ZZZ99ZTS390000, https://it.vin-info.com/libro-denuncia/WP0ZZZ99ZTS390000
+                        PA("01 4D 41 54 34 30 33 30 39 "
+                           "36 42 4E 4C 30 30 30 30 30"), # https://community.carloop.io/t/how-to-request-vin/153/11
                         ]
         },
         'CALIBRATION_ID_MESSAGE_COUNT': {
             'Request': '^0903' + ELM_FOOTER,
             'Descr': 'Calibration ID message count for PID 04',
-            'Response': HD(ECU_R_ADDR_E) + SZ('03') + DT('49 03 01')
+            'Response': PA('01')
         },
         'PERF_TRACKING_COMPRESSION': {
             'Request': '^090B' + ELM_FOOTER,
             'Descr': 'In-use performance tracking (compression ignition)',
-            'Response': HD(ECU_R_ADDR_E) + SZ('04') + DT('00 00 00 00') # improper value at the moment (to be revised)
+            'Response': PA('00 00')
         },
+    # ----------------------------------------------------------------------
+    # Used by MT05
         'START_COMM': {
             'Request': '^81' + ELM_FOOTER,
             'Descr': 'Start Communication',

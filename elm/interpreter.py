@@ -41,6 +41,7 @@ try:
     from .obd_message import ObdMessage, ECU_ADDR_E, ELM_R_OK
     from random import randint
     import xml.etree.ElementTree as ET
+    import pprint
 except ImportError as detail:
     print("ELM327 OBD-II adapter emulator error:\n " + str(detail))
     sys.exit(1)
@@ -53,20 +54,62 @@ DAEMON_DIR = '/tmp'
 
 
 class Edit:
+    """
+    Allow editing responses
+    """
+    def __init__(self, emulator, pid):
+        """
+        When called with the Context Manager, pass the emulator instance
+        and the pid to edit
+        :param emulator: instance of the emulator
+        :param pid: pid to edit
+        """
+        self.pid = pid
+        self.emulator = emulator
+        self.original_entry = None
+
     def __enter__(self):
+        """
+        If used with the Context Manager, do only temporary update of the
+        self.emulator.answer dictionary.
+        """
         if self.pid in self.emulator.answer:
             self.original_entry = self.emulator.answer[self.pid]
         return self
 
     def answer(self, position, replace_bytes, pid=None):
+        """
+        Edit the answer related to a pid. Self can be none if pid is given.
+        :param position: start position to edit bytes;
+               None to remove a previous editing.
+        :param replace_bytes: replaced bytes (can be a sequence)
+        :param pid: pid to edit (replaces the one set with the Context Mgr)
+        :return: True if editing succeeded
+        """
+        pid_to_edit = None
+        if self and hasattr(self, 'pid'):
+            pid_to_edit = self.pid
         if pid:
-            self.pid = pid
+            pid_to_edit = pid
+        if not pid_to_edit:
+            logging.error('Undefined pid.')
+            return False
+        if position == None or not replace_bytes:
+            try:
+                del self.emulator.answer[pid_to_edit]
+                logging.debug('Removed answer for pid %s.', pid_to_edit)
+                return True
+            except Exception:
+                logging.info('No answer configured for pid %s.', pid_to_edit)
+            return False
         try:
+            logging.debug('Scenario: %s. PID: %s',
+                          self.emulator.scenario, pid_to_edit)
             r_response = self.emulator.ObdMessage[
-                self.emulator.scenario][self.pid]['Response']
+                self.emulator.scenario][pid_to_edit]['Response']
         except Exception as e:
             logging.error('Unknown pid %s for scenario %s',
-                          self.pid, self.emulator.scenario)
+                          pid_to_edit, self.emulator.scenario)
             return False
         if isinstance(r_response, (list, tuple)):
             r_response = r_response[randint(0, len(r_response) - 1)]
@@ -96,20 +139,18 @@ class Edit:
                         return False
                     position += 1
                 i.text = ' '.join('{:02x}'.format(x) for x in org_ba).upper()
-        self.emulator.answer[self.pid] = ET.tostring(root).decode()[5:-6]
+        self.emulator.answer[pid_to_edit] = ET.tostring(root).decode()[5:-6]
         return True
 
     def __exit__(self, exc_type, exc_val, exc_tb):
+        """
+        When used with the Context Manager, resets the original answer.
+        """
         if self.original_entry:
             self.emulator.answer[self.pid] = self.original_entry
         else:
             if self.pid in self.emulator.answer:
                 del self.emulator.answer[self.pid]
-
-    def __init__(self, emulator, pid):
-        self.pid = pid
-        self.emulator = emulator
-        self.original_entry = None
 
 
 class Interpreter(Cmd):
@@ -332,8 +373,8 @@ class Interpreter(Cmd):
             request_data=request_data)
 
     def do_port(self, arg):
-        "Print the used TCP/IP port, or the used device, "\
-        "or the serial COM port,\nor the serial pseudo-tty, "\
+        "Print the used TCP/IP port, or the used device,\n"\
+        "or the serial COM port,\nor the serial pseudo-tty,\n"\
         "depending on the selected interface."
         if arg:
             print ("Invalid format.")
@@ -341,7 +382,8 @@ class Interpreter(Cmd):
         print("Using " + self.emulator.get_port_name(extended=True))
 
     def do_tasks(self, arg):
-        "Print all available plugins and all active tasks."
+        "Print all available plugins; for each used header, print all active\n"\
+        "tasks and dump related namespaces; dump also the shared namespaces."
         if arg:
             print ("Invalid format.")
             return
@@ -356,7 +398,16 @@ class Interpreter(Cmd):
             for i in sorted(self.emulator.tasks):
                 if len(self.emulator.tasks[i]):
                     for j in self.emulator.tasks[i]:
-                        print(" - {}, header {}".format(j.__module__, i))
+                        if j.__dict__:
+                            print(" - {}, header {}".format(j.__module__, i))
+                            for k, v in j.__dict__.items():
+                                s = pprint.pformat(v, indent=6)
+                                if '\n' in s:
+                                    s = '\n' + s
+                                print("    {}: {}".format(k, s))
+                        else:
+                            print(" - {}, header {} without namespace"
+                                  .format(j.__module__, i))
                 else:
                     print(" - (completed task), header {}".format(i))
         else:
@@ -364,8 +415,16 @@ class Interpreter(Cmd):
         if self.emulator.task_shared_ns:
             print("Shared namespaces:")
             for i in sorted(self.emulator.task_shared_ns):
-                print(" - Shared {}, header {}".format(
-                    repr(self.emulator.task_shared_ns[i]), i))
+                if self.emulator.task_shared_ns[i].__dict__:
+                    print(" - header", i)
+                    for k, v in self.emulator.task_shared_ns[
+                            i].__dict__.items():
+                        s = pprint.pformat(v, indent=6)
+                        if '\n' in s:
+                            s = '\n' + s
+                        print("    {}: {}".format(k, s))
+                else:
+                    print(" - no namespace data for header", repr(i))
         else:
             print("No shared namespaces available.")
 
@@ -410,6 +469,41 @@ class Interpreter(Cmd):
             return [sc for sc in self.emulator.ObdMessage if sc.startswith(text)]
         else:
             return [sc for sc in self.emulator.ObdMessage]
+
+    def do_edit(self, arg):
+        "Edit a PID answer. Arguments: PID, position, replaced bytes.\n"\
+        "If only the PID is given, remove a previous editing."
+        args = arg.split()
+        if len(args) == 1:
+            if Edit.answer(self, None, None, arg):
+                print(f'{arg} answer has been reset to default.')
+            else:
+                print(f'No previous answer was set for pid {arg}.')
+            try:
+                r_response = self.emulator.ObdMessage[
+                    self.emulator.scenario][arg]['Response']
+                print(r_response)
+            except Exception:
+                print(f'Unknown response for pid {arg} in  scenario '
+                      f'"{self.emulator.scenario}".')
+            return
+        if not args[0]:
+            print("Missing PID.")
+            return
+        if len(args) < 3:
+            print ("Invalid format.")
+            return
+        try:
+            position = eval(args[1])
+        except Exception:
+            print(f"Invalid format for position {args[1]}.")
+            return
+        if Edit.answer(self, position, ''.join(args[2:]), args[0]):
+            print(f'Set answer for Pid {args[0]} with edited bytes:')
+            print(self.emulator.answer[args[0]])
+        else:
+            print(f'Cannot set answer for pid {args[0]}.')
+            return
 
     def do_scenario(self, arg):
         "Switch to the scenario specified in the argument; if the scenario is\n"\
