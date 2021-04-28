@@ -7,44 +7,50 @@
 # https://github.com/Ircama/ELM327-emulator
 # (C) Ircama 2021 - CC-BY-NC-SA-4.0
 ###########################################################################
+import time
 
 from elm import Tasks
+import mmap
 
-mt05_memory_map = { # incomplete
-0xC00000: 'FA ',
-0xC03F00: '00 00 00 00 30 01 AE 1E F5 39 31 35 36 30 30 37 '
-          '34 39 31 35 36 30 30 37 34 01 AF 4C 1A 00 00 00 ',
-0xC05000: '31 30 53 48 37 32 31 31 04 0F 00 00 00 00 00 00 ',
-#0xC05000: '42 4A 32 35 30 31 38 46',
-0xC1FFE0: '0F 00 04 00 04 0F 68 74 30 30 37 72 31 35 30 34 '
-          '00 00 00 00 32 38 30 39 37 33 34 34 00 00 11 34 ',
-0xC1FFF0: '00 00 00 00 32 38 30 39',
-}
+MEM_RANGE = 0x3fffff
+MAP_READ_FILE = "mmap-input.bin"
 
 
 # UDS - MODE 23 - Read memory by address
 class Task(Tasks):
     def run(self, cmd, *_):
+        if not (hasattr(self.shared, 'read_mmap')):
+            try:
+                with open(MAP_READ_FILE, "r+b") as f:
+                    self.shared.read_mmap = mmap.mmap(f.fileno(), 0)
+            except Exception as e:
+                self.logging.critical('Error while opening file "%s": %s',
+                                      MAP_READ_FILE, e)
+                return Task.TASK.ERROR
         try:
-            address = int(cmd[2:-2], 16)
+            address = int(cmd[2:-2], 16) & MEM_RANGE
             length = int(cmd[-2:], 16)
         except Exception as e:
-            self.logging.error('Read memory by address - wrong request: %s', e)
+            self.logging.error(
+                'Read memory by address - wrong request: %s', e)
             return Task.TASK.ERROR
         try:
-            value = mt05_memory_map[address][:length * 3]
+            value = self.shared.read_mmap[address:address + length]
         except KeyError as e:
             self.logging.error('Read memory by address - '
-                               'Unhandled data address %s (%s)', e, cmd[2:-2])
+                               'Unhandled data address %s (%s)',
+                               e, cmd[2:-2])
             return Task.TASK.ANSWER(self.NA('12')) # Subfunction not supported
-        if len(value)/3 != length:
-            self.logging.error('Read memory by address - '
-                               'Memory map %s does not match with length %s',
-                               value, length)
+        if len(value) != length:
+            self.logging.error('Read memory by address - Memory map '
+                               '%s does not match with length %s, %s',
+                               value, length, len(value))
             return Task.TASK.ERROR
+        data = ' '.join('{:02x}'.format(x) for x in value).upper()
         if (hasattr(self.shared, 'fail_next_read_mem') and
                 self.shared.fail_next_read_mem):
+            self.logging.info(
+                'Just executed routine to change the BAUD rate.')
             self.shared.fail_next_read_mem = False
-            return Task.TASK.ERROR
-        else:
-            return Task.TASK.ANSWER(self.PA(value.strip()))
+            time.sleep(0.3)
+        return Task.TASK.ANSWER(self.PA(data.strip()))

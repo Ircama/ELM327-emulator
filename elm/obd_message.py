@@ -484,6 +484,13 @@ ObdMessage = {
             'Log': '"Set Tx Interbyte delay %s", self.counters["cmd_stip4"]',
             'Response': ELM_R_OK
         },
+        'ST_PTO': {
+            'Request': '^STPTO[ 0-9]*$',
+            'Descr': 'Set OBD Request Timeout',
+            'Exec': 'self.counters["cmd_stpto"] = cmd[5:]',
+            'Log': '"Set OBD Request Timeout %s", self.counters["cmd_stpto"]',
+            'Response': ELM_R_OK
+        },
         'ST_SET_BAUD_RATE': {
             'Request': '^STPBR *[1-9][0-9]*$',
             'Descr': 'ST Set baud rate',
@@ -4236,22 +4243,22 @@ ObdMessage = {
         },
         'UDS_START_DIAG_SESS_1': {
             'Request': '^1081' + ELM_FOOTER,
-            'Descr': 'Start Diagnostic Session - 1',
+            'Descr': 'UDS Start Diagnostic Session - 1',
             'Response': PA('')
         },
         'UDS_START_DIAG_SESS_2': {
             'Request': '^1085' + ELM_FOOTER,
-            'Descr': 'Start Diagnostic Session - 2',
+            'Descr': 'UDS Start Diagnostic Session - 2',
             'Response': PA('')
         },
         'UDS_SA1': {
             'Request': '^2701' + ELM_FOOTER,
-            'Descr': 'SecurityAccess #1',
+            'Descr': 'UDS SecurityAccess #1',
             'Response': PA('12 34')
         },
         'UDS_SA2': {
             'Request': '^2702' + ELM_DATA_FOOTER,
-            'Descr': 'SecurityAccess #2',
+            'Descr': 'UDS SecurityAccess #2',
             'Response': PA('34')
         },
         'UDS_READ_MEM_ADDR': {
@@ -4261,7 +4268,7 @@ ObdMessage = {
         },
         'UDS_START_ROUTINE_ADDR': {
             'Request': '^38' + ELM_DATA_FOOTER,
-            'Descr': 'Start Routine by Address',
+            'Descr': 'UDS Start Routine by Address',
             'Exec': 'self.shared.fail_next_read_mem = True',
             'ResponseFooter': lambda self, cmd, pid, val: PA(cmd[2:]) # return the address after the SID
         },

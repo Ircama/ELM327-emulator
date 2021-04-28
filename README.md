@@ -278,6 +278,7 @@ Special setter  |Related AT command     |Handled|Description
 `cmd_brt`       |*ATBRT t* (t = timeout)|No     |Set UART baud rate timeout
 `cmd_wakeup`    |*ATSW hh* (hh = addr)  |No     |Set wakeup
 `cmd_stip4`     |*STIP4 n* (n = delay)  |No     |Set Tx Interbyte delay
+`cmd_stpto`     |*STPTO t* (t = timeout)|No     |Set OBD Request Timeout
 
 Unhandled setter means that the AT command is recognized, the related counter is valued but no process is currently associated.
 

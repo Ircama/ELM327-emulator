@@ -1334,7 +1334,7 @@ class Elm:
                     return ""
                 if i.tag.lower() == 'pos_answer':
                     data = ("%02X"%(bytearray.fromhex(request_data[:2])[0]
-                                    + 0x40) +
+                                    | 0x40) +
                             uds_pos_answ + (i.text or ""))
                 else:
                     data = "7F" + sp + request_data[:2] + (i.text or "")

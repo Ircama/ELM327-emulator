@@ -10,18 +10,12 @@
 
 from elm import Tasks
 
+MEM_RANGE = 0x3fffff
+
 
 # UDS - MODE 31 01 - UDS Routine Control (31): Start (01)
 class Task(Tasks):
     def run(self, cmd, *_):
-        if cmd[:4] == '3102': # Routine (31) - Stop (02)
-            self.logging.info('Start routine: terminating.')
-            return None, Tasks.TASK.TERMINATE, cmd
-
-        # Write memory commands (or any other different from Start and Stop)
-        if not self.task_request_matched(cmd):
-            return None, Tasks.TASK.CONTINUE, cmd
-
         # Start routine procedure
         if hasattr(self.shared, 'mmap'):
             del self.shared.mmap
@@ -30,12 +24,12 @@ class Task(Tasks):
         if hasattr(self.shared, 'max_addr'):
             del self.shared.max_addr
         try:
-            start_address = int(cmd[4:10], 16)
-            end_address = int(cmd[10:16], 16)
+            start_address = int(cmd[4:10], 16) & MEM_RANGE
+            end_address = int(cmd[10:16], 16) & MEM_RANGE
         except Exception as e:
             self.logging.error(
                 'Start routine - wrong address: %s', e)
             return Task.TASK.ERROR
-        self.logging.info('Start routine %s (%s) to %s (%s)',
-                          start_address, cmd[4:10], end_address, cmd[10:16])
-        return self.PA('00'), Tasks.TASK.CONTINUE, None
+        self.logging.info('Start routine %s to %s',
+                          hex(start_address), hex(end_address))
+        return Task.TASK.ANSWER(self.PA('00'))

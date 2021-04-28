@@ -20,7 +20,10 @@ class Task(Tasks):
             self.logging.error('Stop routine - improper workflow')
             return Task.TASK.ERROR
         self.logging.info(
-            'Stop routine. Collected bytearray size: %s, %s to %s.',
+            'Written data size: '
+            '%s (%s), %s (%s) to %s (%s).',
             self.shared.max_addr - self.shared.min_addr,
-            self.shared.min_addr, self.shared.max_addr)
+            hex(self.shared.max_addr - self.shared.min_addr),
+            self.shared.min_addr, hex(self.shared.min_addr),
+            self.shared.max_addr, hex(self.shared.max_addr))
         return Task.TASK.ANSWER(self.PA(''))
