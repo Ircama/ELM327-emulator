@@ -15,7 +15,7 @@ from elm import Tasks
 class Task(Tasks):
     def run(self, cmd, *_):
         if cmd[:4] == '3102': # Routine (31) - Stop (02)
-            self.logging.info('Terminating routine.')
+            self.logging.info('Start routine: terminating.')
             return None, Tasks.TASK.TERMINATE, cmd
 
         # Write memory commands (or any other different from Start and Stop)

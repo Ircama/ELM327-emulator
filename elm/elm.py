@@ -342,9 +342,6 @@ class Elm:
         self.counters['cmd_echo'] = not self.no_echo
         self.counters['cmd_set_header'] = ECU_ADDR_E
         self.counters.update(self.presets)
-        self.tasks = {}
-        self.task_shared_ns = {}
-        self.shared = None
 
     def set_defaults(self):
         """
@@ -356,6 +353,9 @@ class Elm:
         self.answer = {}
         self.counters = {}
         self.counters.update(self.presets)
+        self.tasks = {}
+        self.task_shared_ns = {}
+        self.shared = None
 
     def setSortedOBDMsg(self, scenario=None):
         if scenario is not None:

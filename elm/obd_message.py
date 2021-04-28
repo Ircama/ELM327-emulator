@@ -477,7 +477,19 @@ ObdMessage = {
             'Descr': 'ST Print firmware ID string',
             'Response': ST("STN1100 v1.2.3")
         },
+        'ST_IP4': {
+            'Request': '^STIP4[ 0-9]*$',
+            'Descr': 'Set Tx Interbyte delay: ms',
+            'Exec': 'self.counters["cmd_stip4"] = cmd[5:]',
+            'Log': '"Set Tx Interbyte delay %s", self.counters["cmd_stip4"]',
+            'Response': ELM_R_OK
+        },
         'ST_SET_BAUD_RATE': {
+            'Request': '^STPBR *[1-9][0-9]*$',
+            'Descr': 'ST Set baud rate',
+            'Response': ELM_R_OK
+        },
+        'ST_SET_BAUD_RATE_1': {
             'Request': '^STSBR *[1-9][0-9]*$',
             'Descr': 'ST Set baud rate',
             'Response': ST("STN1101 v2.1.0")
@@ -4222,14 +4234,14 @@ ObdMessage = {
             'Descr': 'Ignition counter',
             'Response': PA('8E 01 00 00'),
         },
-        'UNKNOWN_1081': {
+        'UDS_START_DIAG_SESS_1': {
             'Request': '^1081' + ELM_FOOTER,
-            'Descr': 'UNKNOWN_1081',
+            'Descr': 'Start Diagnostic Session - 1',
             'Response': PA('')
         },
-        'UNKNOWN_1085': {
+        'UDS_START_DIAG_SESS_2': {
             'Request': '^1085' + ELM_FOOTER,
-            'Descr': 'UNKNOWN_1085',
+            'Descr': 'Start Diagnostic Session - 2',
             'Response': PA('')
         },
         'UDS_SA1': {
