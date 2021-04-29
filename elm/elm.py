@@ -108,10 +108,11 @@ class Tasks():
         def PASSTHROUGH(cmd): return (None, Tasks.TASK.TERMINATE, cmd)
         def ANSWER(pa): return (pa, Tasks.TASK.TERMINATE, None)
 
-    def __init__(self, emulator, pid, header, request, attrib, do_write=False):
+    def __init__(self, emulator, pid, header, equ, request, attrib, do_write=False):
         self.emulator = emulator # reference to the emulator namespace
         self.pid = pid # PID label
         self.header = header # request header
+        self.equ = equ
         self.request = request # original request data (stored before running the start() method)
         self.logging = emulator.logger # logger reference
         self.attrib = attrib # dictionary element
@@ -122,8 +123,8 @@ class Tasks():
         self.flow_control = 0 # multiline request flow control
         self.flow_control_end = 0x20 # multiline request flow control repetitions
         self.shared = None # A multiline special task will not use a shared namespace
-        if header in self.emulator.task_shared_ns:
-            self.shared = self.emulator.task_shared_ns[header] # shared namespace
+        if equ in self.emulator.task_shared_ns:
+            self.shared = self.emulator.task_shared_ns[equ] # shared namespace
 
     def HD(self, header):
         """
@@ -1417,13 +1418,15 @@ class Elm:
             return False
         return True
 
-    def task_action(self, header, do_write, task_method, cmd, length, frame):
+    def task_action(
+            self, header, equ, do_write, task_method, cmd, length, frame):
         """
         Call a task method (start(), run(), or stop()), manage the exception,
          pre-process r_task and r_cont return values and return a tuple with
          all the three return values of the invoked method.
 
         :param header:
+        :param equ:
         :param do_write:
         :param task_method:
         :param length:
@@ -1433,10 +1436,10 @@ class Elm:
                 as the Task methods
         """
         logging.debug(
-            "Running task %s.%s(%s, %s, %s) with header %s",
-            self.tasks[header][-1].__module__,
+            "Running task %s.%s(%s, %s, %s) for EQU %s",
+            self.tasks[equ][-1].__module__,
             task_method.__name__, cmd, length,
-            frame, header)
+            frame, equ)
 
         r_cmd = None
         r_task = Tasks.TASK.TERMINATE
@@ -1445,13 +1448,13 @@ class Elm:
             r_cmd, r_task, r_cont = task_method(cmd, length, frame)
         except Exception as e:
             logging.critical(
-                'Error in task "%s", header="%s", '
+                'Error in task "%s", EQU="%s", '
                 'method=%s(): %s',
-                self.tasks[header][-1].__module__,
-                header,
+                self.tasks[equ][-1].__module__,
+                equ,
                 task_method.__name__,
                 e, exc_info=True)
-            del self.tasks[header][-1]
+            del self.tasks[equ][-1]
             return Tasks.TASK.ERROR
         logging.debug("r_cmd=%s, r_task=%s, r_cont=%s", r_cmd, r_task, r_cont)
         if r_cont is not None:
@@ -1460,27 +1463,27 @@ class Elm:
                     r_cmd,
                     do_write=do_write,
                     request_header=header,
-                    request_data=self.tasks[header][-1].task_get_request())
+                    request_data=self.tasks[equ][-1].task_get_request())
                 if not do_write:
-                    logging.warning("Task with header %s returned %s",
-                                    header, repr(resp))
+                    logging.warning("Task for EQU %s returned %s",
+                                    equ, repr(resp))
         if r_task is Tasks.TASK.TERMINATE:
             logging.debug(
-                'Terminated task "%s" with header "%s"',
-                self.tasks[header][-1].__module__, header)
-            self.account_task(header)
-            del self.tasks[header][-1]
+                'Terminated task "%s" for EQU "%s"',
+                self.tasks[equ][-1].__module__, equ)
+            self.account_task(equ)
+            del self.tasks[equ][-1]
         if r_cont is not None:
             logging.debug(
                 "Continue processing command %s after execution of task "
-                "with header %s.", repr(r_cont), header)
+                "for EQU %s.", repr(r_cont), equ)
         return (r_cmd, r_task, r_cont)
 
-    def account_task(self, header):
-        if header not in self.tasks:
+    def account_task(self, equ):
+        if equ not in self.tasks:
             return
         try:
-            task_name = self.tasks[header][-1].__module__[12:]
+            task_name = self.tasks[equ][-1].__module__[12:]
         except Exception:
             return
         if task_name not in self.counters:
@@ -1515,9 +1518,14 @@ class Elm:
         header = None
         if "cmd_set_header" in self.counters:
             header = self.counters['cmd_set_header']
+            if len(header) == 6:
+                equ = header[2:]
+            else:
+                equ = header
 
         # manages delay
-        logging.debug("Handling: %s, header %s", repr(cmd), repr(header))
+        logging.debug("Handling: %s, header %s, EQU %s",
+                      repr(cmd), repr(header), repr(equ))
         if self.delay > 0:
             time.sleep(self.delay)
 
@@ -1536,12 +1544,12 @@ class Elm:
             self.counters['cmd_use_header'] = True
             cmd = cmd[3:]
 
-        # create the namespace shared for the header if not existing
+        # create the namespace shared for the EQU if not existing
         self.shared = None
-        if header:
-            if header not in self.task_shared_ns:
-                self.task_shared_ns[header] = SimpleNamespace()
-            self.shared = self.task_shared_ns[header]
+        if equ:
+            if equ not in self.task_shared_ns:
+                self.task_shared_ns[equ] = SimpleNamespace()
+            self.shared = self.task_shared_ns[equ]
 
         # manages cmd_caf, length, frame - Process UDS multiframe data link
         size = cmd[:2]
@@ -1598,29 +1606,29 @@ class Elm:
 
         # Manage multiline
         if length is not None and frame is not None: # multiline condition
-            if header not in self.tasks:
-                self.tasks[header] = []
-            if len(self.tasks[header]) > MAX_TASKS:
+            if equ not in self.tasks:
+                self.tasks[equ] = []
+            if len(self.tasks[equ]) > MAX_TASKS:
                 logging.critical(
-                    'Too many active tasks with header %s while adding '
+                    'Too many active tasks for EQU %s while adding '
                     'a multiline frame. Latest task was %s.',
-                    header, self.tasks[header][-1].__module__)
+                    equ, self.tasks[equ][-1].__module__)
                 return header, cmd, ""
-            if (len(self.tasks[header]) and
-                self.tasks[header][-1].__module__ == MULTILINE_MODULE):
+            if (len(self.tasks[equ]) and
+                self.tasks[equ][-1].__module__ == MULTILINE_MODULE):
                 logging.error(
-                    'Improper frame within ISO-TP multiline. Header: %s, '
+                    'Improper frame within ISO-TP multiline. EQU: %s, '
                     'multiline data length: %s, frame: %s, data: %s',
-                    header, length, frame, cmd)
+                    equ, length, frame, cmd)
                 return header, cmd, ""
-            self.tasks[header].append(
-                Multiline(self, "MULTILINE", header, cmd, None, do_write))
-            self.tasks[header][-1].__module__ = MULTILINE_MODULE
+            self.tasks[equ].append(
+                Multiline(self, "MULTILINE", header, equ, cmd, None, do_write))
+            self.tasks[equ][-1].__module__ = MULTILINE_MODULE
         # Manage active tasks
-        if header in self.tasks and self.tasks[header]: # if a task exists
+        if equ in self.tasks and self.tasks[equ]: # if a task exists
             if self.len_hex(cmd):
-                r_cmd, *_, r_cont = self.task_action(header, do_write,
-                    self.tasks[header][-1].run, cmd, length, frame)
+                r_cmd, *_, r_cont = self.task_action(header, equ, do_write,
+                    self.tasks[equ][-1].run, cmd, length, frame)
                 if r_cont is None:
                     return header, cmd, r_cmd
                 else:
@@ -1629,21 +1637,21 @@ class Elm:
                     length = None
             else:
                 if INTERRUPT_TASK_IF_NOT_HEX:
-                    logging.warning('Interrupted task "%s" with header "%s"',
-                                    self.tasks[header][-1].__module__, header)
-                    r_cmd, *_, r_cont = self.task_action(header, do_write,
-                        self.tasks[header][-1].stop, cmd, length, frame)
-                    if header in self.tasks and self.tasks[header]:
-                        del self.tasks[header][-1]
+                    logging.warning('Interrupted task "%s" for EQU "%s"',
+                                    self.tasks[equ][-1].__module__, equ)
+                    r_cmd, *_, r_cont = self.task_action(header, equ, do_write,
+                        self.tasks[equ][-1].stop, cmd, length, frame)
+                    if equ in self.tasks and self.tasks[equ]:
+                        del self.tasks[equ][-1]
                     if r_cont is None:
                         return header, cmd, r_cmd
                     else:
                         cmd = r_cont
                 else:
                     logging.debug(
-                        'Non-hex request "%s" will not by passed to active '
-                        'task "%s" with header "%s".',
-                        cmd, self.tasks[header][-1].__module__, header)
+                        'Non-hex request "%s" will not be passed to active '
+                        'task "%s" for EQU "%s".',
+                        cmd, self.tasks[equ][-1].__module__, equ)
 
         # Process response for data stored in cmd
         i_obd_msg = iter(self.sortedOBDMsg)
@@ -1681,27 +1689,29 @@ class Elm:
                             self.answer, pid, e)
                 if 'Task' in val:
                     if val['Task'] in self.plugins:
-                        if header not in self.tasks:
-                            self.tasks[header] = []
-                        if len(self.tasks[header]) > MAX_TASKS:
+                        if equ not in self.tasks:
+                            self.tasks[equ] = []
+                        if len(self.tasks[equ]) > MAX_TASKS:
                             logging.critical(
-                                'Too many active tasks with header %s. '
+                                'Too many active tasks for EQU %s. '
                                 'Latest one was %s.',
-                                header, self.tasks[header][-1].__module__)
+                                equ, self.tasks[equ][-1].__module__)
                             return header, cmd, ""
                         try:
-                            self.tasks[header].append(
+                            self.tasks[equ].append(
                                 self.plugins[val['Task']].Task(
-                                    self, pid, header, cmd, val, do_write))
+                                    self, pid, header, equ, cmd, val, do_write)
+                            )
                         except Exception as e:
                             logging.critical(
-                                'Cannot add task "%s", header="%s": %s',
-                                val['Task'], header, e, exc_info=True)
+                                'Cannot add task "%s", EQU="%s": %s',
+                                val['Task'], equ, e, exc_info=True)
                             return header, cmd, None
-                        logging.debug('Starting task "%s" with header "%s"',
-                                      self.tasks[header][-1].__module__, header)
-                        r_cmd, *_, r_cont = self.task_action(header, do_write,
-                            self.tasks[header][-1].start, cmd, length, frame)
+                        logging.debug('Starting task "%s" for EQU "%s"',
+                                      self.tasks[equ][-1].__module__, equ)
+                        r_cmd, *_, r_cont = self.task_action(
+                            header, equ, do_write,
+                            self.tasks[equ][-1].start, cmd, length, frame)
                         if r_cont is None:
                             return header, cmd, r_cmd
                         else: # chain a subsequent command
@@ -1709,8 +1719,8 @@ class Elm:
                             if chained_command > MAX_TASKS:
                                 logging.critical(
                                     'Too many subsequent chained commands '
-                                    'with header %s. Latest task was %s.',
-                                    header, val['Task'])
+                                    'for EQU %s. Latest task was %s.',
+                                    equ, val['Task'])
                                 return header, cmd, ""
                             cmd = r_cont
                             i_obd_msg = iter(self.sortedOBDMsg)

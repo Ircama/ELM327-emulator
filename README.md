@@ -243,42 +243,42 @@ At the command prompt, cursors and [keyboard shortcuts](https://github.com/chzye
 
 The counters starting with *cmd_...* are special setters. They are represented in the following table and store data related to AT commands.
 
-Special setter  |Related AT command     |Handled|Description
-:--------------:|:---------------------:|:-----:|---------------------------------------------
-`cmd_echo`      |*ATE0*, *ATE1*         |Yes    |Echo off or on
-`cmd_linefeeds` |*ATL0*, *ATL1*         |Yes    |Linefeeds off or on
-`cmd_spaces`    |*ATS0*, *ATS1*         |Yes    |Spaces off or on
-`cmd_set_header`|*ATSH*                 |Yes    |Set the request header
-`cmd_use_header`|*ATH0*, *ATH1*         |Yes    |Headers off or on
-`cmd_last_cmd`  |<carriage return>      |Yes    |Last executed command
-`cmd_cra`       |*ATCRAx* (x=hex digit) |Yes    |Set SET CAN Receive address filter argument
-`cmd_caf`       |*ATCAF0*, *ATCAF1*     |Yes    |Set CAN Auto formatting on/off (0 = use PCI byte in requests)
-`cmd_cfc`       |*ATCFC0*, *ATCFC1*     |Yes    |Set CAN Flow control off or on
-`cmd_can`       |(none)                 |Yes    |Include headers in CAN requests (experimental - to be removed)
-`cmd_fcsm`      |*ATFCSM m* (m = mode)  |No     |Set flow control to mode m
-`cmd_proto`     |*ATSPx* (x=hex digit)  |No     |Set protocol
-`cmd_memory`    |*ATM0*, *ATM1*         |No     |Set Memory off or on
-`cmd_fcsh`      |*ATFCSHx* (x=hex digit)|No     |Set FLOW CONTROL set HEADER
-`cmd_fcsd`      |*ATFCSDx* (x=hex digit)|No     |Set FLOW CONTROL set DATA
-`cmd_fcsm`      |*ATFCSMx* (x=hex digit)|No     |Set FLOW CONTROL set MODE
-`cmd_timeout`   |*ATSTx*  (x=hex digit) |No     |Set timeout
-`cmd_cea`       |*ATCEAx* (x=hex digit) |No     |Set CAN extended address
-`cmd_adaptive_t`|*ATATx* (x=0, 1, 2)    |No     |Set adaptive timing mode
-`cmd_try_proto` |*ATTPx* (x=hex digit)  |No     |Try protocol
-`cmd_st_slx`    |*STSLXm* (m=string)    |No     |Enable or disable sleep/wakeup triggers
-`cmd_st_proto`  |*STPp* (p=number)      |No     |Set current ST protocol
-`cmd_st_fcap`   |*STCFCPA t*,*STCAFCP t*|No     |Add a flow control address pair
-`cmd_iso_baud`  |*ATIB 10, or 48, or 96*|No     |Set ISO baud rate
-`cmd_response`  |*ATR0*, *ATR1*         |No     |Set responses off/on
-`cmd_brd`       |*ATBRDn* (n=two digits)|No     |Set UART baud rate divisor
-`cmd_long_msg`  |*ATAL*, *ATNL*         |No     |Set message length
-`cmd_iia`       |*ATIIA hh* (hh = addr) |No     |Set the ISO 5-baud init address to hh
-`cmd_rec_addr`  |*ATSR hh* (hh = addr)  |No     |Set receive address
-`cmd_hfm`       |*ATCM m* (m = addr)    |No     |Set the CAN hardware filter mask
-`cmd_brt`       |*ATBRT t* (t = timeout)|No     |Set UART baud rate timeout
-`cmd_wakeup`    |*ATSW hh* (hh = addr)  |No     |Set wakeup
-`cmd_stip4`     |*STIP4 n* (n = delay)  |No     |Set Tx Interbyte delay
-`cmd_stpto`     |*STPTO t* (t = timeout)|No     |Set OBD Request Timeout
+Special setter  |Related AT command     |Handled|Description|PID
+:--------------:|:---------------------:|:-----:|---------------------------------|---------------
+`cmd_echo`      |*ATE0*, *ATE1*         |Yes    |Echo off or on                   |AT_ECHO
+`cmd_linefeeds` |*ATL0*, *ATL1*         |Yes    |Linefeeds off or on              |AT_LINEFEEDS
+`cmd_spaces`    |*ATS0*, *ATS1*         |Yes    |Spaces off or on                 |AT_SPACES
+`cmd_set_header`|*ATSH*                 |Yes    |Set the request header           |AT_SET_HEADER
+`cmd_use_header`|*ATH0*, *ATH1*         |Yes    |Headers off or on                |AT_USE_HEADERS
+`cmd_last_cmd`  |<carriage return>      |Yes    |Last executed command|(last pid)
+`cmd_cra`       |*ATCRAx* (x=hex digit) |Yes    |Set SET CAN Receive address filter argument|AT_SET_CAN_RX_ADDR
+`cmd_caf`       |*ATCAF0*, *ATCAF1*     |Yes    |Set CAN Auto formatting on/off (0 = use PCI byte in requests)|AT_CAF
+`cmd_cfc`       |*ATCFC0*, *ATCFC1*     |Yes    |Set CAN Flow control off or on   |AT_CFC
+`cmd_can`       |(none)                 |Yes    |Include headers in CAN requests (experimental - to be removed)|(none)
+`cmd_fcsm`      |*ATFCSM m* (m = mode)  |No     |Set flow control to mode m       |AT_FCSM
+`cmd_proto`     |*ATSPx* (x=hex digit)  |No     |Set protocol                     |AT_PROTO
+`cmd_memory`    |*ATM0*, *ATM1*         |No     |Set Memory off or on             |AT_MEMORY
+`cmd_fcsh`      |*ATFCSHx* (x=hex digit)|No     |Set FLOW CONTROL set HEADER      |AT_FCSH
+`cmd_fcsd`      |*ATFCSDx* (x=hex digit)|No     |Set FLOW CONTROL set DATA        |AT_FCSD
+`cmd_fcsm`      |*ATFCSMx* (x=hex digit)|No     |Set FLOW CONTROL set MODE        |AT_FCSM
+`cmd_timeout`   |*ATSTx*  (x=hex digit) |No     |Set timeout                      |AT_SET_TIMEOUT
+`cmd_cea`       |*ATCEAx* (x=hex digit) |No     |Set CAN extended address         |AT_CEA
+`cmd_adaptive_t`|*ATATx* (x=0, 1, 2)    |No     |Set adaptive timing mode         |AT_ADAPTIVE_TIMING
+`cmd_try_proto` |*ATTPx* (x=hex digit)  |No     |Try protocol                     |AT_TRY_PROTO
+`cmd_iso_baud`  |*ATIB 10, or 48, or 96*|No     |Set ISO baud rate                |AT_ISO_BAUD
+`cmd_response`  |*ATR0*, *ATR1*         |No     |Set responses off/on             |AT_RESPONSES
+`cmd_brd`       |*ATBRDn* (n=two digits)|No     |Set UART baud rate divisor       |AT_BRD
+`cmd_long_msg`  |*ATAL*, *ATNL*         |No     |Set message length               |AT_LONG_MSG, AT_NORMAL_LENGTH
+`cmd_iia`       |*ATIIA hh* (hh = addr) |No     |Set the ISO 5-baud init address to hh|AT_ISO_INIT_ADDR
+`cmd_rec_addr`  |*ATSR hh* (hh = addr)  |No     |Set receive address              |AT_SET_RECEIVE_ADDR
+`cmd_hfm`       |*ATCM m* (m = addr)    |No     |Set the CAN hardware filter mask |AT_CAN_HFM
+`cmd_brt`       |*ATBRT t* (t = timeout)|No     |Set UART baud rate timeout       |AT_BRT
+`cmd_wakeup`    |*ATSW hh* (hh = addr)  |No     |Set wakeup                       |AT_WAKEUP
+`cmd_st_slx`    |*STSLXm* (m=string)    |No     |Enable or disable sleep/wakeup triggers|ST_SLX
+`cmd_st_proto`  |*STPp* (p=number)      |No     |Set current ST protocol          |ST_PROTO
+`cmd_st_fcap`   |*STCFCPA t*,*STCAFCP t*|No     |Add a flow control address pair  |ST_STCAFCP
+`cmd_stip4`     |*STIP4 n* (n = delay)  |No     |Set Tx Interbyte delay           |ST_IP4
+`cmd_stpto`     |*STPTO t* (t = timeout)|No     |Set OBD Request Timeout          |ST_PTO
 
 Unhandled setter means that the AT command is recognized, the related counter is valued but no process is currently associated.
 

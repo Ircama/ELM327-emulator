@@ -382,7 +382,7 @@ class Interpreter(Cmd):
         print("Using " + self.emulator.get_port_name(extended=True))
 
     def do_tasks(self, arg):
-        "Print all available plugins; for each used header, print all active\n"\
+        "Print all available plugins; for each used EQU, print all active\n"\
         "tasks and dump related namespaces; dump also the shared namespaces."
         if arg:
             print ("Invalid format.")
@@ -399,24 +399,25 @@ class Interpreter(Cmd):
                 if len(self.emulator.tasks[i]):
                     for j in self.emulator.tasks[i]:
                         if j.__dict__:
-                            print(" - {}, header {}".format(j.__module__, i))
+                            print(
+                                " - {}, EQU {}.".format(j.__module__, repr(i)))
                             for k, v in j.__dict__.items():
                                 s = pprint.pformat(v, indent=6)
                                 if '\n' in s:
                                     s = '\n' + s
                                 print("    {}: {}".format(k, s))
                         else:
-                            print(" - {}, header {} without namespace"
-                                  .format(j.__module__, i))
+                            print(" - {}, EQU {} without namespace."
+                                  .format(j.__module__, repr(i)))
                 else:
-                    print(" - (completed task), header {}".format(i))
+                    print(" - (completed task), EQU {}.".format(repr(i)))
         else:
             print("No task available.")
         if self.emulator.task_shared_ns:
             print("Shared namespaces:")
             for i in sorted(self.emulator.task_shared_ns):
                 if self.emulator.task_shared_ns[i].__dict__:
-                    print(" - header", i)
+                    print(" - EQU {}:".format(repr(i)))
                     for k, v in self.emulator.task_shared_ns[
                             i].__dict__.items():
                         s = pprint.pformat(v, indent=6)
@@ -424,7 +425,7 @@ class Interpreter(Cmd):
                             s = '\n' + s
                         print("    {}: {}".format(k, s))
                 else:
-                    print(" - no namespace data for header", repr(i))
+                    print(" - no namespace data for EQU {}.".format(repr(i)))
         else:
             print("No shared namespaces available.")
 
@@ -487,7 +488,7 @@ class Interpreter(Cmd):
                 print(f'Unknown response for pid {arg} in  scenario '
                       f'"{self.emulator.scenario}".')
             return
-        if not args[0]:
+        if not args:
             print("Missing PID.")
             return
         if len(args) < 3:

@@ -191,7 +191,7 @@ ObdMessage = {
             'Log': '"set ECHO ON/OFF : %s", self.counters["cmd_echo"]',
             'Response': ELM_R_OK
         },
-        'AT_HEADERS': {
+        'AT_USE_HEADERS': {
             'Request': '^ATH[01]$',
             'Descr': 'AT HEADERS',
             'Exec': 'self.counters["cmd_use_header"] = (cmd[3] == "1")',
@@ -808,16 +808,16 @@ ObdMessage = {
             'Response': PA('00 00')
         },
     # ----------------------------------------------------------------------
-    # Used by MT05
-        'START_COMM': {
+    # UDS commands used by MT05
+        'UDS_START_COMM': {
             'Request': '^81' + ELM_FOOTER,
-            'Descr': 'Start Communication',
+            'Descr': 'UDS Start Communication',
             'Exec': 'self.setSortedOBDMsg("mt05")',
             'Response': PA('EF 8F')
         },
-        'STOP_COMM': {
+        'UDS_STOP_COMM': {
             'Request': '^82' + ELM_FOOTER,
-            'Descr': 'Stop Communication',
+            'Descr': 'UDS Stop Communication',
             'Exec': 'self.setSortedOBDMsg("default")',
             'Response': PA('')
         },
