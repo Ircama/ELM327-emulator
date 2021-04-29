@@ -43,6 +43,7 @@ PLUGIN_DIR = __package__ + ".plugins"
 MAX_TASKS = 20
 MULTILINE_MODULE = 'ISO-TP request pending'
 MIN_SIZE_UDS_LENGTH = 20 # Minimum size to use a UDS header with additional length byte (ISO 14230-2)
+INTERRUPT_TASK_IF_NOT_HEX = False
 
 """
 List of UDS requests which have additional bytes in the related positive
@@ -1627,16 +1628,22 @@ class Elm:
                     frame = None
                     length = None
             else:
-                logging.warning('Interrupted task "%s" with header "%s"',
-                                self.tasks[header][-1].__module__, header)
-                r_cmd, *_, r_cont = self.task_action(header, do_write,
-                    self.tasks[header][-1].stop, cmd, length, frame)
-                if header in self.tasks and self.tasks[header]:
-                    del self.tasks[header][-1]
-                if r_cont is None:
-                    return header, cmd, r_cmd
+                if INTERRUPT_TASK_IF_NOT_HEX:
+                    logging.warning('Interrupted task "%s" with header "%s"',
+                                    self.tasks[header][-1].__module__, header)
+                    r_cmd, *_, r_cont = self.task_action(header, do_write,
+                        self.tasks[header][-1].stop, cmd, length, frame)
+                    if header in self.tasks and self.tasks[header]:
+                        del self.tasks[header][-1]
+                    if r_cont is None:
+                        return header, cmd, r_cmd
+                    else:
+                        cmd = r_cont
                 else:
-                    cmd = r_cont
+                    logging.debug(
+                        'Non-hex request "%s" will not by passed to active '
+                        'task "%s" with header "%s".',
+                        cmd, self.tasks[header][-1].__module__, header)
 
         # Process response for data stored in cmd
         i_obd_msg = iter(self.sortedOBDMsg)
@@ -1804,6 +1811,12 @@ class Elm:
         return re.match(r"^[0-9a-fA-F \t\r\n]*$", s or "") is not None
 
     def len_hex(self, s):
+        """
+        Check that the argument string is hexadecimal. If not, return False.
+        If hex, return the number of hex bytes.
+        :param s: hex string
+        :return: either the number of hex bytes or false
+        """
         try:
             return len(bytearray.fromhex(s))
         except Exception:
