@@ -1568,8 +1568,8 @@ class Elm:
             if not payload:
                 logging.error('Missing data for request "%s"', repr(cmd))
                 return header, cmd, ""
-            if size[0] == '0':
-                if int_size < 8: # single line
+            if size[0] == '0': # Single-Frame
+                if int_size < 8: # valid value
                     if len(payload) < int_size * 2:
                         logging.error(
                             'In request %s, data %s has an improper length '
@@ -1585,12 +1585,12 @@ class Elm:
                                   'greater than 7 bytes. %s',
                                   repr(size))
                     return header, cmd, ""
-            elif size[0] == '1': #10 = first frame of a ISO-TP Multiframe fequest
+            elif size[0] == '1': # e.g., 10 = first frame of a ISO-TP Multiframe fequest
                 try:
                     length = int(cmd[1:4], 16) # read ISO-TP Multiframe length
                     logging.debug(
                         'ISO-TP Multiframe message with length 0x%s = (int) %s '
-                        '(message %s)', repr(cmd[2:4]), length, repr(cmd))
+                        '(message %s)', repr(cmd[1:4]), length, repr(cmd))
                     logging.debug(
                         "First-Frame. Length: %s, frame: %s, header: %s, "
                         "cmd: %s", length, frame, header, cmd)
@@ -1611,17 +1611,41 @@ class Elm:
                     "cmd: %s", length, frame, header, cmd)
             elif size[0] == '3':  # e.g., from 30 on = flow control of a ISO-TP Multiframe fequest
                 try:
-                    fc_flag = int(size[1])
+                    self.shared.flow_control_fc_flag = int(size[1])
+                    self.shared.flow_control_block_size = int(cmd[2:4], 16)
+                    self.shared.flow_control_separation_time = int(cmd[4:6], 16)
                 except Exception as e:
-                    logging.error('Improper FC_flag %s for request %s: %s',
-                                  repr(size[1]), repr(cmd), e)
+                    logging.error(
+                        'Improper Flow-control-Frame %s: %s', repr(cmd), e)
                     return header, cmd, ""
-                block_size = size[2:4]
-                st = size[4:6]
-                logging.debug(
-                    'Flow-control-Frame. Input is ignored by now: '
-                    'int_size: %s, length: %s, frame: %s, header: %s, cmd: %s',
-                    int_size, length, frame, header, cmd)
+                if self.shared.flow_control_fc_flag == 0: # Clear To Send
+                    if self.shared.flow_control_block_size > 0:
+                        logging.debug(
+                            'Flow-control-Frame. Input is ignored by now: '
+                            'int_size: %s, length: %s, frame: %s, header: %s, '
+                            'cmd: %s, fc_flag: %s, block_size: %s, '
+                            'separation_time: %s.',
+                            int_size, length, frame, header, cmd,
+                            self.shared.flow_control_fc_flag,
+                            self.shared.flow_control_block_size,
+                            self.shared.flow_control_separation_time)
+                elif self.shared.flow_control_fc_flag == 1: # Wait
+                    sleep = self.shared.flow_control_separation_time
+                    if sleep > 240:
+                        sleep = ((self.shared.flow_control_separation_time -
+                                  240) * 100)
+                    logging.debug(
+                        'Sleeping for %s milliseconds', sleep)
+                    time.sleep(sleep/1000)
+                elif self.shared.flow_control_fc_flag == 2: # 2 = Overflow/abort
+                    logging.error('Overflow-abort received in ISO-TP '
+                                  'Flow-control-Frame. %s', repr(cmd))
+                    return header, cmd, ""
+                else:
+                    logging.error(
+                        'Improper Flow-control-Frame FC flag %s. %s: %s',
+                        self.shared.flow_control_fc_flag, repr(cmd))
+                    return header, cmd, ""
                 return header, cmd, None
             else:
                 logging.error('Invalid ISO-TP type %s for frame %s.',
