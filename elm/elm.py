@@ -41,7 +41,7 @@ SERIAL_BAUDRATE = 38400 # bps
 NETWORK_INTERFACES = ""
 PLUGIN_DIR = __package__ + ".plugins"
 MAX_TASKS = 20
-MULTILINE_MODULE = 'ISO-TP request pending'
+ISO_TP_Multiframe_MODULE = 'ISO-TP request pending'
 MIN_SIZE_UDS_LENGTH = 20 # Minimum size to use a UDS header with additional length byte (ISO 14230-2)
 INTERRUPT_TASK_IF_NOT_HEX = False
 
@@ -118,11 +118,11 @@ class Tasks():
         self.attrib = attrib # dictionary element
         self.do_write = do_write # (boolean) will write to the application
         self.time_started = time.time() # timer (to be used to simulate background processing)
-        self.frame = None # multiline request frame counter
-        self.length = None # multiline request length counter
-        self.flow_control = 0 # multiline request flow control
-        self.flow_control_end = 0x20 # multiline request flow control repetitions
-        self.shared = None # A multiline special task will not use a shared namespace
+        self.frame = None # ISO-TP Multiframe request frame counter
+        self.length = None # ISO-TP Multiframe request length counter
+        self.flow_control = 0 # ISO-TP Multiframe request flow control
+        self.flow_control_end = 0x20 # ISO-TP Multiframe request flow control repetitions
+        self.shared = None # A ISO-TP Multiframe special task will not use a shared namespace
         if equ in self.emulator.task_shared_ns:
             self.shared = self.emulator.task_shared_ns[equ] # shared namespace
 
@@ -236,19 +236,19 @@ class Tasks():
         return Tasks.TASK.PASSTHROUGH(cmd)
 
 
-class Multiline(Tasks):
+class ISO_TP_Multiframe(Tasks):
     """
-    Special task to aggregate a multiline request into a single string
+    Special task to aggregate a ISO-TP Multiframe request into a single string
     before processing the request.
     """
 
     def run(self, cmd, length=None, frame=None):
         """
-        Compose a multiline request. Call it on each request fragment,
+        Compose a ISO-TP Multiframe request. Call it on each request fragment,
         passing the standard method parameters, until data is returned.
 
         :param cmd: frame data (excluding header and length)
-        :param length: decimal value of the length byte of a multiline frame
+        :param length: decimal value of the length byte of a ISO-TP Multiframe frame
         :param frame: can be None (single frame), 0 (First Frame) or > 0 (subsequent frame)
         :return:
             error = Tasks.TASK.ERROR
@@ -1551,7 +1551,7 @@ class Elm:
                 self.task_shared_ns[equ] = SimpleNamespace()
             self.shared = self.task_shared_ns[equ]
 
-        # manages cmd_caf, length, frame - Process UDS multiframe data link
+        # manages cmd_caf, length, frame - Process UDS ISO-TP Multiframe data link
         size = cmd[:2]
         length = None # no byte length in request
         frame = None # Single Frame
@@ -1568,62 +1568,86 @@ class Elm:
             if not payload:
                 logging.error('Missing data for request "%s"', repr(cmd))
                 return header, cmd, ""
-            if int_size < 16: # < 10 = single line
-                if len(payload) < int_size * 2:
-                    logging.error(
-                        'In request %s, data %s has an improper length '
-                        'of %s bytes', repr(cmd), repr(payload), size)
-                    return header, cmd, ""
-                cmd = payload[:int_size * 2]
-                length = int_size
-            elif int_size == 16: #10 = first frame of a multiline fequest
-                try:
-                    length = int(cmd[2:4], 16) # read multiline length
+            if size[0] == '0':
+                if int_size < 8: # single line
+                    if len(payload) < int_size * 2:
+                        logging.error(
+                            'In request %s, data %s has an improper length '
+                            'of %s bytes', repr(cmd), repr(payload), size)
+                        return header, cmd, ""
+                    cmd = payload[:int_size * 2]
+                    length = int_size
                     logging.debug(
-                        'Multiline message with length 0x%s = (int) %s '
+                        "Single-Frame. Length: %s, frame: %s, header: %s, "
+                        "cmd: %s", length, frame, header, cmd)
+                else:
+                    logging.error('Invalid ISO-TP Single frame with size '
+                                  'greater than 7 bytes. %s',
+                                  repr(size))
+                    return header, cmd, ""
+            elif size[0] == '1': #10 = first frame of a ISO-TP Multiframe fequest
+                try:
+                    length = int(cmd[1:4], 16) # read ISO-TP Multiframe length
+                    logging.debug(
+                        'ISO-TP Multiframe message with length 0x%s = (int) %s '
                         '(message %s)', repr(cmd[2:4]), length, repr(cmd))
+                    logging.debug(
+                        "First-Frame. Length: %s, frame: %s, header: %s, "
+                        "cmd: %s", length, frame, header, cmd)
                 except ValueError as e:
                     logging.error('Improper size %s for request %s: %s',
                                   repr(cmd[2:4]), repr(cmd), e)
                     return header, cmd, ""
                 cmd = cmd[4:]
                 frame = 0
-            else: # process subsequent frames of a multiline request
+            elif size[0] == '2':  # e.g., 21 = ISO-TP Consecutive Frame
                 cmd = cmd[2:]
-            if int_size == 32: # the frame includes 20 after 1F
-                frame = -1 # Marker for Multiline() to detect a recycle
-            if int_size > 32 and int_size < 48: # from 21 to 2F
-                frame = int_size - 32 # compute the multframe count
-            if int_size >= 48: # from 30 on - Process flow control
+                if int_size == 32:  # the frame includes 20 after 1F
+                    frame = -1  # Marker for ISO-TP Multiframe() to detect a recycle
+                if int_size > 32 and int_size < 48:  # from 21 to 2F
+                    frame = int_size - 32  # compute the multframe count
                 logging.debug(
-                    'Flow control input is ignored by now: '
+                    "Consecutive-Frame. Length: %s, frame: %s, header: %s, "
+                    "cmd: %s", length, frame, header, cmd)
+            elif size[0] == '3':  # e.g., from 30 on = flow control of a ISO-TP Multiframe fequest
+                try:
+                    fc_flag = int(size[1])
+                except Exception as e:
+                    logging.error('Improper FC_flag %s for request %s: %s',
+                                  repr(size[1]), repr(cmd), e)
+                    return header, cmd, ""
+                block_size = size[2:4]
+                st = size[4:6]
+                logging.debug(
+                    'Flow-control-Frame. Input is ignored by now: '
                     'int_size: %s, length: %s, frame: %s, header: %s, cmd: %s',
                     int_size, length, frame, header, cmd)
                 return header, cmd, None
-            logging.debug(
-                "Length: %s, frame: %s, header: %s, cmd: %s",
-                length, frame, header, cmd)
+            else:
+                logging.error('Invalid ISO-TP type %s for frame %s.',
+                              repr(size[0]), repr(cmd))
+                return header, cmd, ""
 
-        # Manage multiline
-        if length is not None and frame is not None: # multiline condition
+        # Manage ISO-TP Multiframe
+        if length is not None and frame is not None: # ISO-TP Multiframe condition
             if equ not in self.tasks:
                 self.tasks[equ] = []
             if len(self.tasks[equ]) > MAX_TASKS:
                 logging.critical(
                     'Too many active tasks for EQU %s while adding '
-                    'a multiline frame. Latest task was %s.',
+                    'a ISO-TP Multiframe frame. Latest task was %s.',
                     equ, self.tasks[equ][-1].__module__)
                 return header, cmd, ""
             if (len(self.tasks[equ]) and
-                self.tasks[equ][-1].__module__ == MULTILINE_MODULE):
+                self.tasks[equ][-1].__module__ == ISO_TP_Multiframe_MODULE):
                 logging.error(
-                    'Improper frame within ISO-TP multiline. EQU: %s, '
-                    'multiline data length: %s, frame: %s, data: %s',
+                    'Improper frame within ISO-TP ISO-TP Multiframe. EQU: %s, '
+                    'data length: %s, frame: %s, data: %s',
                     equ, length, frame, cmd)
                 return header, cmd, ""
             self.tasks[equ].append(
-                Multiline(self, "MULTILINE", header, equ, cmd, None, do_write))
-            self.tasks[equ][-1].__module__ = MULTILINE_MODULE
+                ISO_TP_Multiframe(self, "ISO-TP-Multiframe", header, equ, cmd, None, do_write))
+            self.tasks[equ][-1].__module__ = ISO_TP_Multiframe_MODULE
         # Manage active tasks
         if equ in self.tasks and self.tasks[equ]: # if a task exists
             if self.len_hex(cmd):

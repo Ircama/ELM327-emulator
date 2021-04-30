@@ -13,7 +13,8 @@ from elm import Tasks
 import mmap
 
 MEM_RANGE = 0x3fffff
-MAP_READ_FILE = "mmap-input.bin"
+MMAP_INPUT_FILE = "mmap-input.bin"
+EDIT_INPUT_MMAP_FILE = True
 
 
 # UDS - MODE 23 - Read memory by address
@@ -21,11 +22,13 @@ class Task(Tasks):
     def run(self, cmd, *_):
         if not (hasattr(self.shared, 'read_mmap')):
             try:
-                with open(MAP_READ_FILE, "r+b") as f:
-                    self.shared.read_mmap = mmap.mmap(f.fileno(), 0)
+                with open(MMAP_INPUT_FILE, "r+b") as f:
+                    self.shared.read_mmap = mmap.mmap(
+                        f.fileno(),
+                        MEM_RANGE if EDIT_INPUT_MMAP_FILE else 0)
             except Exception as e:
                 self.logging.critical('Error while opening file "%s": %s',
-                                      MAP_READ_FILE, e)
+                                      MMAP_INPUT_FILE, e)
                 return Task.TASK.ERROR
         try:
             address = int(cmd[2:-2], 16) & MEM_RANGE

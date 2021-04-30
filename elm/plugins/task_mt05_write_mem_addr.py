@@ -12,20 +12,28 @@ from elm import Tasks
 import mmap
 
 MEM_RANGE = 0x3fffff
-MAP_WRITE_FILE = "mmap-output.bin"
+MMAP_INPUT_FILE = "mmap-input.bin"
+MMAP_OUTPUT_FILE = "mmap-output.bin"
+EDIT_INPUT_MMAP_FILE = True
 
 
 # UDS - MODE 3D - Write memory by address
 class Task(Tasks):
     def run(self, cmd, *_):
+        if EDIT_INPUT_MMAP_FILE:
+            mmap_file = MMAP_INPUT_FILE
+        else:
+            mmap_file = MMAP_OUTPUT_FILE
         if not (hasattr(self.shared, 'mmap')):
             try:
-                with open(MAP_WRITE_FILE, 'w'): pass # create and reset output file
-                with open(MAP_WRITE_FILE, "r+b") as f:
+                if not EDIT_INPUT_MMAP_FILE:
+                    with open(mmap_file, 'w'):
+                        pass # create and reset output file
+                with open(mmap_file, "r+b") as f:
                     self.shared.mmap = mmap.mmap(f.fileno(), MEM_RANGE)
             except Exception as e:
                 self.logging.critical('Error while writing file "%s": %s',
-                                      MAP_WRITE_FILE, e)
+                                      mmap_file, e)
                 return Task.TASK.ERROR
         try:
             address = int(cmd[2:8], 16) & MEM_RANGE
