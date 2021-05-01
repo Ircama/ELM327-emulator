@@ -29,7 +29,7 @@ class Task(Tasks):
         except Exception as e:
             self.logging.error(
                 'Start routine - wrong address: %s', e)
-            return Task.TASK.ERROR
+            return Task.RETURN.ERROR
         self.logging.info('Start routine %s to %s',
                           hex(start_address), hex(end_address))
-        return Task.TASK.ANSWER(self.PA('00'))
+        return Task.RETURN.ANSWER(self.PA('00'))

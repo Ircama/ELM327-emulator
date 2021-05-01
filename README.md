@@ -702,9 +702,10 @@ Example of a basic task related to a Python plugin named "task_no_data.py", whic
 ```python
 from elm import Tasks
 
+
 class Task(Tasks):
-    def run(self, **_):
-        return self.ST("NO DATA"), self.TASK.TERMINATE, None
+  def run(self, **_):
+    return self.ST("NO DATA"), self.RETURN.TERMINATE, None
 ```
 
 Example of dictionary element (when `7E0 02 FF FF` is received, `NO DATA` is returned):
@@ -1198,6 +1199,13 @@ sudo apt-get install telnet
 telnet localhost 35000
 ```
 
+## python-OBD
+
+[python-OBD](https://github.com/brendan-w/python-OBD) is a Python module for handling realtime sensor data from OBD-II vehicle ports supporting ELM327 OBD-II adapters. *obd_dictionary* (which internally exploits python-OBD) can be used to test it. For instance, with Linux:
+
+- open a terminal and run `python3 -m elm -s car` (read the returned pty port)
+- open another terminal and run `python3 -m obd_dictionary -i /dev/pts/0 | less` (use the same port returned by *ELM327-emulator*)
+
 ## OBD Auto Doctor
 
 One of the applications which can be used to test *ELM327-emulator* is [OBD Auto Doctor](https://www.obdautodoctor.com/). It supports different operating systems, including Windows, Mac, Linux, Android, iOS and enables communicating with OBD-II to get summary information, trouble codes, advanced diagnostics, real time graphical monitoring and many other in-depth data on the EQUs.
@@ -1271,6 +1279,12 @@ from scantool import scantool;scantool(emulator.slave_name) # load and run the p
 ```
 
 To run the application integrated with *ELM327-emulator*: `./scantool`
+
+## HUD ECU Hacker
+
+[HUD ECU Hacker](https://netcult.ch/elmue/HUD%20ECU%20Hacker/) is a great application developed by [ElmüSoft](https://netcult.ch/elmue/index-en.htm).
+
+It is a OBD2 scanner software specialized to manage ECU's from Delphi Electronics, including flash memory download and upload functions. The application runs on Windows and is very well engineered, extensively using OBD2 and UDS, with wide set of functionalities and robust error handling. *ELM327-emulator* is already able to allow some generic emulation of the Delphi MT05 EQU and, if needed, can be extended via development of additional tasks and revision of the ObdMessage configuration.
 
 # License
 

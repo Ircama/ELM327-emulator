@@ -29,26 +29,26 @@ class Task(Tasks):
             except Exception as e:
                 self.logging.critical('Error while opening file "%s": %s',
                                       MMAP_INPUT_FILE, e)
-                return Task.TASK.ERROR
+                return Task.RETURN.ERROR
         try:
             address = int(cmd[2:-2], 16) & MEM_RANGE
             length = int(cmd[-2:], 16)
         except Exception as e:
             self.logging.error(
                 'Read memory by address - wrong request: %s', e)
-            return Task.TASK.ERROR
+            return Task.RETURN.ERROR
         try:
             value = self.shared.read_mmap[address:address + length]
         except KeyError as e:
             self.logging.error('Read memory by address - '
                                'Unhandled data address %s (%s)',
                                e, cmd[2:-2])
-            return Task.TASK.ANSWER(self.NA('12')) # Sub-function not supported
+            return Task.RETURN.ANSWER(self.NA('12')) # Sub-function not supported
         if len(value) != length:
             self.logging.error('Read memory by address - Memory map '
                                '%s does not match with length %s, %s',
                                value, length, len(value))
-            return Task.TASK.ERROR
+            return Task.RETURN.ERROR
         data = ' '.join('{:02x}'.format(x) for x in value).upper()
         if (hasattr(self.shared, 'fail_next_read_mem') and
                 self.shared.fail_next_read_mem):
@@ -56,4 +56,4 @@ class Task(Tasks):
                 'Just executed routine %s.', self.shared.fail_next_read_mem)
             self.shared.fail_next_read_mem = False
             time.sleep(0.3)
-        return Task.TASK.ANSWER(self.PA(data.strip()))
+        return Task.RETURN.ANSWER(self.PA(data.strip()))

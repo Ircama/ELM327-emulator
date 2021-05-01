@@ -21,11 +21,11 @@ class Task(Tasks):
         if time.time() < self.time_started + EXECUTION_TIME:
             # 78 in negative answer = requestCorrectlyReceived-ResponsePending
             return (self.NA('78'),
-                    self.TASK.CONTINUE,
+                    self.RETURN.CONTINUE,
                     None if self.task_request_matched(cmd) else cmd)
         else:
             seed_bytes = " ".join(SEED[i:i + 2] for i in range(0, len(SEED), 2))
             self.logging.warning('Seed: %s', seed_bytes)
             return (self.PA(seed_bytes),
-                    self.TASK.TERMINATE,
+                    self.RETURN.TERMINATE,
                     None if self.task_request_matched(cmd) else cmd)

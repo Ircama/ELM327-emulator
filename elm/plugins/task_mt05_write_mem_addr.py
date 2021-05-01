@@ -34,13 +34,13 @@ class Task(Tasks):
             except Exception as e:
                 self.logging.critical('Error while writing file "%s": %s',
                                       mmap_file, e)
-                return Task.TASK.ERROR
+                return Task.RETURN.ERROR
         try:
             address = int(cmd[2:8], 16) & MEM_RANGE
         except Exception as e:
             self.logging.error(
                 'Write memory by address - wrong request: %s', e)
-            return Task.TASK.ERROR
+            return Task.RETURN.ERROR
         if not (hasattr(self.shared, 'min_addr')):
             self.shared.min_addr = address
         elif self.shared.min_addr > address:
@@ -53,9 +53,9 @@ class Task(Tasks):
         except KeyError as e:
             self.logging.error(
                 'Write memory by address - Invalid data: %s', e)
-            return Task.TASK.ERROR
+            return Task.RETURN.ERROR
         if not (hasattr(self.shared, 'max_addr')):
             self.shared.max_addr = max_addr
         elif self.shared.max_addr < max_addr:
             self.shared.max_addr = max_addr
-        return Task.TASK.ANSWER(self.PA(cmd[2:8].strip()))
+        return Task.RETURN.ANSWER(self.PA(cmd[2:8].strip()))

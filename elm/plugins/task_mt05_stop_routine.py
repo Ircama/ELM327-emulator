@@ -18,7 +18,7 @@ class Task(Tasks):
                 not hasattr(self.shared, 'min_addr') or
                 not hasattr(self.shared, 'max_addr')):
             self.logging.error('Stop routine - improper workflow')
-            return Task.TASK.ERROR
+            return Task.RETURN.ERROR
         self.logging.info(
             'Written data size: '
             '%s (%s), %s (%s) to %s (%s).',
@@ -26,4 +26,4 @@ class Task(Tasks):
             hex(self.shared.max_addr - self.shared.min_addr),
             self.shared.min_addr, hex(self.shared.min_addr),
             self.shared.max_addr, hex(self.shared.max_addr))
-        return Task.TASK.ANSWER(self.PA(''))
+        return Task.RETURN.ANSWER(self.PA(''))

@@ -47,11 +47,11 @@ INTERRUPT_TASK_IF_NOT_HEX = False
 ELM_VALID_CHARS = r"^[a-zA-Z0-9 \n\r@,.?]*$"
 
 """
-Ref. to ISO 14229-1, list of SIDs (UDS service identifiers) which have
-additional sub-function bytes in the related positive
-answer. The value indicates the number of bytes to add to the answer for
-each requested SID. Not included SIDs in this list have 0 additional bytes
-in the answer.
+Ref. to ISO 14229-1 and ISO 14230, this is a list of SIDs (UDS service
+identifiers) which have additional sub-function bytes in the related
+positive answer. The value indicates the number of bytes to add to the
+answer for each requested SID. Not included SIDs in this list have 0
+additional bytes in the answer.
 """
 uds_sid_pos_answer = {
     "01": 1,  # Show current data
@@ -63,7 +63,6 @@ uds_sid_pos_answer = {
     "14": 1,  # Clear Diagnostic Information DTC (CDTCI)
     "21": 1,  # Read Data by Local Id
     "22": 2,  # Read Data By Identifier (RDBI)
-    # 22 + variable length DID (Data Identifier, usually two bytes), to be incl. in the answer
     "23": 0,  # Read memory by address (RMBA)
     "27": 1,  # Security Access (SA)
     "2E": 1,  # Write Data By Identifier (WDBI)
@@ -102,7 +101,7 @@ class Tasks():
     All tasks/plugins shall implement a class named Task derived from Tasks.
     """
 
-    class TASK:
+    class RETURN:
         """
         Return values for all Tasks methods
         """
@@ -110,8 +109,8 @@ class Tasks():
         CONTINUE = True
         ERROR = (None, TERMINATE, None)
         INCOMPLETE = (None, CONTINUE, None)
-        def PASSTHROUGH(cmd): return (None, Tasks.TASK.TERMINATE, cmd)
-        def ANSWER(pa): return (pa, Tasks.TASK.TERMINATE, None)
+        def PASSTHROUGH(cmd): return None, Tasks.RETURN.TERMINATE, cmd
+        def ANSWER(pa): return pa, Tasks.RETURN.TERMINATE, None
 
     def __init__(self, emulator, pid, header, equ, request, attrib, do_write=False):
         self.emulator = emulator # reference to the emulator namespace
@@ -238,7 +237,7 @@ class Tasks():
                 response in the first element (or Null to disable subsequent
                 processing)
         """
-        return Tasks.TASK.PASSTHROUGH(cmd)
+        return Tasks.RETURN.PASSTHROUGH(cmd)
 
 
 class IsoTpMultiframe(Tasks):
@@ -263,7 +262,7 @@ class IsoTpMultiframe(Tasks):
         if frame is not None and frame == 0 and length > 0: # First Frame (FF)
             if self.frame or self.length:
                 self.logging.error('Invalid initial frame %s %s', length, cmd)
-                return Tasks.TASK.ERROR
+                return Tasks.RETURN.ERROR
             self.req = cmd
             self.frame = 1
             self.length = length
@@ -280,14 +279,14 @@ class IsoTpMultiframe(Tasks):
             self.req = cmd
             self.length = length
             if length:
-                return Tasks.TASK.PASSTHROUGH(self.req[:self.length * 2])
+                return Tasks.RETURN.PASSTHROUGH(self.req[:self.length * 2])
             else:
-                return Tasks.TASK.PASSTHROUGH(self.req)
+                return Tasks.RETURN.PASSTHROUGH(self.req)
         else:
             self.logging.error(
                 'Invalid consecutive frame %s with data %s, stored frame: %s',
                 frame, repr(cmd), self.frame)
-            return Tasks.TASK.ERROR
+            return Tasks.RETURN.ERROR
 
         # Process Flow Control (FC)
         if self.flow_control:
@@ -307,8 +306,8 @@ class IsoTpMultiframe(Tasks):
 
         if self.length * 2 <= len(self.req):
             self.frame = None
-            return Tasks.TASK.PASSTHROUGH(self.req[:self.length * 2])
-        return Tasks.TASK.INCOMPLETE
+            return Tasks.RETURN.PASSTHROUGH(self.req[:self.length * 2])
+        return Tasks.RETURN.INCOMPLETE
 
 
 class Elm:
@@ -1453,7 +1452,7 @@ class Elm:
             frame, equ)
 
         r_cmd = None
-        r_task = Tasks.TASK.TERMINATE
+        r_task = Tasks.RETURN.TERMINATE
         r_cont = None
         try:
             r_cmd, r_task, r_cont = task_method(cmd, length, frame)
@@ -1466,7 +1465,7 @@ class Elm:
                 task_method.__name__,
                 e, exc_info=True)
             del self.tasks[equ][-1]
-            return Tasks.TASK.ERROR
+            return Tasks.RETURN.ERROR
         logging.debug("r_cmd=%s, r_task=%s, r_cont=%s", r_cmd, r_task, r_cont)
         if r_cont is not None:
             if r_cmd is not None:
@@ -1478,7 +1477,7 @@ class Elm:
                 if not do_write:
                     logging.warning("Task for EQU %s returned %s",
                                     equ, repr(resp))
-        if r_task is Tasks.TASK.TERMINATE:
+        if r_task is Tasks.RETURN.TERMINATE:
             logging.debug(
                 'Terminated task "%s" for EQU "%s"',
                 self.tasks[equ][-1].__module__, equ)

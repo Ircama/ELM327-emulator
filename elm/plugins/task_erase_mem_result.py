@@ -22,9 +22,9 @@ class Task(Tasks):
         if time.time() < self.time_started + EXECUTION_TIME:
             # 78 in negative answer = requestCorrectlyReceived-ResponsePending
             return (self.NA('78'),
-                    self.TASK.CONTINUE,
+                    self.RETURN.CONTINUE,
                     None if self.task_request_matched(cmd) else cmd)
         else:
             return (self.PA('00'),
-                    self.TASK.TERMINATE,
+                    self.RETURN.TERMINATE,
                     None if self.task_request_matched(cmd) else cmd)
