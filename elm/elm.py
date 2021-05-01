@@ -112,11 +112,11 @@ class Tasks():
         def PASSTHROUGH(cmd): return None, Tasks.RETURN.TERMINATE, cmd
         def ANSWER(pa): return pa, Tasks.RETURN.TERMINATE, None
 
-    def __init__(self, emulator, pid, header, equ, request, attrib, do_write=False):
+    def __init__(self, emulator, pid, header, ecu, request, attrib, do_write=False):
         self.emulator = emulator # reference to the emulator namespace
         self.pid = pid # PID label
         self.header = header # request header
-        self.equ = equ
+        self.ecu = ecu
         self.request = request # original request data (stored before running the start() method)
         self.logging = emulator.logger # logger reference
         self.attrib = attrib # dictionary element
@@ -127,12 +127,12 @@ class Tasks():
         self.flow_control = 0 # ISO-TP Multiframe request flow control
         self.flow_control_end = 0x20 # ISO-TP Multiframe request flow control repetitions
         self.shared = None # A ISO-TP Multiframe special task will not use a shared namespace
-        if equ in self.emulator.task_shared_ns:
-            self.shared = self.emulator.task_shared_ns[equ] # shared namespace
+        if ecu in self.emulator.task_shared_ns:
+            self.shared = self.emulator.task_shared_ns[ecu] # shared namespace
 
     def HD(self, header):
         """
-        Generates the XML tag related to the header byte of the response (EQU ID)
+        Generates the XML tag related to the header byte of the response (ECU ID)
         :param size: header (ECU ID)
         :return: XML tag related to the header of the response
         """
@@ -1429,14 +1429,14 @@ class Elm:
         return answ
 
     def task_action(
-            self, header, equ, do_write, task_method, cmd, length, frame):
+            self, header, ecu, do_write, task_method, cmd, length, frame):
         """
         Call a task method (start(), run(), or stop()), manage the exception,
          pre-process r_task and r_cont return values and return a tuple with
          all the three return values of the invoked method.
 
         :param header:
-        :param equ:
+        :param ecu:
         :param do_write:
         :param task_method:
         :param length:
@@ -1446,10 +1446,10 @@ class Elm:
                 as the Task methods
         """
         logging.debug(
-            "Running task %s.%s(%s, %s, %s) for EQU %s",
-            self.tasks[equ][-1].__module__,
+            "Running task %s.%s(%s, %s, %s) for ECU %s",
+            self.tasks[ecu][-1].__module__,
             task_method.__name__, cmd, length,
-            frame, equ)
+            frame, ecu)
 
         r_cmd = None
         r_task = Tasks.RETURN.TERMINATE
@@ -1458,13 +1458,13 @@ class Elm:
             r_cmd, r_task, r_cont = task_method(cmd, length, frame)
         except Exception as e:
             logging.critical(
-                'Error in task "%s", EQU="%s", '
+                'Error in task "%s", ECU="%s", '
                 'method=%s(): %s',
-                self.tasks[equ][-1].__module__,
-                equ,
+                self.tasks[ecu][-1].__module__,
+                ecu,
                 task_method.__name__,
                 e, exc_info=True)
-            del self.tasks[equ][-1]
+            del self.tasks[ecu][-1]
             return Tasks.RETURN.ERROR
         logging.debug("r_cmd=%s, r_task=%s, r_cont=%s", r_cmd, r_task, r_cont)
         if r_cont is not None:
@@ -1473,27 +1473,27 @@ class Elm:
                     r_cmd,
                     do_write=do_write,
                     request_header=header,
-                    request_data=self.tasks[equ][-1].task_get_request())
+                    request_data=self.tasks[ecu][-1].task_get_request())
                 if not do_write:
-                    logging.warning("Task for EQU %s returned %s",
-                                    equ, repr(resp))
+                    logging.warning("Task for ECU %s returned %s",
+                                    ecu, repr(resp))
         if r_task is Tasks.RETURN.TERMINATE:
             logging.debug(
-                'Terminated task "%s" for EQU "%s"',
-                self.tasks[equ][-1].__module__, equ)
-            self.account_task(equ)
-            del self.tasks[equ][-1]
+                'Terminated task "%s" for ECU "%s"',
+                self.tasks[ecu][-1].__module__, ecu)
+            self.account_task(ecu)
+            del self.tasks[ecu][-1]
         if r_cont is not None:
             logging.debug(
                 "Continue processing command %s after execution of task "
-                "for EQU %s.", repr(r_cont), equ)
+                "for ECU %s.", repr(r_cont), ecu)
         return (r_cmd, r_task, r_cont)
 
-    def account_task(self, equ):
-        if equ not in self.tasks:
+    def account_task(self, ecu):
+        if ecu not in self.tasks:
             return
         try:
-            task_name = self.tasks[equ][-1].__module__[12:]
+            task_name = self.tasks[ecu][-1].__module__[12:]
         except Exception:
             return
         if task_name not in self.counters:
@@ -1529,13 +1529,13 @@ class Elm:
         if "cmd_set_header" in self.counters:
             header = self.counters['cmd_set_header']
             if len(header) == 6:
-                equ = header[2:]
+                ecu = header[2:]
             else:
-                equ = header
+                ecu = header
 
         # manages delay
-        logging.debug("Handling: %s, header %s, EQU %s",
-                      repr(cmd), repr(header), repr(equ))
+        logging.debug("Handling: %s, header %s, ECU %s",
+                      repr(cmd), repr(header), repr(ecu))
         if self.delay > 0:
             time.sleep(self.delay)
 
@@ -1554,12 +1554,12 @@ class Elm:
             self.counters['cmd_use_header'] = True
             cmd = cmd[3:]
 
-        # create the namespace shared for the EQU if not existing
+        # create the namespace shared for the ECU if not existing
         self.shared = None
-        if equ:
-            if equ not in self.task_shared_ns:
-                self.task_shared_ns[equ] = SimpleNamespace()
-            self.shared = self.task_shared_ns[equ]
+        if ecu:
+            if ecu not in self.task_shared_ns:
+                self.task_shared_ns[ecu] = SimpleNamespace()
+            self.shared = self.task_shared_ns[ecu]
 
         # manages cmd_caf, length, frame - Process UDS ISO-TP Multiframe data link
         size = cmd[:2]
@@ -1664,31 +1664,31 @@ class Elm:
 
         # Manage ISO-TP Multiframe
         if length is not None and frame is not None: # ISO-TP Multiframe condition
-            if equ not in self.tasks:
-                self.tasks[equ] = []
-            if len(self.tasks[equ]) > MAX_TASKS:
+            if ecu not in self.tasks:
+                self.tasks[ecu] = []
+            if len(self.tasks[ecu]) > MAX_TASKS:
                 logging.critical(
-                    'Too many active tasks for EQU %s while adding '
+                    'Too many active tasks for ECU %s while adding '
                     'a ISO-TP Multiframe frame. Latest task was %s.',
-                    equ, self.tasks[equ][-1].__module__)
+                    ecu, self.tasks[ecu][-1].__module__)
                 return header, cmd, ""
-            if (len(self.tasks[equ]) and
-                self.tasks[equ][-1].__module__ == ISO_TP_MULTIFRAME_MODULE):
+            if (len(self.tasks[ecu]) and
+                self.tasks[ecu][-1].__module__ == ISO_TP_MULTIFRAME_MODULE):
                 logging.error(
-                    'Improper frame within ISO-TP ISO-TP Multiframe. EQU: %s, '
+                    'Improper frame within ISO-TP ISO-TP Multiframe. ECU: %s, '
                     'data length: %s, frame: %s, data: %s',
-                    equ, length, frame, cmd)
+                    ecu, length, frame, cmd)
                 return header, cmd, ""
-            self.tasks[equ].append(
+            self.tasks[ecu].append(
                 IsoTpMultiframe(
-                    self, "ISO-TP-Multiframe", header, equ, cmd, None, do_write)
+                    self, "ISO-TP-Multiframe", header, ecu, cmd, None, do_write)
             )
-            self.tasks[equ][-1].__module__ = ISO_TP_MULTIFRAME_MODULE
+            self.tasks[ecu][-1].__module__ = ISO_TP_MULTIFRAME_MODULE
         # Manage active tasks
-        if equ in self.tasks and self.tasks[equ]: # if a task exists
+        if ecu in self.tasks and self.tasks[ecu]: # if a task exists
             if self.len_hex(cmd):
-                r_cmd, *_, r_cont = self.task_action(header, equ, do_write,
-                    self.tasks[equ][-1].run, cmd, length, frame)
+                r_cmd, *_, r_cont = self.task_action(header, ecu, do_write,
+                    self.tasks[ecu][-1].run, cmd, length, frame)
                 if r_cont is None:
                     return header, cmd, r_cmd
                 else:
@@ -1697,12 +1697,12 @@ class Elm:
                     length = None
             else:
                 if INTERRUPT_TASK_IF_NOT_HEX:
-                    logging.warning('Interrupted task "%s" for EQU "%s"',
-                                    self.tasks[equ][-1].__module__, equ)
-                    r_cmd, *_, r_cont = self.task_action(header, equ, do_write,
-                        self.tasks[equ][-1].stop, cmd, length, frame)
-                    if equ in self.tasks and self.tasks[equ]:
-                        del self.tasks[equ][-1]
+                    logging.warning('Interrupted task "%s" for ECU "%s"',
+                                    self.tasks[ecu][-1].__module__, ecu)
+                    r_cmd, *_, r_cont = self.task_action(header, ecu, do_write,
+                        self.tasks[ecu][-1].stop, cmd, length, frame)
+                    if ecu in self.tasks and self.tasks[ecu]:
+                        del self.tasks[ecu][-1]
                     if r_cont is None:
                         return header, cmd, r_cmd
                     else:
@@ -1710,8 +1710,8 @@ class Elm:
                 else:
                     logging.debug(
                         'Non-hex request "%s" will not be passed to active '
-                        'task "%s" for EQU "%s".',
-                        cmd, self.tasks[equ][-1].__module__, equ)
+                        'task "%s" for ECU "%s".',
+                        cmd, self.tasks[ecu][-1].__module__, ecu)
 
         # Process response for data stored in cmd
         i_obd_msg = iter(self.sortedOBDMsg)
@@ -1749,29 +1749,29 @@ class Elm:
                             self.answer, pid, e)
                 if 'Task' in val:
                     if val['Task'] in self.plugins:
-                        if equ not in self.tasks:
-                            self.tasks[equ] = []
-                        if len(self.tasks[equ]) > MAX_TASKS:
+                        if ecu not in self.tasks:
+                            self.tasks[ecu] = []
+                        if len(self.tasks[ecu]) > MAX_TASKS:
                             logging.critical(
-                                'Too many active tasks for EQU %s. '
+                                'Too many active tasks for ECU %s. '
                                 'Latest one was %s.',
-                                equ, self.tasks[equ][-1].__module__)
+                                ecu, self.tasks[ecu][-1].__module__)
                             return header, cmd, ""
                         try:
-                            self.tasks[equ].append(
+                            self.tasks[ecu].append(
                                 self.plugins[val['Task']].Task(
-                                    self, pid, header, equ, cmd, val, do_write)
+                                    self, pid, header, ecu, cmd, val, do_write)
                             )
                         except Exception as e:
                             logging.critical(
-                                'Cannot add task "%s", EQU="%s": %s',
-                                val['Task'], equ, e, exc_info=True)
+                                'Cannot add task "%s", ECU="%s": %s',
+                                val['Task'], ecu, e, exc_info=True)
                             return header, cmd, None
-                        logging.debug('Starting task "%s" for EQU "%s"',
-                                      self.tasks[equ][-1].__module__, equ)
+                        logging.debug('Starting task "%s" for ECU "%s"',
+                                      self.tasks[ecu][-1].__module__, ecu)
                         r_cmd, *_, r_cont = self.task_action(
-                            header, equ, do_write,
-                            self.tasks[equ][-1].start, cmd, length, frame)
+                            header, ecu, do_write,
+                            self.tasks[ecu][-1].start, cmd, length, frame)
                         if r_cont is None:
                             return header, cmd, r_cmd
                         else: # chain a subsequent command
@@ -1779,8 +1779,8 @@ class Elm:
                             if chained_command > MAX_TASKS:
                                 logging.critical(
                                     'Too many subsequent chained commands '
-                                    'for EQU %s. Latest task was %s.',
-                                    equ, val['Task'])
+                                    'for ECU %s. Latest task was %s.',
+                                    ecu, val['Task'])
                                 return header, cmd, ""
                             cmd = r_cont
                             i_obd_msg = iter(self.sortedOBDMsg)
