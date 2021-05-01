@@ -4269,7 +4269,7 @@ ObdMessage = {
         'UDS_START_ROUTINE_ADDR': {
             'Request': '^38' + ELM_DATA_FOOTER,
             'Descr': 'UDS Start Routine by Address',
-            'Exec': 'self.shared.fail_next_read_mem = True',
+            'Exec': 'self.shared.fail_next_read_mem = cmd[2:] or None',
             'ResponseFooter': lambda self, cmd, pid, val: PA(cmd[2:]) # return the address after the SID
         },
         'UDS_WRITE_MEM_ADDR': {

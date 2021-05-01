@@ -53,7 +53,7 @@ class Task(Tasks):
         if (hasattr(self.shared, 'fail_next_read_mem') and
                 self.shared.fail_next_read_mem):
             self.logging.info(
-                'Just executed routine to change the BAUD rate.')
+                'Just executed routine %s.', self.shared.fail_next_read_mem)
             self.shared.fail_next_read_mem = False
             time.sleep(0.3)
         return Task.TASK.ANSWER(self.PA(data.strip()))
