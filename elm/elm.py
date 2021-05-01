@@ -44,32 +44,36 @@ MAX_TASKS = 20
 ISO_TP_MULTIFRAME_MODULE = 'ISO-TP request pending'
 MIN_SIZE_UDS_LENGTH = 20 # Minimum size to use a UDS header with additional length byte (ISO 14230-2)
 INTERRUPT_TASK_IF_NOT_HEX = False
-ELM_VALID_CHARS = r"^[a-zA-Z0-9 \n\r@]*$"
+ELM_VALID_CHARS = r"^[a-zA-Z0-9 \n\r@,.?]*$"
 
 """
-List of UDS requests which have additional bytes in the related positive
-answer. The value indicates the number of bytes for a specific request.
-UDS requests not included in this list have 0 additional bytes in the answer.
+Ref. to ISO 14229-1, list of SIDs (UDS service identifiers) which have
+additional sub-function bytes in the related positive
+answer. The value indicates the number of bytes to add to the answer for
+each requested SID. Not included SIDs in this list have 0 additional bytes
+in the answer.
 """
-uds_bytes_pos_answer = {
+uds_sid_pos_answer = {
     "01": 1,  # Show current data
     "02": 1,  # Show freeze frame data
     "05": 1,  # Test results, oxygen sensor monitoring
     "09": 1,  # Request vehicle information
-    "10": 1,  # Start Diagnostic Session
-    "11": 1,  # ECU Reset - hardReset
-    "14": 1,  # Clear DTC
+    "10": 1,  # Diagnostic Session Control (DSC)
+    "11": 1,  # ECU Reset (ER)
+    "14": 1,  # Clear Diagnostic Information DTC (CDTCI)
     "21": 1,  # Read Data by Local Id
-    "23": 0,  # Read memory by address
-    "27": 1,  # Security Access
-    "2E": 1,  # writeDataByIdentifier Service
+    "22": 2,  # Read Data By Identifier (RDBI)
+    # 22 + variable length DID (Data Identifier, usually two bytes), to be incl. in the answer
+    "23": 0,  # Read memory by address (RMBA)
+    "27": 1,  # Security Access (SA)
+    "2E": 1,  # Write Data By Identifier (WDBI)
     "30": 1,  # IO Control by Local Id
     "3101FF00": 3,  # Start Routine by Local ID, startRoutine, erase_memory
     "3103FF00": 3,  # Start Routine by Local ID, Request Routine Result, erase_memory
-    "31": 1,  # Start Routine by Local ID
+    "31": 1,  # Routine Control - Start Routine by Local ID (RC)
     "38": 0,  # Start Routine by Address
-    "3D": 0,  # Write Memory by Address
-    "3E": 1,  # Tester Present
+    "3D": 0,  # Write Memory by Address (WMBA)
+    "3E": 1,  # Tester Present (TP)
 }
 
 
@@ -1257,12 +1261,12 @@ class Elm:
         uds_pos_answ = ''
         try:
             rd=''.join(request_data.split())
-            for sid in uds_bytes_pos_answer:
+            for sid in uds_sid_pos_answer:
                 if rd.startswith(sid):
                     uds_pos_answ = (
                         sp.join(
                             '{:02x}'.format(x) for x in bytearray.fromhex(
-                                rd[2:2 + 2 * uds_bytes_pos_answer[sid]])
+                                rd[2:2 + 2 * uds_sid_pos_answer[sid]])
                         ).upper()
                     )
                     break
@@ -1350,7 +1354,7 @@ class Elm:
                     data = ("%02X"%(bytearray.fromhex(request_data[:2])[0]
                                     | 0x40) +
                             uds_pos_answ + (i.text or ""))
-                else:
+                else: # Generate a negative response UDS SID
                     data = "7F" + sp + request_data[:2] + (i.text or "")
                 answ += self.uds_answer(data=data,
                                         request_header=request_header,

@@ -43,7 +43,7 @@ class Task(Tasks):
             self.logging.error('Read memory by address - '
                                'Unhandled data address %s (%s)',
                                e, cmd[2:-2])
-            return Task.TASK.ANSWER(self.NA('12')) # Subfunction not supported
+            return Task.TASK.ANSWER(self.NA('12')) # Sub-function not supported
         if len(value) != length:
             self.logging.error('Read memory by address - Memory map '
                                '%s does not match with length %s, %s',

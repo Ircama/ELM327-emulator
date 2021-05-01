@@ -512,14 +512,14 @@ ObdMessage = {
             'Response': ELM_R_OK
         },
         'ST_STCAFCP': {
-            'Request': '^STCAFCP',
+            'Request': '^STCAFCP[0-9A-F, ]+$',
             'Descr': 'ST Add CAN flow control address pair.',
             'Exec': 'self.counters["cmd_st_fcap"] = cmd[7:] or None',
             'Log': '"Add CAN flow control CAN %s", self.counters["cmd_st_fcap"]',
             'Response': ELM_R_OK
         },
         'ST_STCFCPA': {
-            'Request': '^STCFCPA',
+            'Request': '^STCFCPA[0-9A-F, ]+$',
             'Descr': 'ST Add a flow control CAN address pair.',
             'Exec': 'self.counters["cmd_st_fcap"] = cmd[7:] or None',
             'Log': '"Add a flow control CAN %s", self.counters["cmd_st_fcap"]',
@@ -2354,8 +2354,18 @@ ObdMessage = {
             'Response': PA('BC 00 00 01')
         },
     # -------------------------------------------------------------------
-    # UDS - Mode 22 - Read Data By Identifier  (answer with 0 additional bytes)
+    # UDS - Mode 22 - Read Data By Identifier (answer with 0 additional bytes)
     # All answers are wrong values at the moment
+        'UNKNOWN_220200': {
+            'Request': '^220200',
+            'Descr': 'UNKNOWN_220200',
+            'Response': PA('01')
+        },
+        'SPARK_ADV': {
+            'Request': '^22116B' + ELM_FOOTER,
+            'Descr': 'Current Spark Advance',
+            'Response': PA('00 00')
+        },
         'HB_SOC': {
             'Request': '^227A76' + ELM_FOOTER,
             'Descr': 'Hybrid Battery State of Charge',
@@ -2363,8 +2373,7 @@ ObdMessage = {
             'Min': '0',
             'Max': '200',
             'Unit': '%',
-            'Header': ECU_ADDR_J,
-            'Response': HD(ECU_R_ADDR_J) + SZ('03') + DT('61 A1 80') # Wrong value! To be tested
+            'Response': PA('00') # Wrong value! To be tested
         },
         'H_BATT': {
             'Request': '^227A53' + ELM_FOOTER,
@@ -2373,8 +2382,7 @@ ObdMessage = {
             'Min': '0',
             'Max': '1000',
             'Unit': 'Volts',
-            'Header': ECU_ADDR_J,
-            'Response': HD(ECU_R_ADDR_J) + SZ('03') + DT('61 A1 80') # Wrong value! To be tested
+            'Response': PA('00') # Wrong value! To be tested
         },
         'INVT_CT': {
             'Request': '^221093' + ELM_FOOTER,
@@ -2383,8 +2391,7 @@ ObdMessage = {
             'Min': '-40',
             'Max': '300',
             'Unit': 'F',
-            'Header': ECU_ADDR_K,
-            'Response': HD(ECU_R_ADDR_K) + SZ('03') + DT('61 A1 80') # Wrong value! To be tested
+            'Response': PA('00') # Wrong value! To be tested
         },
         'GN_IT': {
             'Request': '^221089' + ELM_FOOTER,
@@ -2393,8 +2400,7 @@ ObdMessage = {
             'Min': '-40',
             'Max': '300',
             'Unit': 'F',
-            'Header': ECU_ADDR_K,
-            'Response': HD(ECU_R_ADDR_K) + SZ('03') + DT('61 A1 80') # Wrong value! To be tested
+            'Response': PA('00') # Wrong value! To be tested
         },
         'B_CVT': {
             'Request': '^2210AB' + ELM_FOOTER,
