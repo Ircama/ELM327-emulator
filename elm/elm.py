@@ -41,9 +41,10 @@ SERIAL_BAUDRATE = 38400 # bps
 NETWORK_INTERFACES = ""
 PLUGIN_DIR = __package__ + ".plugins"
 MAX_TASKS = 20
-ISO_TP_Multiframe_MODULE = 'ISO-TP request pending'
+ISO_TP_MULTIFRAME_MODULE = 'ISO-TP request pending'
 MIN_SIZE_UDS_LENGTH = 20 # Minimum size to use a UDS header with additional length byte (ISO 14230-2)
 INTERRUPT_TASK_IF_NOT_HEX = False
+ELM_VALID_CHARS = r"^[a-zA-Z0-9 \n\r@]*$"
 
 """
 List of UDS requests which have additional bytes in the related positive
@@ -236,7 +237,7 @@ class Tasks():
         return Tasks.TASK.PASSTHROUGH(cmd)
 
 
-class ISO_TP_Multiframe(Tasks):
+class IsoTpMultiframe(Tasks):
     """
     Special task to aggregate a ISO-TP Multiframe request into a single string
     before processing the request.
@@ -310,7 +311,6 @@ class Elm:
     """
     Main class of the ELM327-emulator
     """
-    ELM_VALID_CHARS = r"[a-zA-Z0-9 \n\r]*"
 
     class THREAD:
         """
@@ -322,9 +322,21 @@ class Elm:
         PAUSED = 3
         TERMINATED = 4
 
-    def Sequence(self, pid, base, max, factor, n_bytes):
-        c = self.counters[pid]
-        # compute the new value [= factor * ( counter % (max * 2) )]
+    def sequence(self, pid, base, max, factor, n_bytes):
+        """
+        Generate a hex data string of n_bytes based on the number of
+        times a PID is called (counter) and using the following formula:
+        returned value = factor * ( counter % (max * 2) ) + base
+        :param pid: string including the PID name in ObdMessage
+        :param base: minimum value (to be added to the formula)
+        :param max: capping value for the counter
+        :param factor: multiplier of the counter capped value
+        :param n_bytes: length of the generated hex data string
+        :return: hex data string
+        """
+        # get the number of times a pid has been called
+        c = self.counters[pid] if pid in self.counters else 0
+        # compute the new value [= factor * ( counter % (max * 2) ) + base]
         p = int(factor * abs(max - (c + max) % (max * 2))) + base
         # get its hex string
         s = ("%.X" % p).zfill(n_bytes * 2)
@@ -332,7 +344,7 @@ class Elm:
         return (" ".join(s[i:i + 2] for i in range(0, len(s), 2)))
 
     def reset(self, sleep):
-        """ returns all settings to their defaults.
+        """ return all settings to their defaults.
             Called by __init__(), ATZ and ATD.
         """
         logging.debug("Resetting counters and sleeping for %s seconds", sleep)
@@ -664,7 +676,7 @@ class Elm:
                 time.sleep(0.1)
                 continue
 
-            # get the latest command
+            # get the latest request
             self.cmd = self.normalized_read_line()
             if (self.threadState == self.THREAD.STOPPED or
                     self.threadState == self.THREAD.TERMINATED):
@@ -680,8 +692,8 @@ class Elm:
                 self.counters["cmd_last_cmd"] = self.cmd
                 logging.debug("Received %s", repr(self.cmd))
 
-            # if it didn't contain any egregious errors, handle it
-            if self.validate(self.cmd):
+            # if the request includes valid data, handle it
+            if re.match(ELM_VALID_CHARS, self.cmd):
                 try:
                     request_header, request_data, resp = self.handle_request(
                         self.cmd, do_write=True)
@@ -1413,11 +1425,6 @@ class Elm:
             self.write_to_device(answ.encode())
         return answ
 
-    def validate(self, cmd):
-        if not re.match(self.ELM_VALID_CHARS, cmd):
-            return False
-        return True
-
     def task_action(
             self, header, equ, do_write, task_method, cmd, length, frame):
         """
@@ -1663,15 +1670,17 @@ class Elm:
                     equ, self.tasks[equ][-1].__module__)
                 return header, cmd, ""
             if (len(self.tasks[equ]) and
-                self.tasks[equ][-1].__module__ == ISO_TP_Multiframe_MODULE):
+                self.tasks[equ][-1].__module__ == ISO_TP_MULTIFRAME_MODULE):
                 logging.error(
                     'Improper frame within ISO-TP ISO-TP Multiframe. EQU: %s, '
                     'data length: %s, frame: %s, data: %s',
                     equ, length, frame, cmd)
                 return header, cmd, ""
             self.tasks[equ].append(
-                ISO_TP_Multiframe(self, "ISO-TP-Multiframe", header, equ, cmd, None, do_write))
-            self.tasks[equ][-1].__module__ = ISO_TP_Multiframe_MODULE
+                IsoTpMultiframe(
+                    self, "ISO-TP-Multiframe", header, equ, cmd, None, do_write)
+            )
+            self.tasks[equ][-1].__module__ = ISO_TP_MULTIFRAME_MODULE
         # Manage active tasks
         if equ in self.tasks and self.tasks[equ]: # if a task exists
             if self.len_hex(cmd):

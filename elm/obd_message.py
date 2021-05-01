@@ -595,10 +595,10 @@ ObdMessage = {
             'Response': '',
             'ResponseFooter': \
             lambda self, cmd, pid, val: (
-                PA(self.Sequence(
+                PA(self.sequence(
                     pid, base=2400, max=200, factor=80, n_bytes=2))
                 + ' ' + HD(ECU_R_ADDR_H) + SZ('04') + DT('41 0C '
-                + self.Sequence(pid, base=2400, max=200, factor=80, n_bytes=2))
+                + self.sequence(pid, base=2400, max=200, factor=80, n_bytes=2))
             )
         },
         'SPEED': {
@@ -607,9 +607,9 @@ ObdMessage = {
             'Response': '',
             'ResponseFooter': \
             lambda self, cmd, pid, val: (
-                PA(self.Sequence(pid, base=0, max=30, factor=4, n_bytes=1))
+                PA(self.sequence(pid, base=0, max=30, factor=4, n_bytes=1))
                 + ' ' + HD(ECU_R_ADDR_H) + SZ('03') + DT('41 0D '
-                + self.Sequence(pid, base=0, max=30, factor=4, n_bytes=1))
+                + self.sequence(pid, base=0, max=30, factor=4, n_bytes=1))
             )
         },
         'INTAKE_TEMP': {
@@ -4171,7 +4171,7 @@ ObdMessage = {
             'Descr': 'Engine RPM',
             'ResponseFooter': \
                 lambda self, cmd, pid, val: \
-                    PA(self.Sequence(
+                    PA(self.sequence(
                            pid, base=2400, max=200, factor=80, n_bytes=2))
         },
         'SPEED': {
@@ -4179,7 +4179,7 @@ ObdMessage = {
             'Descr': 'Vehicle Speed',
             'ResponseFooter': \
                 lambda self, cmd, pid, val: \
-                    PA(self.Sequence(
+                    PA(self.sequence(
                             pid, base=0, max=30, factor=4, n_bytes=1))
         },
         'O2_SENSORS': {
