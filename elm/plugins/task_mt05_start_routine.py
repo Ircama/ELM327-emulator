@@ -20,7 +20,7 @@ class Task(Tasks):
         # We suppose this routine is called before reading and writing
         # Reset the memory map
         if hasattr(self.shared, 'read_mmap'):
-            del self.shared.mmap
+            del self.shared.read_mmap
         if hasattr(self.shared, 'mmap'):
             del self.shared.mmap
         if hasattr(self.shared, 'min_addr'):
