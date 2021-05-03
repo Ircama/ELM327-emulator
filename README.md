@@ -240,9 +240,9 @@ At the command prompt, cursors and [keyboard shortcuts](https://github.com/chzye
 
 ## Special setters
 
-The counters starting with *cmd_...* are special setters. They are represented in the following table and store data related to AT commands.
+The counters starting with *cmd_...* are special setters. They are represented in the following table and store data related to AT/ST commands.
 
-Special setter  |Related AT command     |Handled|Description|PID
+Special setter  |Related AT/ST command  |Handled|Description                      |PID
 :--------------:|:---------------------:|:-----:|---------------------------------|---------------
 `cmd_echo`      |*ATE0*, *ATE1*         |Yes    |Echo off or on                   |AT_ECHO
 `cmd_linefeeds` |*ATL0*, *ATL1*         |Yes    |Linefeeds off or on              |AT_LINEFEEDS
@@ -279,7 +279,7 @@ Special setter  |Related AT command     |Handled|Description|PID
 `cmd_stip4`     |*STIP4 n* (n = delay)  |No     |Set Tx Interbyte delay           |ST_IP4
 `cmd_stpto`     |*STPTO t* (t = timeout)|No     |Set OBD Request Timeout          |ST_PTO
 
-Unhandled setter means that the AT command is recognized, the related counter is valued but no process is currently associated.
+Unhandled setter means that the AT/ST command is recognized, the related counter is valued but no process is currently associated.
 
 *echo* and *linefeed* settings are both disabled by default. They can be configured via related AT commands (*ATE1* and *ATL1*). The special setters `cmd_echo` and `cmd_linefeeds` allow enabling them via command line. Example:
 
@@ -308,7 +308,7 @@ Space characters are inserted by default in the ECU response as per specificatio
 
 By default the header (CAN ID) is not included in the ECU response. To add it, use the AT command *ATH1* or `emulator.counters['cmd_use_header'] = True`.
 
-The default ECU header is ECU_ADDR_E (e.g., "7E0", producing answer "7E8"; ref. *obd_message.py*). Use `cmd_set_header` to customize it.
+The default ECU header is ECU_ADDR_E (e.g., "7E0", producing answer "7E8"; ref. *obd_message.py*). Use `cmd_set_header` to customize it, or, alternatively use the command `test atsh <header>`.
 
 The last executed command is stored in `cmd_last_cmd`. This is used to repeat the command when the 'fast' option is set (command repetition, through a newline).
 
@@ -366,11 +366,48 @@ test 7e2 02 01 5b
 test 7E5 06 27 12 B1 51 D5 8F
 ```
 
+## Editing answers on the fly
+
+Static answers in the `ObdMessage` dictionary can be edited on the fly through the `edit` command. It extracts the answer from a PID, stores it into the `emulator.answer` dictionary described in the next chapter and performs the editing in its data part. If the command is called with just the PID argument, it resets the `emulator.answer` dictionary for the referred PID, returning to the default answer.
+
+Syntax: `edit PID <position>, <replaced bytes>`
+
+PID is an element name in the `ObdMessage` dictionary for the current scenario and with an associated static `'Response'`.
+
+Position is a number starting from 0, which can be decimal (e.g., `edit VIN 10 AA BB CC DD`) or in any other format (`0o` for octal, `0x` for hex, `0b` for binary; example: `edit VIN 0x0A AA BB CC DD`).
+
+Replaced bytes is a string of hexadecimal digits in any format.
+
+Note: this command only works for PIDs which have a static `'Response'` in the `ObdMessage` dictionary. `'ResponseHeader'`, `'ResponseFooter'` and `'Task'` are not supported.
+
+For more complex commands, the `Edit` class can be used with its `answer()` method, also allowing the Context Manager. See the related comments in *interpreter.py* for details on how to use this class.
+
+The following example sets an edited response for 15 seconds, then restores the default answer.
+
+```python
+with Edit(emulator, 'VIN') as e: e.answer(10, "AA BB CC DD"); time.sleep(15)
+```
+
+The following is a more complex command where the answer changes every three seconds:
+
+```python
+with Edit(emulator, 'VIN') as e: \n\t for i in ['AA' 'BB' 'CC' 'DD']: \n\t\t e.answer(10, "01 02 03 " + i) \n\t\t time.sleep(3)
+```
+
+The `edit` command uses PIDs in the current scenario. To change scenario, use the `scenario` command. Example to change the value of FCLCINT1 (C/L Fuel Corr Int Cyl 1) on the MONITOR pid (2101, Delco "Mode 1 Message") in the "mt05" scenario (Delphi MT05 ECU) to "AA BB" (spaces between hex digits are optional):
+
+```
+scenario mt05
+edit MONITOR 0x0E AA BB
+```
+
+Notice that the mt05 scenario is automatically set by the 'UDS_START_COMM' PID (81). The method to dynamically change scenario is `self.setSortedOBDMsg(scenario)`.
+
 ## Advanced usage
 
 The emulator includes a timeout management for each entered character, which by default is not active (e.g., set to 1440 seconds). This setting can be configured through `emulator.counters['req_timeout']`. Decimals are allowed. Some adapters provide a feature that discards characters if each of them is not entered within a short time limit (apart from the first one after a CR/Carriage Return). The appropriate emulation for this timeout is to set `emulator.counters['req_timeout']=0.015` (e.g., 15 milliseconds). Typing commands by hand via terminal emulator with such adapters is not possible as the allowed timing is too short. The same happens when setting *req_timeout* to 0.015.
 
-The command prompt also allows configuring the `emulator.answer` dictionary, which has the goal to dynamically redefine answers for specific PIDs (`'Pid': '...'`). Its syntax is:
+The command prompt also allows configuring the `emulator.answer` dictionary (ref. also previous paragraph), which has the goal to dynamically redefine answers for specific PIDs (`'Pid': '...'`). Its syntax is:
 
 ```python
 emulator.answer = { 'pid' : 'answer', 'pid' : 'answer', ... }
@@ -407,6 +444,8 @@ emulator.answer['AT_R_VOLT'] = '<writeln>0.0V</writeln>'
 test atrv
 ```
 
+As mentioned in the previous paragraph, the `edit` command simplifies the usage of `emulator.answer`.
+
 The `emulator.ELM_R_UNKNOWN` parameter allows customizing the message returned in case of unknown/invalid command. The default message is `?\r`, with an addition of a trailing `\r`. This message can be customized; for example, to just get `\r`, set the following:
 
 ```python
@@ -439,21 +478,29 @@ car
 
 ## Configuring response strings
 
-`Response`, `ResponseHeader`, `ResponseFooter`, `emulator.answer` and `emulator.ELM_R_UNKNOWN` support the following XML tags:
+`Response`, `ResponseHeader`, `ResponseFooter`, `emulator.answer` and `emulator.ELM_R_UNKNOWN` support the following XML tags (which shall be produced without the *xml* envelope):
 
-Tag|Add a line separator at the end|Behaviour
-:--------:|:----:|-----------------------------------------------
-`<writeln>`|Yes   |The content is returned with the addition of a line separator at the end. `<writeln></writeln>` or `<writeln />`means newline.
-`<space>` |No    |The content is returned with the addition of a space at the end. `<space></space>` or `<space />` means adding a simple space.
-`<string>`  |No    |The content is returned with no space and no line separator at the end.
-`<header>`, `<size>`, `<data>`|Yes   |Standard response format composed of the concatenation of hexadecimal ECU header, related size code and hexadecimal data with the addition of a line separator at the end. `<size>` is the CAN PCI byte.
-`<header>`, `<size>`, `<subd>`|No    |Standard response format composed of the concatenation of hexadecimal ECU header, related size code and hexadecimal data with no line separator at the end. `<size>` is the CAN PCI byte.
-`<exec>`  |No    |Execution of single or multiple in-line Python commands (expressions or statements) returning the expression evaluation with no line separator at the end; any previous string is printed before the execution.
-`<eval>`  |No    |Like `exec`, but any previous string is concatenated (not immediately printed).
+Tag|Line separator|Behaviour|Helper function
+:--------:|:----:|---------------------------|-------------------
+`<writeln>`|Yes   |The content is returned with the addition of a line separator at the end. `<writeln></writeln>` or `<writeln />`means newline.|ST(writeln)
+`<space>` |No    |The content is returned with the addition of a space at the end. `<space></space>` or `<space />` means adding a simple space.|
+`<string>`  |No    |The content is returned with no space and no line separator at the end.|
+`<header>`, `<size>`, `<data>`|Yes   |Standard response format composed of the concatenation of hexadecimal ECU header, related size code and hexadecimal data with the addition of a line separator at the end. The *data* part is not automatically converted into a multiframe if longer than 7 bytes.|HD(header), SZ(size), DT(data)
+`<header>`, `<size>`, `<subd>`|No    |Standard response format composed of the concatenation of hexadecimal ECU header, related size code and hexadecimal data with no line separator at the end (same as before).|
+`<exec>`  |No    |Execution of single or multiple in-line Python commands (expressions or statements) returning the expression evaluation with no line separator at the end; any previous string is printed before the execution.|
+`<eval>`  |No    |Like `exec`, but any previous string is concatenated (not immediately printed).|
+`<rh>`    |No     |Force the usage of the request header included in this tag to generate the response instead of the one included in the real request.|
+`<rd>`    |No     |Force the usage of the request data included in this tag to generate the response instead of the one included in the real request.|
+`<flow>`  |Yes    |Generate a flow control response.|
+`<answer>`|Yes    |Generate an UDS generic response basing on request header (including header, length and generic data including the string in within this tag). Automatically generate Single Frames, Flow control frames, First Frame and Consecutive Frames. It is up to the dictionary or task to generate the appropriate positive or negative answer bytes.|AW(answer)
+`<pos_answer>`|Yes|Generate an UDS positive answer response basing on request header and request data (the generated response includes header, length and UDS positive response data, then adding the string within this tag). Automatically generate multiframes if needed. If `<rh>` is used, the default request header is replaced by the one in this tag. If `<rd>` is used, the default request data is replaced by this tag. See the table named `uds_sid_pos_answer` in *elm.py* to check how *ELM327-emulator* computes the number of bytes to add to the answer for each requested SID.|PA(pos_answer)
+`<neg_answer>`|Yes|Generate an UDS negative answer response basing on request header and request data (the generated response includes header, length and UDS negative response data, then adding the string within this tag). Automatically generate multiframes if needed.|NA(neg_answer)
 
 Strings among tags are allowed and are returned as they are, with no line separator and stripping blank heading and footing characters.
 
-`<header>` and `<size>` are not returned when `cmd_use_header` is *False*. In `<data>`, spaces are stripped if `cmd_spaces` is *False*.
+Whenever possible, the usage of *pos_answer* and *neg_answer* is suggested, totally relying on *ELM327-emulator* for the construction of the answer. In such cases, *ELM327-emulator* builds the final bytestream basing on [ISO 14230-2:1999](https://www.sis.se/api/document/preview/612053/) for the Data Link Layer and [ISO 14230-3:1999](https://www.sis.se/api/document/preview/895162/) for the Application Layer.
+
+The `verify` command can be used to test an XML response: the returned message will show what in normal operation is outputted to the communication port. Notice that, in order to check the produced `<header>` and `<size>` bytes, `cmd_use_header` shall be set to *True* (e.g., `test ath1`): these bytes are not returned when `cmd_use_header` is *False*. Besides, bytes included in the `<data>` tag will be returned with all spaces stripped out if `cmd_spaces` is *False* (e.g., `test atsp0`).
 
 Tag nesting is not allowed.
 
@@ -607,9 +654,9 @@ The *ELM_PIDS_A* counter (`emulator.counters["ELM_PIDS_A"]`) can be reset with:
 emulator.counters["ELM_PIDS_A"] = 0
 ```
 
-To quickly test the conversion of an XML response, use the `verify` command (without single or double commas); `write` does the same and also writes the produced output to the opened device. Example:
+The following example shows how to use the `verify` command (without single or double commas) to quickly test the conversion of an XML response; `write` does the same and also writes the produced output to the opened device.
 
-```shell
+```
 python3 -m elm -s car
 test ath1
 test ats0
@@ -618,107 +665,146 @@ verify <header>7E0</header><size>03</size><data>01 02 03</data>
 
 The output will be `'7E003010203\r\r>'`.
 
+In the next example, we will use the *pos_answer* tag, that needs the request header and the request data to produce a valid UDS positive response; in normal operation, those data are automatically inserted by *ELM327-emulator* upon each request; if using `verify` (which has no clue about any previous request), they need to be specifically included (as cannot be acquired by the context). As mentioned, `test ath1` instructs *ELM327-emulator* to return header and length.
+
+```
+test ath1 # return header and length
+verify <rh>7E0</rh><rd>0902</rd><pos_answer>01 53 42 31 5A 53 33 4A 45 36 30 45 32 38 32 31 30 32</pos_answer>
+```
+
+The result will be `7E8 10 14 49 02 01 53 42 31 \r7E8 21 5A 53 33 4A 45 36 30 \r7E8 22 45 32 38 32 31 30 32 \r\r>`.
+
+The *answer* tag simply computes the length of the data bytes and adds the header; it does not need the *rd* tag; using the above example, to generate the same answer we need to add the UDS positive answer data "49 02":
+
+```
+test ath1
+verify <rh>7E0</rh><answer>49 02 01 53 42 31 5A 53 33 4A 45 36 30 45 32 38 32 31 30 32</answer>
+```
+
+Then the result will be the same: `7E8 10 14 49 02 01 53 42 31 \r7E8 21 5A 53 33 4A 45 36 30 \r7E8 22 45 32 38 32 31 30 32 \r\r>`.
+
+Example of *neg_answer* tag:
+
+```
+test ath1
+verify <rh>7E0</rh><rd>010F</rd><neg_answer>44</neg_answer>
+```
+
+The result will be `7E8 03 7F 01 44 \r\r>`.
+
+Example of *flow* tag:
+
+```
+test ath1
+verify <flow>20 00</flow>
+```
+
+The result will be `7E8 30 30 20 00 \r\r>`.
+
 To write the output of a `test` command to the application, copy its *Raw command* output and paste it to a `write` command.
 
 ## Tasks
 
-*ELM327-emulator* provides an extendable plugin architecture defining *tasks*, which are entities that allow the implementation of multi-frame communication flows between *ELM327-emulator* and a client application, including for instance bootloaders, routines, and data transfer actions.
+*ELM327-emulator* provides an extendable plugin architecture defining *tasks*, which are entities allowing the implementation of stateless and stateful procedures, that can be nested and are chainable. Through plugins, *ELM327-emulator* offers a development framework to easily implement emulation objects, which are able to manage persistent data within the same instance (its namespace) and within the same ECU (shared namespace). Tasks allow emulating multiple ECUs concurrently, where each ECU has its own persistent data space.
 
-When *ELM327-emulator* starts, it enumerates all available plugins in its *plugins* subdirectory (*elm/plugins*). Each plugin defines an own task, named with the file name of the plugin. All the file names of the plugins must start with *task_*. Plugins must comply with a specific structure.
+In case of stateless requests/responses, an ECU function can be emulated through a simple configuration in the dictionary, without usage of a plugin. Alternatively, if stateful routines or more complex programming are needed, an ECU function leverages the implementation of *tasks*. The structure of tasks is designed to simplify the development of complex ECU functions, like for instance flash upload or flash download operations.
 
-A task is invoked in the dictionary through the `'Task'` tag, that refers to the name of an installed plugin. If a request associating a task is matched (including *Request* and possibly *Header* tags), its related task is activated by instantiating the *Task* class of the invoked plugin. After startup, the task remains active and receives all subsequent requests related to the same header, allowing to implement a communication flow within a dedicated namespace.
+When *ELM327-emulator* starts, it enumerates all available plugins in its *plugins* subdirectory (*elm/plugins*). Each plugin defines an own task, named with the file name of the plugin. All the file names of the plugins must start with *task_*.
 
-Tasks are interrupted by one of the following conditions:
+A task is invoked in the dictionary through the `'Task'` tag, that refers to the name of an installed plugin. If a request associating a task is matched (including *Request* and possibly *Header* tags), its related task is activated by instantiating the *Task* class of the invoked plugin. After startup, the task remains active and receives all subsequent requests related to the same header, allowing to implement a communication flow within a dedicated namespace, that also takes advantage of a shared namespace, common to all requests addressed to the same ECU.
 
-- task termination performed by the plugin itself (e.g, returning a method with `False` or with `self.TASK.TERMINATE` in the tuple)
-- communication reset (e.g., communication disconnection, or "ATZ", or *reset* command)
-- any AT command
+Tasks are interrupted by the following conditions:
 
-For instance, a plugin named *plugins/task_write_fingerprint.py* defines the task *task_write_fingerprint*, which is configured in a dictionary element like the following one:
-
-```python
-    'UDS_WF': {
-        'Request': '^2EF15A' + ELM_DATA_FOOTER,
-        'Descr': 'Write Fingerprint',
-        'Header': ECU_ADDR_M,
-        'Task': "task_write_fingerprint"
-    },
-```
-
-In such case, a request of type `2EF15A...` with header ECU_ADDR_M will start the task *task_write_fingerprint*, which will also process any subsequent request (also if not matching `2EF15A...`), until the plugin is terminated.
+- task termination performed by the plugin itself (e.g, returning a method with `False` or with `self.TASK.TERMINATE` in the return tuple)
+- communication reset (e.g., communication disconnection, or "ATZ", or *reset* command).
 
 Tasks and plugins can be monitored through the `tasks` command.
 
-Multiple tasks can run with different headers (ECU ID).
+Multiple tasks can be concurrently instanced with different ECU IDs.
 
-A plugin must always define a class named *Task*, derived from class *Tasks*.
+All plugins shall implement a class named *Task* derived from the *Tasks* class.
 
 In a plugin, at least the *run()* method should be implemented, overriding the default method of the *Tasks* class. Allowed methods:
 
-- `def start(self, cmd)`: invoked to process the first request of a just created task (not required)
-- `def stop(self, cmd)`: invoked to process a request before interrupting the task (not required)
-- `def run(self, cmd)`: invoked on any request after the first one; if *start()* is not implemented, *run()* is always invoked.
+- `def start(self, cmd, *_)`: invoked to process the first request of a just created task (not required)
+- `def stop(self, cmd, *_)`: invoked to process a request before interrupting the task (not required)
+- `def run(self, cmd, *_)`: invoked on any request after the first one; if *start()* or *stop()* are not implemented, *run()* is always invoked.
 
-The *cmd* argument includes the request message already concatenating multiline requests.
+Task methods are called after processing the ISO-TP data link, so the request passed to the task methods includes the whole message, where the associated multiframe (consisting of multiple frames received from the communication port) is already assembled and interpreted into a single data string. Tasks methods return a response string that will be subsequently processed by the embedded ISO-TP data link, generating the output strings then sent to the communication port.
+
+A multiframe is internally managed as a special task named 'ISO-TP request pending'. It can be shown through the `tasks` command.
 
 All methods return a tuple of three elements:
-- an XML response string, which will be subsequently processed by *process_response()* and written to the client application; Null means nothing to output
-- a boolean (*True* = `self.TASK.CONTINUE`, or *False* = `self.TASK.TERMINATE`), to indicate whether the task remains active or terminates;
-- a request string (e.g., *cmd*) that will be subsequently processed by the standard procedure that generates an XML answer from the request; the value can be *Null*, meaning no response generation; this element allows a task to also act as a filter, that receives a request (*cmd*), possibly transforms it and forwards it to the standard response generator procedure.
+
+- an XML response string, which will be subsequently interpreted by the ISO-TP processor and then written to the client application; Null means nothing to output;
+- a boolean (*True* = `Tasks.RETURN.CONTINUE`, or *False* = `Tasks.RETURN.TERMINATE`), to indicate whether the task remains active or terminates;
+- a request string (e.g., *cmd*) that will be subsequently re-processed; the value can be *Null*, meaning no subsequent re-processing. This element allows a task to also act as a filter, that receives a request (*cmd*), possibly transforms it and forwards it to the standard processor.
 
 Special return codes:
 
-- `(None, self.TASK.TERMINATE, cmd)`: null task implementing a pure pass-through; the request is processed as if the task had not existed;
-- `(None, self.TASK.TERMINATE, None)`: task termination (generally with error), no output written, no request processed;
-- `(None, self.TASK.CONTINUE, None)`: do nothing (task continues, no output produced, no request processed).
+- `Task.RETURN.ANSWER(pa)`, or `(pa, Tasks.RETURN.TERMINATE, None)`: this is used with standard positive or negative answer, terminating the task;
+- `Task.RETURN.ERROR`, or `(None, Tasks.RETURN.TERMINATE, None)`: producing an error; no output written while terminating the task;
+- `Task.RETURN.INCOMPLETE`, or `(None, Tasks.RETURN.CONTINUE, None)`, used to internally process the request, without producing output and keeping the task active, so that the same task will process subsequent data addressed to the same ECU.
+- `Task.RETURN.PASSTHROUGH(cmd)`, or `(None, Tasks.RETURN.TERMINATE, cmd)`: task implementing a filter (if cmd is internally processed), or a pure pass-through; the request (after possible internal processing) is sent to a subsequent re-processing while terminating the task;
 
 Check the *Tasks* class for a list of the available variables initialized by the `__init__()` method.
 
-### Helper functions
+### Task namespaces
 
-The helper function `self.multiline_request()` allows processing multiline requests (SF, FF, CF) and is called on each frame before executing the method (`start()`, `run()`, `stop()`), until data is returned. It is able to concatenate a multiline request so that the entire string is returned after the last line and this concatenated string is passed to the *cmd* argument of the method; it also internally processes flow control frames while concatenating acquired data, directly delivering `30` FC responses to the application. Its parameters are:
+A task can exploit its own namespace, which is related to a specific task instance (that can remain active for subsequent requests if configured with `Tasks.RETURN.CONTINUE`), and the shared namespace within the same ECU, which relates to all tasks/functions with same ECU ID.
 
-- *length*: for multi-line commands, value of the *length* byte appearing in the First Frame (FF), or *None* for requests where the size byte is missing;
-- *frame*: *None* for single line commands, or *0* for the first line of a multiline command, or a number greater than 0 for the subsequent lines of a multiline command;
-- *cmd*: request message.
+Other than storing local variables, the task namespace is useful to persist class properties if the task terminates with `Tasks.RETURN.CONTINUE`, so that any subsequent request of the same ECU will be processed by the same task, until task termination. All subsequent calls of an active task share the same namespace. For instance, is a task is configured as a filter, its namespace can be used while preprocessing all subsequent requests directed to the ECU, sent to the same task until its termination.
 
-Its return codes are:
+The shared namespace for an ECU is named `self.shared` and allows access from different tasks or different task instances, if referring the same ECU. This area is automatically managed by *ELM327-emulator* and is already active when the task method is run. For instance, a task can create a variable named `self.shared.my_data = True`, that other tasks can use. This shared area is reset by a communication disconnection, or "ATZ", or *reset* command.
 
-- *False*: error (the counterpart application sent invalid multiline frames)
-- *None*: incomplete request (a multiline frame is being acquired, but still not completed; additional lines are needed)
-- data: string including the complete request (without header and length)
+The easies way to configure tasks is to use Tasks.RETURN.TERMINATE (so that a task terminates after method execution, e.g., `Task.RETURN.ANSWER(pa)`) and to exploit `self.shared` to store persistent data, shared by different tasks and functions.
 
-The helper function `self.task_request_matched(request)` checks whether the request in the argument (typically returned by `self.multiline_request()`) matches the original request that invoked the task. This is because a task might be called more times if remaining active; this function can for instance differentiate a possible TesterPresent check (which can be forwarded to the standard processor) from the task request (which can be processed within the task, without forwarding it).
+### Example
 
-The helper function `self.emulator.process_response(xml_string, do_write=True)` can always be called inside the task to generate an output string (e.g., for asynchronous output) from an XML response string.
+For instance, a plugin named *plugins/task_routine.py* defines the task *task_routine*, which is configured in a dictionary element like the following one:
 
-The helper functions `self.HD(header)`, `self.SZ(size)` and `self.DT(data)` support the generation of an XML response given the header, size and data fields, similarly to the functions used in the dictionary.
+```python
+        'A_ROUTINE': { # UDS Routine Control (31): Start (01)
+            'Request': '^3101' + ELM_DATA_FOOTER,
+            'Descr': 'An UDS Routine',
+            'Task': 'task_routine'
+        },
+```
 
-### Examples
+In such case, a request of type `3101...` will start the task *task_routine*, which can immediately return (if `Tasks.RETURN.TERMINATE` is used) or will also be able to process any subsequent request (also if not matching `3101...`), until the plugin is terminated (case when `Tasks.RETURN.CONTINUE` is used). In the above example, the `'Header'` attribute is not set, so any header will be valid.
 
-Example of a basic task related to a Python plugin named "task_no_data.py", which simply returns *NO DATA* when invoked:
+Example of a basic task related to the Python plugin named "task_routine.py", which simply stores the start and end addresses of the routine to the shared area (so that another task can use them), logs a message and immediately returns a positive answer (`Task.RETURN.ANSWER` uses `Tasks.RETURN.TERMINATE`):
 
 ```python
 from elm import Tasks
 
-
 class Task(Tasks):
-  def run(self, **_):
-    return self.ST("NO DATA"), self.RETURN.TERMINATE, None
+    def run(self, cmd, *_):
+
+        # Extract start_address and end_address from the request,
+        # storing both to the persistent area
+        self.shared.start_address = cmd[4:10]
+        self.shared.end_address = cmd[10:16]
+
+        self.logging.info('Start routine %s to %s',
+                          self.shared.start_address,
+                          self.shared.end_address)
+
+        # Terminate the task returning a positive answer
+        return Task.RETURN.ANSWER(self.PA('00'))
 ```
 
-Example of dictionary element (when `7E0 02 FF FF` is received, `NO DATA` is returned):
+The plugins named *task_mt05_read_mem_addr.py* and *task_mt05_write_mem_addr.py* show how to read and write memory by address, mapping the memory space into a file.
 
-```python
-    'UNSUPP_PID': {
-        'Request': '^FFFF$',
-        'Header': ECU_ADDR_E,
-        'Descr': 'Example of pid FFFF returning NO DATA',
-        'Task': 'task_no_data'
-    },
-```
+The plugin named *task_erase_memory.py* shows how to use the `start()` and `run()` methods, as well as `Tasks.RETURN.CONTINUE` which simulates a certain function processing time.
 
-As an example of a task processing a multiline request, check the "task_write_vin.py" plugin and related "task_write_vin" entry in the dictionary.
+### Helper functions
+
+The helper function `self.task_request_matched(request)` checks whether the request in the argument (typically returned by `self.multiline_request()`) matches the original request that invoked the task. This is because a task might be called more times if remaining active; this function can for instance differentiate a possible TesterPresent check (which can be forwarded to the standard processor) from the task request (which can be processed within the task, without forwarding it).
+
+The helper functions `self.HD(header)`, `self.SZ(size)`, `self.DT(data)`, `self.AW(data)`, `self.NA(data)` and `self.PA(data)` support the generation of an XML response, similarly to the functions used in the dictionary.
+
+The helper function `self.task_get_request()` gets the original request command that initiated the task (used with `Tasks.RETURN.CONTINUE` to return the original request while processing consecutive ones).
 
 ## Available interfaces
 
@@ -1283,17 +1369,21 @@ To run the application integrated with *ELM327-emulator*: `./scantool`
 
 [HUD ECU Hacker](https://netcult.ch/elmue/HUD%20ECU%20Hacker/) is a great application developed by [ElmüSoft](https://netcult.ch/elmue/index-en.htm).
 
-It is a OBD2 scanner software specialized to manage ECU's from Delphi Electronics, including flash memory download and upload functions. The application runs on Windows and is very well engineered, extensively using OBD2 and UDS, with wide set of functionalities and robust frame control handling.
+It is an OBD-II scanner software specialized to manage ECU's from Delphi Electronics, including flash memory download and upload functions. The application runs on Windows and is very well engineered, extensively using OBD-II and UDS, with wide set of functionalities and robust frame control handling.
 
-*ELM327-emulator* is already able to provide a basic emulation of the Delphi MT05 ECU and, if needed, can be extended via development of additional tasks and through the editing of the ObdMessage configuration.
+*ELM327-emulator* is already able to provide a basic emulation of the Delphi MT05 ECU and, if needed, can be extended via the development of additional tasks and through the editing of the ObdMessage configuration.
 
 # Standards
 - UDS (application/session layer) is mentioned in ISO14229-1 (former ISO 15765-3, UDS on CAN)
 - ISO 15765-2 (network/transport layer) describes the CAN protocol
+- [ISO 14230-2:1999](https://www.sis.se/api/document/preview/612053/) (Data Link Layer)
+- [ISO 14230-3:1999](https://www.sis.se/api/document/preview/895162/) (Application Layer)
 - OBD-II pids: SAE J1979 E/E Diagnostic Test Modes / ISO 15031
 
 ## Credits
 Thanks to [@qqj1228](https://github.com/qqj1228) for implementing support to [com0com Windows driver](#running-on-windows) as well as for other enhancements.
+
+Thanks to ElmüSoft for clarifying protocol usage and to mickeyl for some notes on UDS.
 
 # License
 (C) Ircama 2021 - [CC BY-NC-SA 4.0](https://creativecommons.org/licenses/by-nc-sa/4.0/)

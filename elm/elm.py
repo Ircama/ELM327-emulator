@@ -1202,29 +1202,40 @@ class Elm:
                         do_write=False,
                         request_header=None,
                         request_data=None):
-        """ compute the response and returns data written to the device """
+        """
+        Compute the response and returns data written to the device.
+        :param resp: XML response string to compute
+        :param do_write: True if the computed response is written to the
+                output device. False is for testing the computed response
+                without writing data to the communication port.
+        :param request_header: Header of the request
+                (used to compute the response header)
+        :param request_data: data of the request
+                (used to compute the positive and negative response data)
+        :return: computed response, or empty (no output) or None (error).
+        """
 
         logging.debug("Processing: %s", repr(resp))
 
-        # compute cra_pattern
+        # Compute cra_pattern (ATCRA filter)
         cra_pattern = r'.*'
         cra = self.counters["cmd_cra"] if "cmd_cra" in self.counters else None
         if cra:
             cra = cra.replace('X', '.').replace('x', '?')
             cra_pattern = r'^' + cra + r'$'
 
-        # compute use_headers
+        # Compute use_headers
         use_headers = ("cmd_use_header" in self.counters and
                 self.counters["cmd_use_header"])
 
-        # compute sp
+        # Compute sp (space)
         if ('cmd_spaces' in self.counters
                 and self.counters['cmd_spaces'] == 0):
             sp = ''
         else:
             sp = ' '
 
-        # compute nl
+        # Compute nl (newline)
         nl_type = {
             0: "\r",
             1: "\r\n",
@@ -1242,7 +1253,7 @@ class Elm:
                     'Invalid "cmd_linefeeds" value: %s.',
                     repr(self.counters['cmd_linefeeds']))
 
-        # generate string
+        # Generate string
         incomplete_resp = False
         root = None
         try:
@@ -1255,22 +1266,6 @@ class Elm:
         answ = root.text.strip() if root is not None and root.text else ""
         answers = False
         i = None
-
-        # Calculate uds_pos_answ for uds_pos_answer
-        uds_pos_answ = ''
-        try:
-            rd=''.join(request_data.split())
-            for sid in uds_sid_pos_answer:
-                if rd.startswith(sid):
-                    uds_pos_answ = (
-                        sp.join(
-                            '{:02x}'.format(x) for x in bytearray.fromhex(
-                                rd[2:2 + 2 * uds_sid_pos_answer[sid]])
-                        ).upper()
-                    )
-                    break
-        except:
-            uds_pos_answ = None
 
         while not incomplete_resp:
             try:
@@ -1335,6 +1330,25 @@ class Elm:
                         'Missing request with <%s> tag: %s.',
                         i.tag.lower(), repr(resp))
                     break
+
+                # Calculate uds_pos_answ for uds_pos_answer
+                uds_pos_answ = ''
+                try:
+                    rd = ''.join(request_data.split())
+                    for sid in uds_sid_pos_answer:
+                        if rd.startswith(sid):
+                            uds_pos_answ = (
+                                sp.join(
+                                    '{:02x}'.format(x) for x in
+                                    bytearray.fromhex(
+                                        rd[
+                                        2:2 + 2 * uds_sid_pos_answer[sid]])
+                                ).upper()
+                            )
+                            break
+                except:
+                    uds_pos_answ = None
+
                 if i.tag.lower() == 'pos_answer' and uds_pos_answ is None:
                     logging.error(
                         'Invalid <%s> tag: %s.', i.tag.lower(), repr(resp))

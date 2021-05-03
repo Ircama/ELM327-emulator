@@ -55,7 +55,17 @@ DAEMON_DIR = '/tmp'
 
 class Edit:
     """
-    Allow editing responses
+    Allow editing static answers in the `ObdMessage` dictionary on-the-fly.
+
+    It extracts the answer from a PID, stores it into the emulator.answer
+    dictionary and performs the editing in its data part.
+
+    If the command is called with just the PID argument, it resets the
+    emulator.answer dictionary for the referred PID.
+
+    Usage in a Context Manager is supported: on the termination of the
+    Context Manager, the emulator.answer dictionary for the specified PID
+    is reset to its original state.
     """
     def __init__(self, emulator, pid):
         """
@@ -281,16 +291,6 @@ class Interpreter(Cmd):
             sys.stdout.flush()
         print("Color %s" % repr(self.color_active))
         self.__set_ps()
-
-    def precmd(self, line):
-        if self.color_active:
-            sys.stdout.write("\033[36m")
-            sys.stdout.flush()
-        return Cmd.precmd(self, line)
-
-    def postcmd(self, stop, line):
-        self.emulator.setSortedOBDMsg()
-        return Cmd.postcmd(self, stop, line)
 
     def do_reset(self, arg):
         "Reset the emulator (counters and variables)."
@@ -647,6 +647,17 @@ class Interpreter(Cmd):
         return [a[3:] for a in self.get_names() if a.startswith(dotext)
                 ] + rl + [self.rlc(text, x) for x in range(400) if self.rlc(text, x)]
 
+    def precmd(self, line):
+        if self.color_active:
+            sys.stdout.write("\033[36m") # Cyan
+            sys.stdout.flush()
+            line = re.sub(r"^(.*[^\\])#.*$", r"\1", line) # strip the '#' comment if not escaped
+        return Cmd.precmd(self, line)
+
+    def postcmd(self, stop, line):
+        self.emulator.setSortedOBDMsg()
+        return Cmd.postcmd(self, stop, line)
+
     def preloop(self):
         if self.emulator.threadState == self.emulator.THREAD.TERMINATED:
             sys.exit(0)
@@ -664,7 +675,7 @@ class Interpreter(Cmd):
             readline.set_history_length(self.histfile_size)
             readline.write_history_file(self.histfile)
         if self.color_active and not self.args.batch_mode:
-            sys.stdout.write("\033[00m")
+            sys.stdout.write("\033[00m") # white color
             sys.stdout.flush()
 
     # Execution of unrecognized commands

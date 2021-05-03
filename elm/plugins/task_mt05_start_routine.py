@@ -16,13 +16,19 @@ MEM_RANGE = 0x3fffff
 # UDS - MODE 31 01 - UDS Routine Control (31): Start (01)
 class Task(Tasks):
     def run(self, cmd, *_):
-        # Start routine procedure
+
+        # We suppose this routine is called before reading and writing
+        # Reset the memory map
+        if hasattr(self.shared, 'read_mmap'):
+            del self.shared.mmap
         if hasattr(self.shared, 'mmap'):
             del self.shared.mmap
         if hasattr(self.shared, 'min_addr'):
             del self.shared.min_addr
         if hasattr(self.shared, 'max_addr'):
             del self.shared.max_addr
+
+        # Extract start_address and end_address from the request
         try:
             start_address = int(cmd[4:10], 16) & MEM_RANGE
             end_address = int(cmd[10:16], 16) & MEM_RANGE
@@ -32,4 +38,6 @@ class Task(Tasks):
             return Task.RETURN.ERROR
         self.logging.info('Start routine %s to %s',
                           hex(start_address), hex(end_address))
+
+        # Terminate the task returning a positive answer
         return Task.RETURN.ANSWER(self.PA('00'))

@@ -538,7 +538,6 @@ ObdMessage = {
                 ST('UNABLE TO CONNECT') \
                 if self.counters[pid] == 1 else \
                 self.choice([ST('NO DATA'), ST('BUS INIT:ERROR')]),
-            'Response': '',
             'Priority': 5
         },
         'ELM_MIDS_A': {
@@ -551,7 +550,6 @@ ObdMessage = {
                 ST('UNABLE TO CONNECT') \
                 if self.counters[pid] == 1 else \
                 self.choice([ST('NO DATA'), ST('BUS INIT:ERROR')]),
-            'Response': '',
             'Priority': 5
         },
         'AT_DESCRIBE_PROTO_N': {
@@ -592,7 +590,6 @@ ObdMessage = {
         'RPM': {
             'Request': '^010C' + ELM_FOOTER,
             'Descr': 'Engine RPM',
-            'Response': '',
             'ResponseFooter': \
             lambda self, cmd, pid, val: (
                 PA(self.sequence(
@@ -604,7 +601,6 @@ ObdMessage = {
         'SPEED': {
             'Request': '^010D' + ELM_FOOTER,
             'Descr': 'Vehicle Speed',
-            'Response': '',
             'ResponseFooter': \
             lambda self, cmd, pid, val: (
                 PA(self.sequence(pid, base=0, max=30, factor=4, n_bytes=1))
@@ -2120,20 +2116,17 @@ ObdMessage = {
             'Response': HD(ECU_R_ADDR_E) + SZ('03') + DT('49 01 01')
         },
         'VIN': {
-            # Check this also: https://stackoverflow.com/a/26752855/10598800, https://www.autocheck.com/vehiclehistory/autocheck/en/vinbasics
+            # Check this also: https://stackoverflow.com/a/26752855/10598800,
+            # https://www.autocheck.com/vehiclehistory/autocheck/en/vinbasics
             'Request': '^0902' + ELM_FOOTER,
             'Descr': 'Vehicle Identification Number',
             'Response': [
-                HD(ECU_R_ADDR_E) + SZ('10') + DT('14 49 02 01 57 50 30') +
-                HD(ECU_R_ADDR_E) + SZ('21') + DT('5A 5A 5A 39 39 5A 54') +
-                HD(ECU_R_ADDR_E) + SZ('22') + DT('53 33 39 30 30 30 30'),
-                # https://www.autodna.com/vin/WP0ZZZ99ZTS390000, https://it.vin-info.com/libro-denuncia/WP0ZZZ99ZTS390000
-                HD(ECU_R_ADDR_E) + SZ('10') + DT('14 49 02 01 4D 41 54') +  # https://community.carloop.io/t/how-to-request-vin/153/11
-                HD(ECU_R_ADDR_E) + SZ('21') + DT('34 30 33 30 39 36 42') +
-                HD(ECU_R_ADDR_E) + SZ('22') + DT('4E 4C 30 30 30 30 30'),
-                HD(ECU_R_ADDR_E) + SZ('10') + DT('14 49 02 01 53 42 31') +
-                HD(ECU_R_ADDR_E) + SZ('21') + DT('5A 53 33 4A 45 36 30') +
-                HD(ECU_R_ADDR_E) + SZ('22') + DT('45 32 38 32 31 30 32')
+                PA('01 57 50 30 5A 5A 5A 39 39 5A 54 53 33 39 30 30 30 30'),
+                # https://www.autodna.com/vin/WP0ZZZ99ZTS390000,
+                # https://it.vin-info.com/libro-denuncia/WP0ZZZ99ZTS390000
+                PA('01 4D 41 54 34 30 33 30 39 36 42 4E 4C 30 30 30 30 30'),
+                # https://community.carloop.io/t/how-to-request-vin/153/11
+                PA('01 53 42 31 5A 53 33 4A 45 36 30 45 32 38 32 31 30 32')
             ]
         },
         'CALIBRATION_ID_MESSAGE_COUNT': {
@@ -4193,10 +4186,10 @@ ObdMessage = {
             'Descr': 'O2 Sensors Present',
             'Response': PA('01')
         },
-        'OBD_COMPLIANCE': {
+        'OBD_COMPLIANCE': { # See https://en.wikipedia.org/wiki/OBD-II_PIDs#Service_01_PID_1C
             'Request': '^011C' + ELM_FOOTER,
             'Descr': 'OBD Compliance',
-            'Response': PA('03')
+            'Response': PA('03') # OBD + OBD 2
         },
         'CALIBRATION_ID': {
             'Request': '^0904' + ELM_FOOTER,
@@ -4209,9 +4202,9 @@ ObdMessage = {
             'Response': PA('00 00 F2 29')
         },
         "MONITOR": {
-            'Request': '^2101' + ELM_FOOTER,
+            'Request': '^2101' + ELM_FOOTER, # 21 (Read Data By Local Id) and 01 (Subfunction)
             'Descr': 'Monitor',
-            'Response': [
+            'Response': [ # Returns a packet of 0x64 = 100 bytes: "Mode 1 Message".
                 PA(
                 '80 00 34 50 34 50 80 00 80 00 08 43 08 43 00 00 00 00 00 00 '
                 '00 00 00 21 00 00 00 00 00 00 72 DF 6E 76 78 14 48 00 00 00 '
@@ -4275,7 +4268,7 @@ ObdMessage = {
         'UDS_START_ROUTINE_ADDR': {
             'Request': '^38' + ELM_DATA_FOOTER,
             'Descr': 'UDS Start Routine by Address',
-            'Exec': 'self.shared.fail_next_read_mem = cmd[2:] or None',
+            'Exec': 'self.shared.executed_routine = cmd[2:] or None',
             'ResponseFooter': lambda self, cmd, pid, val: PA(cmd[2:]) # return the address after the SID
         },
         'UDS_WRITE_MEM_ADDR': {

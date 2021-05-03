@@ -2,7 +2,7 @@
 # -*- coding: utf-8 -*-
 ###########################################################################
 # ELM327-emulator
-# TASK PLUGIN: UDS request_seed
+# TASK PLUGIN: UDS task_request_seed
 # ELM327 Emulator for testing software interfacing OBDII via ELM327 adapter
 # https://github.com/Ircama/ELM327-emulator
 # (C) Ircama 2021 - CC-BY-NC-SA-4.0
@@ -21,11 +21,11 @@ class Task(Tasks):
         if time.time() < self.time_started + EXECUTION_TIME:
             # 78 in negative answer = requestCorrectlyReceived-ResponsePending
             return (self.NA('78'),
-                    self.RETURN.CONTINUE,
+                    Tasks.RETURN.CONTINUE,
                     None if self.task_request_matched(cmd) else cmd)
         else:
             seed_bytes = " ".join(SEED[i:i + 2] for i in range(0, len(SEED), 2))
             self.logging.warning('Seed: %s', seed_bytes)
             return (self.PA(seed_bytes),
-                    self.RETURN.TERMINATE,
+                    Tasks.RETURN.TERMINATE,
                     None if self.task_request_matched(cmd) else cmd)
