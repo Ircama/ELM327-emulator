@@ -59,6 +59,7 @@ ELM_DATA_FOOTER = r'([0-9A-Z][0-9A-Z])+$'
 
 # PID Dictionary
 
+
 ObdMessage = {
     # AT Commands
     'AT' : {
@@ -2366,7 +2367,7 @@ ObdMessage = {
             'Min': '0',
             'Max': '200',
             'Unit': '%',
-            'Response': PA('00') # Wrong value! To be tested
+            'Response': PA('61 A1 80') # Wrong value! To be tested
         },
         'H_BATT': {
             'Request': '^227A53' + ELM_FOOTER,
@@ -2407,15 +2408,15 @@ ObdMessage = {
         },
     # -------------------------------------------------------------------
     # UDS - MODE 27 - Security Access
-        'UDS_SA1': {
+        'UDS_REQ_SEED': {
             'Request': '^2701' + ELM_FOOTER,
-            'Descr': 'SecurityAccess #1',
+            'Descr': 'SecurityAccess - requestSeed',
             'Header': ECU_ADDR_E,
             'Response': PA('D6 D0 63 12')
         },
-        'UDS_SA2': {
+        'UDS_SEND_KEY': {
             'Request': '^2702' + ELM_FOOTER,
-            'Descr': 'SecurityAccess #2',
+            'Descr': 'SecurityAccess - Send Key to ECU',
             'Header': ECU_ADDR_E,
             'Response': PA('')
         },
@@ -2444,26 +2445,26 @@ ObdMessage = {
         'Descr': 'Write Fingerprint',
         'Info': '"Decoded fingerprint %s", cmd[6:]',
         'Header': ECU_ADDR_M,
-        'Response': PA('5A')
+        'Response': PA('')
     },
     'UDS_W_VIN': {
         'Request': '^2EF190' + ELM_DATA_FOOTER, # 2E,F1,90 - write dataIdentifier 0xF190 (VIN)
         'Descr': 'Write VIN',
         'Info': '"Decoded VIN: %s", repr(bytearray.fromhex(cmd[6:]).decode())',
         'Header': ECU_ADDR_M,
-        'Response': PA('90')
+        'Response': PA('')
         },
     # -------------------------------------------------------------------
     # UDS - MODE 31 - UDS Routine Control - Start routine by local ID
         'UDS_ERASE_MEM': {
-            'Request': '^3101FF00' + ELM_DATA_FOOTER,
+            'Request': '^3101' + ELM_DATA_FOOTER,
             # UDS Routine Control (31): Start (01), Delete Area (FF 00), Bootloader (01 00)
             'Descr': 'UDS Routine Control - Erase memory',
             'Header': ECU_ADDR_M,
             'Task': "task_erase_memory"
         },
         'UDS_RR_ERASE_MEM': {
-            'Request': '^3103FF00$',
+            'Request': '^3103' + ELM_DATA_FOOTER,
             # UDS Routine Control (SID=31): routineControlType 03=Request Routine Result, Delete Area (FF 00)
             'Descr': 'UDS Routine Control - Erase memory - Request Routine Result',
             'Header': ECU_ADDR_M,
@@ -4240,27 +4241,31 @@ ObdMessage = {
             'Descr': 'Ignition counter',
             'Response': PA('8E 01 00 00'),
         },
-        'UDS_START_DIAG_SESS_1': {
+        'UDS_STDS_DEF': { # Default/Std Diag/OBD II Mode
             'Request': '^1081' + ELM_FOOTER,
-            'Descr': 'UDS Start Diagnostic Session - 1',
+            'Descr': 'UDS Start Diagnostic Session - Default mode',
             'Response': PA('')
         },
-        'UDS_START_DIAG_SESS_2': {
-            'Request': '^1085' + ELM_FOOTER,
-            'Descr': 'UDS Start Diagnostic Session - 2',
+        'UDS_STDS_FLASH': {
+            'Request': '^1085' + ELM_FOOTER, # 85 = Flash Programming Session
+            'Descr': 'UDS Start Diagnostic Session - ECU Prog Mode',
             'Response': PA('')
         },
-        'UDS_SA1': {
+        'UDS_SA_REQ_SEED': {
             'Request': '^2701' + ELM_FOOTER,
-            'Descr': 'UDS SecurityAccess #1',
+            'Descr': 'UDS SecurityAccess - requestSeed',
             'Response': PA('12 34')
         },
-        'UDS_SA2': {
+        'UDS_SA_SEND_KEY': {
             'Request': '^2702' + ELM_DATA_FOOTER,
-            'Descr': 'UDS SecurityAccess #2',
-            'Response': PA('34')
+            'Descr': 'UDS SecurityAccess - Send Key to ECU',
+            'Exec': 'self.shared.auth_successful = cmd[4:] == "8474"', # Key
+            'Info': '"auth_successful: %s.", self.shared.auth_successful',
+            'ResponseFooter': lambda self, cmd, pid, val: (
+                PA('34') if self.shared.auth_successful else NA('35')
+            )
         },
-        'UDS_READ_MEM_ADDR': {
+        'UDS_RMBA': {
             'Request': '^23' + ELM_DATA_FOOTER,
             'Descr': 'UDS Read memory by address',
             'Task': 'task_mt05_read_mem_addr'

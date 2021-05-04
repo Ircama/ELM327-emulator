@@ -60,19 +60,23 @@ uds_sid_pos_answer = {
     "09": 1,  # Request vehicle information
     "10": 1,  # Diagnostic Session Control (DSC)
     "11": 1,  # ECU Reset (ER)
-    "14": 1,  # Clear Diagnostic Information DTC (CDTCI)
+    "14": 0,  # Clear Diagnostic Information DTC (CDTCI)
+    "19": 2,  # Read DTC Information
     "21": 1,  # Read Data by Local Id
     "22": 2,  # Read Data By Identifier (RDBI)
     "23": 0,  # Read memory by address (RMBA)
+    "24": 0,  # Read Scaling Data By Identifier
     "27": 1,  # Security Access (SA)
-    "2E": 1,  # Write Data By Identifier (WDBI)
+    "2A": 0,  # Read Data By Periodic Identifier
+    "2C": 0,  # Dynamically Define Data Identifier
+    "2E": 2,  # Write Data By Identifier (WDBI)
+    "2F": 0,  # Input Output Control By Identifier
     "30": 1,  # IO Control by Local Id
-    "3101FF00": 3,  # Start Routine by Local ID, startRoutine, erase_memory
-    "3103FF00": 3,  # Start Routine by Local ID, Request Routine Result, erase_memory
     "31": 1,  # Routine Control - Start Routine by Local ID (RC)
     "38": 0,  # Start Routine by Address
     "3D": 0,  # Write Memory by Address (WMBA)
     "3E": 1,  # Tester Present (TP)
+    "85": 1,  # Control DTC Setting
 }
 
 
@@ -1539,6 +1543,17 @@ class Elm:
             self.counters['commands'] = 0
         self.counters['commands'] += 1
 
+        # cmd_can is experimental (to be removed)
+        if ('cmd_can' in self.counters and
+                self.counters['cmd_can'] and
+                cmd[:2] != 'AT'
+                and self.is_hex_sp(cmd [:3])):
+            self.counters['cmd_set_header'] = cmd[:3]
+            header = cmd[:3]
+            self.counters['cmd_caf'] = False
+            self.counters['cmd_use_header'] = True
+            cmd = cmd[3:]
+
         header = None
         if "cmd_set_header" in self.counters:
             header = self.counters['cmd_set_header']
@@ -1556,17 +1571,6 @@ class Elm:
         if not self.scenario in self.ObdMessage:
             logging.error("Unknown scenario %s", repr(self.scenario))
             return header, cmd, ""
-
-        # cmd_can is experimental (to be removed)
-        if ('cmd_can' in self.counters and
-                self.counters['cmd_can'] and
-                cmd[:2] != 'AT'
-                and self.is_hex_sp(cmd [:3])):
-            self.counters['cmd_set_header'] = cmd[:3]
-            header = cmd[:3]
-            self.counters['cmd_caf'] = False
-            self.counters['cmd_use_header'] = True
-            cmd = cmd[3:]
 
         # create the namespace shared for the ECU if not existing
         self.shared = None

@@ -25,6 +25,6 @@ class Task(Tasks):
                     Tasks.RETURN.CONTINUE,
                     None if self.task_request_matched(cmd) else cmd)
         else:
-            return (self.PA('00'),
+            return (self.PA(self.request[4:8] + '00'),
                     Tasks.RETURN.TERMINATE,
                     None if self.task_request_matched(cmd) else cmd)

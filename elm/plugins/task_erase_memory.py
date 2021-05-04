@@ -19,7 +19,7 @@ EXECUTION_TIME = 0.5 # seconds
 # FF 00, erase_memory (RID)
 class Task(Tasks):
     def start(self, cmd, *_):
-        self.logging.warning('Erase memory, Data: %s', cmd[8:])
+        self.logging.warning('Erase memory, Data: %s', cmd[4:])
         return self.run(cmd)
 
     def run(self, cmd, *_):
@@ -29,6 +29,6 @@ class Task(Tasks):
                     Tasks.RETURN.CONTINUE,
                     None if self.task_request_matched(cmd) else cmd)
         else:
-            return (self.PA('00'),
+            return (self.PA(self.request[4:8] + '00'),
                     Tasks.RETURN.TERMINATE,
                     None if self.task_request_matched(cmd) else cmd)
