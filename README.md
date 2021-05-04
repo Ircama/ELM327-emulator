@@ -193,6 +193,8 @@ The key used in the dictionary consists of a unique identifier for each PID. All
 - `'Descr'`: string describing the PID
 - `'Exec'`: command to be executed
 - `'Log'`: *logging.debug* argument
+- `'info'`: *logging.info* argument
+- `'warning'`: *logging.warning* argument
 - `'ResponseFooter'`: run a function and returns a footer to the response (a [lambda function](https://docs.python.org/3/reference/expressions.html#lambda) can be used)
 - `'ResponseHeader'`: run a function and returns a header to the response (a [lambda function](https://docs.python.org/3/reference/expressions.html#lambda) can be used)
 - `'Response'`: returned data; can be a string, or a list/tuple of strings; if more strings are included, the emulator randomly select one of them each time
@@ -730,7 +732,7 @@ In a plugin, at least the *run()* method should be implemented, overriding the d
 - `def stop(self, cmd, *_)`: invoked to process a request before interrupting the task (not required)
 - `def run(self, cmd, *_)`: invoked on any request after the first one; if *start()* or *stop()* are not implemented, *run()* is always invoked.
 
-Task methods are called after processing the ISO-TP data link, so the request passed to the task methods includes the whole message, where the associated multiframe (consisting of multiple frames received from the communication port) is already assembled and interpreted into a single data string. Tasks methods return a response string that will be subsequently processed by the embedded ISO-TP data link, generating the output strings then sent to the communication port.
+Task methods are called after processing the ISO-TP data link, so the request passed to the task methods includes the whole message, where the associated multiframe (consisting of multiple frames received from the communication port) is already assembled and interpreted into a single data string of consecutive hex values, without spaces. Tasks methods return a response string that will be subsequently processed by the embedded ISO-TP data link, generating the output strings then sent to the communication port.
 
 A multiframe is internally managed as a special task named 'ISO-TP request pending'. It can be shown through the `tasks` command.
 
@@ -761,9 +763,30 @@ The easies way to configure tasks is to use Tasks.RETURN.TERMINATE (so that a ta
 
 ### Example
 
-For instance, a plugin named *plugins/task_routine.py* defines the task *task_routine*, which is configured in a dictionary element like the following one:
+For instance, a plugin named *plugins/task_routine.py* defines the task *task_routine*, which is configured in the dictionary element 'A_ROUTINE', like the following example:
 
 ```python
+        'UDS_START_DIAG_SESS': {
+            'Request': '^1085' + ELM_FOOTER, # 85 = Flash Programming Session
+            'Descr': 'UDS Start Diagnostic Session',
+            'Response': PA('') # Response: 50 85
+        },
+        'UDS_REQ_SEED': { # Start seed & key and request the seed from ECU
+            'Request': '^2701' + ELM_FOOTER,
+            'Descr': 'UDS SecurityAccess - requestSeed',
+            'Exec': 'self.shared.seed = cmd[4:]',
+            'Info': '"seed: %s", self.shared.seed',
+            'Response': PA('12 34') # Response: 67 01 12 44; seed is 12 44
+        },
+        'UDS_SEND_KEY': {
+            'Request': '^2702' + ELM_DATA_FOOTER,
+            'Descr': 'UDS SecurityAccess - Send Key to ECU',
+            'Exec': 'self.shared.auth_successful = cmd[4:] == "3322"', # Key
+            'Info': '"auth_successful: %s", self.shared.auth_successful',
+            'ResponseFooter': lambda self, cmd, pid, val: (
+                PA('') if self.shared.auth_successful else NA('35')
+            ) # Response: 67 02 if pos.; 7F 02 35 if neg. 35=invalidKey
+        },
         'A_ROUTINE': { # UDS Routine Control (31): Start (01)
             'Request': '^3101' + ELM_DATA_FOOTER,
             'Descr': 'An UDS Routine',
@@ -771,28 +794,41 @@ For instance, a plugin named *plugins/task_routine.py* defines the task *task_ro
         },
 ```
 
-In such case, a request of type `3101...` will start the task *task_routine*, which can immediately return (if `Tasks.RETURN.TERMINATE` is used) or will also be able to process any subsequent request (also if not matching `3101...`), until the plugin is terminated (case when `Tasks.RETURN.CONTINUE` is used). In the above example, the `'Header'` attribute is not set, so any header will be valid.
+The following table shows the UDS protocol sequence:
 
-Example of a basic task related to the Python plugin named "task_routine.py", which simply stores the start and end addresses of the routine to the shared area (so that another task can use them), logs a message and immediately returns a positive answer (`Task.RETURN.ANSWER` uses `Tasks.RETURN.TERMINATE`):
+Application (request)| ECU (response)|Protocol                            |Description
+-----------|-------------|-----------------------------------------------|-----------------
+10 85      | 50 85       |StartDiagnosticSession, ECUProgrammingMode     |Start Programming Mode (positive answer)
+27 01      | 67 01 12 44 |SecurityAccess, requestSeed                    |Start seed & key and request the seed from ECU (positive answer, the seed 12 44 is then sent back from the ECU to the application)
+27 02 33 22| 67 02       |SecurityAccess, sendKey                        |Send security key 33 22 to ECU (positive answer)
+31 01      | 71 01       |StartRoutineByLocalIdentifier, ID = 01 (Start) |Start flash driver download into RAM (positive answer)
+
+In such example, a request of type `3101...` will start the task *task_routine*, which can immediately return (if `Tasks.RETURN.TERMINATE` is used) or will also be able (not in this example of task) to process any subsequent request (also if not matching `3101...`), until the plugin is terminated (case when `Tasks.RETURN.CONTINUE` is used). In the above example, the `'Header'` attribute is not set, so any header will be valid.
+
+In the following example of a basic task related to the Python plugin named "task_routine.py", the
+shared `self.shared.auth_successful` attribute is checked in order to immediately return either a positive or negative answer (`Task.RETURN.ANSWER` uses `Tasks.RETURN.TERMINATE`):
 
 ```python
 from elm import Tasks
 
-class Task(Tasks):
+class Task(Tasks): # UDS Routine Control (31): Start (01)
     def run(self, cmd, *_):
-
-        # Extract start_address and end_address from the request,
-        # storing both to the persistent area
-        self.shared.start_address = cmd[4:10]
-        self.shared.end_address = cmd[10:16]
-
-        self.logging.info('Start routine %s to %s',
-                          self.shared.start_address,
-                          self.shared.end_address)
-
-        # Terminate the task returning a positive answer
-        return Task.RETURN.ANSWER(self.PA('00'))
+        if (hasattr(self.shared, 'auth_successful') and
+                self.shared.auth_successful):
+            self.logging.info('Routine %s successfully executed.',
+                              cmd[4:])
+            return Task.RETURN.ANSWER(self.PA('')) # Return 71 01
+        else:
+            self.logging.info('Security Access Denied for routine %s.',
+                              cmd[4:])
+            return Task.RETURN.ANSWER(self.NA('33')) # Return 7F 31 33
 ```
+
+In the above example, notice also that the *UDS_SEND_KEY* PID sets `self.shared.auth_successful` to *True* if the security key is correct and returns either positive or negative answer, exploiting a `ResponseFooter` type lambda function. The example shows that both tasks and response functions are ways to implement process steps (in this example, the result is similar): while response functions are quick to implement, tasks allow much more flexibility.
+
+Notice that `self.shared` is only available within the same ECU. If multiple ECUs are concurrently configured and interacted (each one with its own header), each ECU will have its own shared data.
+
+The `tasks` command returns the dump of all the used ECU-shared and in-task namespaces.
 
 The plugins named *task_mt05_read_mem_addr.py* and *task_mt05_write_mem_addr.py* show how to read and write memory by address, mapping the memory space into a file.
 
