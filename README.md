@@ -738,16 +738,22 @@ A multiframe is internally managed as a special task named 'ISO-TP request pendi
 
 All methods return a tuple of three elements:
 
-- an XML response string, which will be subsequently interpreted by the ISO-TP processor and then written to the client application; Null means nothing to output;
+- an XML response string, which will be subsequently interpreted by the ISO-TP processor and then written to the client application; *None* means nothing to output;
 - a boolean (*True* = `Tasks.RETURN.CONTINUE`, or *False* = `Tasks.RETURN.TERMINATE`), to indicate whether the task remains active or terminates;
-- a request string (e.g., *cmd*) that will be subsequently re-processed; the value can be *Null*, meaning no subsequent re-processing. This element allows a task to also act as a filter, that receives a request (*cmd*), possibly transforms it and forwards it to the standard processor.
+- a request string (e.g., *cmd*) which will be subsequently processed by *ELM327-emulator*; the value can be:
 
-Special return codes:
+  - *None*, meaning no subsequent processing, or
+  - the same unchanged data of the task method invocation, where the returned request is sent to the standard processing of its dictionary response elements, or
+  - a different data than *cmd* in the task method, so that a full reprocessing of the new request is done. 
+  
+  This element allows a task to also act as a filter, that receives a request (*cmd*), possibly transforms it and forwards it to the standard processor.
 
-- `Task.RETURN.ANSWER(pa)`, or `(pa, Tasks.RETURN.TERMINATE, None)`: this is used with standard positive or negative answer, terminating the task;
-- `Task.RETURN.ERROR`, or `(None, Tasks.RETURN.TERMINATE, None)`: producing an error; no output written while terminating the task;
-- `Task.RETURN.INCOMPLETE`, or `(None, Tasks.RETURN.CONTINUE, None)`, used to internally process the request, without producing output and keeping the task active, so that the same task will process subsequent data addressed to the same ECU.
-- `Task.RETURN.PASSTHROUGH(cmd)`, or `(None, Tasks.RETURN.TERMINATE, cmd)`: task implementing a filter (if cmd is internally processed), or a pure pass-through; the request (after possible internal processing) is sent to a subsequent re-processing while terminating the task;
+Special return values:
+
+- `Task.RETURN.ANSWER(answer)`, or `(pa, Tasks.RETURN.TERMINATE, None)`: used with standard positive or negative answers, terminating the task (without any further processing after the task is terminated);
+- `Task.RETURN.PASSTHROUGH(cmd)`, or `(None, Tasks.RETURN.TERMINATE, cmd)`: if the task returns the same unchanged cmd in the request, it is generally used for pure pass-through, like performing some calculation in the task, or logging, and then terminating the task while sending the same request to the standard processing of its dictionary response elements; if the task changes the returned data, a full reprocessing of the request is done;
+- `Task.RETURN.ERROR`, or `(None, Tasks.RETURN.TERMINATE, None)`: used for error conditions; no output written while terminating the task;
+- `Task.RETURN.INCOMPLETE`, or `(None, Tasks.RETURN.CONTINUE, None)`, used to allow internal processing of the request, without producing output and keeping the task active, so that the same task will also process all subsequent input requests addressed to the same ECU, until the task is terminated.
 
 Check the *Tasks* class for a list of the available variables initialized by the `__init__()` method.
 

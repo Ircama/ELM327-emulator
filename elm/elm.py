@@ -1789,16 +1789,22 @@ class Elm:
                         if r_cont is None:
                             return header, cmd, r_cmd
                         else: # chain a subsequent command
-                            chained_command += 1
-                            if chained_command > MAX_TASKS:
-                                logging.critical(
-                                    'Too many subsequent chained commands '
-                                    'for ECU %s. Latest task was %s.',
-                                    ecu, val['Task'])
-                                return header, cmd, ""
-                            cmd = r_cont
-                            i_obd_msg = iter(self.sortedOBDMsg)
-                            continue # restart the loop from the beginning
+                            if cmd == r_cont: # no transformation performed
+                                logging.debug(
+                                    'Passthrough task executed: '
+                                    'continue processing %s for ECU %s.',
+                                    cmd, ecu)
+                            else: # newly reprocess the changed request
+                                chained_command += 1
+                                if chained_command > MAX_TASKS:
+                                    logging.critical(
+                                        'Too many subsequent chained commands '
+                                        'for ECU %s. Latest task was %s.',
+                                        ecu, val['Task'])
+                                    return header, cmd, ""
+                                cmd = r_cont
+                                i_obd_msg = iter(self.sortedOBDMsg)
+                                continue # restart the loop from the beginning
                     else:
                         logging.error(
                             'Unexisting plugin "%s" for pid "%s"',
@@ -1859,7 +1865,7 @@ class Elm:
                     logging.error(
                         "Internal error - Missing response for %s, PID %s",
                         cmd, pid)
-                    return header, cmd, ELM_R_OK
+                    return header, cmd, None
         # Here cmd is unknown
         if "unknown_" + repr(cmd) not in self.counters:
             self.counters["unknown_" + repr(cmd)] = 0
