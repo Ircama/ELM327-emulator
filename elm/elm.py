@@ -15,6 +15,7 @@ import re
 import os
 import socket
 import serial
+
 if not os.name == 'nt':
     import pty
 import threading
@@ -36,15 +37,15 @@ import inspect
 from types import SimpleNamespace
 
 # Configuration constants
-FORWARD_READ_TIMEOUT = 0.2 # seconds
-SERIAL_BAUDRATE = 38400 # bps
+FORWARD_READ_TIMEOUT = 0.2  # seconds
+SERIAL_BAUDRATE = 38400  # bps
 NETWORK_INTERFACES = ""
 PLUGIN_DIR = __package__ + ".plugins"
 MAX_TASKS = 20
 ISO_TP_MULTIFRAME_MODULE = 'ISO-TP request pending'
-MIN_SIZE_UDS_LENGTH = 20 # Minimum size to use a UDS header with additional length byte (ISO 14230-2)
+MIN_SIZE_UDS_LENGTH = 20  # Minimum size to use a UDS header with additional length byte (ISO 14230-2)
 INTERRUPT_TASK_IF_NOT_HEX = False
-ELM_VALID_CHARS = r"^[a-zA-Z0-9 \n\r@,.?]*$"
+ELM_VALID_CHARS = r"^[a-zA-Z0-9 \n\r\b\t@,.?]*$"
 
 """
 Ref. to ISO 14229-1 and ISO 14230, this is a list of SIDs (UDS service
@@ -113,26 +114,29 @@ class Tasks():
         CONTINUE = True
         ERROR = (None, TERMINATE, None)
         INCOMPLETE = (None, CONTINUE, None)
+
         def PASSTHROUGH(cmd): return None, Tasks.RETURN.TERMINATE, cmd
+
         def ANSWER(pa): return pa, Tasks.RETURN.TERMINATE, None
 
-    def __init__(self, emulator, pid, header, ecu, request, attrib, do_write=False):
-        self.emulator = emulator # reference to the emulator namespace
-        self.pid = pid # PID label
-        self.header = header # request header
+    def __init__(self, emulator, pid, header, ecu, request, attrib,
+                 do_write=False):
+        self.emulator = emulator  # reference to the emulator namespace
+        self.pid = pid  # PID label
+        self.header = header  # request header
         self.ecu = ecu
-        self.request = request # original request data (stored before running the start() method)
-        self.logging = emulator.logger # logger reference
-        self.attrib = attrib # dictionary element
-        self.do_write = do_write # (boolean) will write to the application
-        self.time_started = time.time() # timer (to be used to simulate background processing)
-        self.frame = None # ISO-TP Multiframe request frame counter
-        self.length = None # ISO-TP Multiframe request length counter
-        self.flow_control = 0 # ISO-TP Multiframe request flow control
-        self.flow_control_end = 0x20 # ISO-TP Multiframe request flow control repetitions
-        self.shared = None # A ISO-TP Multiframe special task will not use a shared namespace
+        self.request = request  # original request data (stored before running the start() method)
+        self.logging = emulator.logger  # logger reference
+        self.attrib = attrib  # dictionary element
+        self.do_write = do_write  # (boolean) will write to the application
+        self.time_started = time.time()  # timer (to be used to simulate background processing)
+        self.frame = None  # ISO-TP Multiframe request frame counter
+        self.length = None  # ISO-TP Multiframe request length counter
+        self.flow_control = 0  # ISO-TP Multiframe request flow control
+        self.flow_control_end = 0x20  # ISO-TP Multiframe request flow control repetitions
+        self.shared = None  # A ISO-TP Multiframe special task will not use a shared namespace
         if ecu in self.emulator.task_shared_ns:
-            self.shared = self.emulator.task_shared_ns[ecu] # shared namespace
+            self.shared = self.emulator.task_shared_ns[ecu]  # shared namespace
 
     def HD(self, header):
         """
@@ -263,7 +267,7 @@ class IsoTpMultiframe(Tasks):
             incomplete request = Tasks.TASK.INCOMPLETE
             complete request = Tasks.TASK.PASSTHROUGH(cmd)
         """
-        if frame is not None and frame == 0 and length > 0: # First Frame (FF)
+        if frame is not None and frame == 0 and length > 0:  # First Frame (FF)
             if self.frame or self.length:
                 self.logging.error('Invalid initial frame %s %s', length, cmd)
                 return Tasks.RETURN.ERROR
@@ -271,15 +275,15 @@ class IsoTpMultiframe(Tasks):
             self.frame = 1
             self.length = length
         elif (frame is not None and frame > 0 and self.frame == frame and
-              length is None): # valid Consecutive Frame (CF)
+              length is None):  # valid Consecutive Frame (CF)
             self.req += cmd
             self.frame += 1
         elif (frame is not None and frame == -1 and self.frame == 16 and
-                  length is None):  # valid Consecutive Frame (CF) - 20 after 2F
+              length is None):  # valid Consecutive Frame (CF) - 20 after 2F
             self.req += cmd
-            self.frame = 1 # re-cycle the input frame count to 21
+            self.frame = 1  # re-cycle the input frame count to 21
         elif ((length is None or length > 0) and
-              frame is None and self.frame is None): # Single Frame (SF)
+              frame is None and self.frame is None):  # Single Frame (SF)
             self.req = cmd
             self.length = length
             if length:
@@ -312,6 +316,33 @@ class IsoTpMultiframe(Tasks):
             self.frame = None
             return Tasks.RETURN.PASSTHROUGH(self.req[:self.length * 2])
         return Tasks.RETURN.INCOMPLETE
+
+
+def is_hex_sp(s):
+    """
+    Validate a string containing hex (in any number, not necessarily
+    grouped into digit pairs because the header might have three digits),
+    or spaces, or newlines.
+    For instance, if containing a PID, it returns True, if containing
+    ST or AT commands, it returns False.
+    :param s: string to validate
+    :return: True if matching, otherwise False
+    """
+    return re.match(r"^[0-9a-fA-F \t\r\n]*$", s or "") is not None
+
+
+def len_hex(s):
+    """
+    Check that the argument string is hexadecimal (digit pairs). If not,
+    return False. If hex, return the number of hex bytes (digit pairs).
+    :param s: hex string
+    :return: either the number of hex bytes (0 or more bytes) or False (invalid
+    digit, or digits not grouped into pairs).
+    """
+    try:
+        return len(bytearray.fromhex(s))
+    except Exception:
+        return False
 
 
 class Elm:
@@ -351,8 +382,9 @@ class Elm:
         return (" ".join(s[i:i + 2] for i in range(0, len(s), 2)))
 
     def reset(self, sleep):
-        """ return all settings to their defaults.
-            Called by __init__(), ATZ and ATD.
+        """
+        Return all settings to their defaults.
+        Called by __init__(), ATZ and ATD.
         """
         logging.debug("Resetting counters and sleeping for %s seconds", sleep)
         time.sleep(sleep)
@@ -369,8 +401,10 @@ class Elm:
         Called by __init__() and terminate()
         """
         self.scenario = 'default'
-        self.delay = 0
-        self.max_req_timeout = 1440
+        self.interbyte_out_delay = 0 # seconds - UDS P1 timer - Inter byte time for ECU response
+        self.delay = 0 # seconds - UDS P2 timer - Time between tester request and ECU response or two ECU responses
+        self.multiframe_timer = 5  # seconds - UDS P3 Timer - Time between end of ECU responses and start of new tester request
+        self.max_req_timeout = 1440  # seconds - UDS P4 timer - Inter byte time for tester request (ref. req_timeout counter)
         self.answer = {}
         self.counters = {}
         self.counters.update(self.presets)
@@ -378,7 +412,18 @@ class Elm:
         self.task_shared_ns = {}
         self.shared = None
 
-    def setSortedOBDMsg(self, scenario=None):
+    def set_sorted_obd_msg(self, scenario=None):
+        """
+        Concatenate the appropriate subdictionaries according to "scenario".
+        Manage priority by sorting the obtained dictionary.
+        Check how ObdMessage dictionary is built: if it includes the "default"
+        and 'AT' subdictionaries (they should be there if using the default
+        ObdMessage), use them, otherwise only the subdictionary of the selected
+        scenario is used.
+        :param scenario: when set, it changes the scenario
+        :return: (none)
+        """
+
         if scenario is not None:
             self.scenario = scenario
         if 'default' in self.ObdMessage and 'AT' in self.ObdMessage:
@@ -386,7 +431,8 @@ class Elm:
             self.sortedOBDMsg = {
                 **self.ObdMessage['default'],  # highest priority
                 **self.ObdMessage['AT'],
-                **self.ObdMessage[self.scenario]  # lowest priority ('Priority' to be checked)
+                **self.ObdMessage[self.scenario]
+                # lowest priority ('Priority' to be checked)
             }
         else:
             self.sortedOBDMsg = {**self.ObdMessage[self.scenario]}
@@ -407,13 +453,13 @@ class Elm:
             forward_net_host=None,
             forward_net_port=None,
             forward_serial_port=None,
-            forward_serial_baudrate = None,
+            forward_serial_baudrate=None,
             forward_timeout=None):
         self.presets = {}
         self.ObdMessage = ObdMessage
         self.ELM_R_UNKNOWN = ELM_R_UNKNOWN
         self.set_defaults()
-        self.setSortedOBDMsg()
+        self.set_sorted_obd_msg()
         self.batch_mode = batch_mode
         self.newline = newline
         self.no_echo = no_echo
@@ -427,18 +473,18 @@ class Elm:
         self.forward_serial_baudrate = forward_serial_baudrate
         self.forward_timeout = forward_timeout
         self.reset(0)
-        self.slave_name = None # pty port name, if pty is used
-        self.master_fd = None # pty port FD, if pty is used, or device com port FD (IO)
-        self.slave_fd = None # pty side used by the client application
-        self.serial_fd = None # serial COM port file descriptor (pySerial)
+        self.slave_name = None  # pty port name, if pty is used
+        self.master_fd = None  # pty port FD, if pty is used, or device com port FD (IO)
+        self.slave_fd = None  # pty side used by the client application
+        self.serial_fd = None  # serial COM port file descriptor (pySerial)
         self.sock_inet = None
         self.fw_sock_inet = None
         self.fw_serial_fd = None
         self.sock_conn = None
         self.sock_addr = None
         self.thread = None
-        self.aaa = device_port
         self.plugins = {}
+        self.request_timer = {}
 
     def __enter__(self):
         # start the read thread
@@ -453,7 +499,9 @@ class Elm:
         return False  # don't suppress any exceptions
 
     def terminate(self):
-        """ termination procedure """
+        """
+        Termination procedure.
+        """
         logging.debug("Start termination procedure.")
         if (self.thread and
                 self.threadState != self.THREAD.STOPPED and
@@ -468,7 +516,7 @@ class Elm:
         try:
             if self.slave_fd:
                 os.close(self.slave_fd)
-            if self.master_fd: # pty or device
+            if self.master_fd:  # pty or device
                 thread = threading.Thread(
                     target=os.close, args=(self.master_fd,))
                 thread.start()
@@ -478,7 +526,7 @@ class Elm:
                         'Cannot close file descriptor. '
                         'Forcing program termination.')
                     os._exit(5)
-            if self.serial_fd: # serial COM - pySerial
+            if self.serial_fd:  # serial COM - pySerial
                 self.reset_input_buffer()
                 self.reset_output_buffer()
                 self.serial_fd.close()
@@ -493,8 +541,8 @@ class Elm:
 
     def socket_server(self):
         """
-            create an INET, STREAMing socket
-            set self.sock_inet
+        Create an INET, STREAMing socket
+        Set self.sock_inet
         """
         if self.sock_inet:
             self.sock_inet.shutdown(socket.SHUT_RDWR)
@@ -554,7 +602,7 @@ class Elm:
             return True
 
         # else open the port
-        if self.device_port: # os IO
+        if self.device_port:  # os IO
             try:
                 self.master_fd = os.open(self.device_port, os.O_RDWR)
             except Exception as e:
@@ -562,7 +610,7 @@ class Elm:
                                  repr(self.device_port), e)
                 return None
             return True
-        elif self.serial_port: # pySerial COM
+        elif self.serial_port:  # pySerial COM
             try:
                 self.serial_fd = serial.Serial(
                     port=self.serial_port,
@@ -719,6 +767,11 @@ class Elm:
         return True
 
     def accept_connection(self):
+        """
+        Perform the "accept" socket method of an INET connection.
+        Return when a connection is accepted.
+        :return: True if a connection is accepted. False if error.
+        """
         if self.sock_conn is None or self.sock_addr is None:
 
             # Accept network connections
@@ -727,7 +780,7 @@ class Elm:
                     "Waiting for connection at %s", self.get_port_name())
                 (self.sock_conn, self.sock_addr) = self.sock_inet.accept()
             except OSError as msg:
-                if msg.errno == errno.EINVAL: # [Errno 22] invalid argument
+                if msg.errno == errno.EINVAL:  # [Errno 22] invalid argument
                     return False
                 logging.error("Failed accepting connection: %s", msg)
                 return False
@@ -735,13 +788,18 @@ class Elm:
         return True
 
     def serial_client(self):
+        """
+        Internally used by send_receive_forward().
+        Open the forwarded port if serial mode is used..
+        :return: True when successfully opened, otherwise False
+        """
         if self.fw_serial_fd:
             return True
         try:
             self.fw_serial_fd = serial.Serial(
                 port=self.forward_serial_port,
                 baudrate=int(self.forward_serial_baudrate)
-                    if self.forward_serial_baudrate else SERIAL_BAUDRATE,
+                if self.forward_serial_baudrate else SERIAL_BAUDRATE,
                 timeout=self.forward_timeout or FORWARD_READ_TIMEOUT)
             return True
         except Exception as e:
@@ -749,10 +807,15 @@ class Elm:
             return False
 
     def net_client(self):
+        """
+        Internally used by send_receive_forward()
+        Open a socket connection if socket mode is used.
+        :return: (not really used)
+        """
         if (self.fw_sock_inet
                 or self.forward_net_host is None
                 or self.forward_net_port is None):
-            return
+            return False
         s = None
         for res in socket.getaddrinfo(
                 self.forward_net_host, self.forward_net_port,
@@ -844,7 +907,7 @@ class Elm:
             if self.net_port:
                 postfix = ''
                 if extended:
-                    postfix = '\nWarning: the socket is bound '\
+                    postfix = '\nWarning: the socket is bound ' \
                               'to all interfaces.'
                 return ('TCP/IP network port ' + str(self.net_port) + '.'
                         + postfix)
@@ -890,9 +953,12 @@ class Elm:
 
     def read_from_device(self, bytes):
         """
-            read from the port; returns up to bytes characters
-            (generally 1)
-            and processes echo; returns None in case of error
+        Read from the port; returns up to bytes characters (generally 1).
+        Manage socket, serial or device output.
+        Process echo; returns None in case of error
+
+        :param bytes: max number of bytes to read (we use 1 byte a time)
+        :return: Read character(s) or None if error.
         """
 
         # Process inet
@@ -982,7 +1048,10 @@ class Elm:
 
     def normalized_read_line(self):
         """
-            reads the next newline delimited command
+            Read the next newline delimited command invoking read_from_device()
+            Concatenate read characters until newline.
+            Manage req_timeout input UDS P4 timer.
+            Manage send_receive_forward()
             returns a normalized string command
         """
         buffer = ""
@@ -1028,8 +1097,11 @@ class Elm:
 
     def write_to_device(self, i):
         """
-        write a response to the port (no data returned).
+        Write a response to the port (no data returned).
+        Manage socket, serial or device output.
         No return code.
+        :param i: encoded bytearray to be wrote
+        :return: (none)
         """
 
         # Process inet
@@ -1038,7 +1110,12 @@ class Elm:
                 self.terminate()
                 return
             try:
-                self.sock_conn.sendall(i)
+                if self.interbyte_out_delay:
+                    for j in i:
+                        self.sock_conn.sendall(bytes([j]))
+                        time.sleep(self.interbyte_out_delay)
+                else:
+                    self.sock_conn.sendall(i)
             except BrokenPipeError:
                 logging.error("Connection dropped.")
             return
@@ -1048,7 +1125,13 @@ class Elm:
 
             # Serial COM port (uses pySerial)
             try:
-                self.serial_fd.write(i)
+                if self.interbyte_out_delay:
+                    for j in i:
+                        self.serial_fd.write(bytes([j]))
+                        self.serial_fd.flush()
+                        time.sleep(self.interbyte_out_delay)
+                else:
+                    self.serial_fd.write(i)
             except Exception:
                 logging.debug(
                     'Error while writing to %s', self.get_port_name())
@@ -1062,7 +1145,13 @@ class Elm:
                 self.terminate()
                 return
             try:
-                os.write(self.master_fd, i)
+                if self.interbyte_out_delay:
+                    for j in i:
+                        os.write(self.master_fd, bytes([j]))
+                        os.fsync(self.master_fd)
+                        time.sleep(self.interbyte_out_delay)
+                else:
+                    os.write(self.master_fd, i)
             except OSError as e:
                 if e.errno == errno.EBADF or e.errno == errno.EIO:  # [Errno 9] Bad file descriptor/[Errno 5] Input/output error
                     logging.debug("Read interrupted. Terminating.")
@@ -1105,7 +1194,7 @@ class Elm:
         try:
             length = len(bytearray.fromhex(data))
             data = (sp.join('{:02x}'.format(x)
-                             for x in bytearray.fromhex(data)).upper())
+                            for x in bytearray.fromhex(data)).upper())
         except ValueError:
             logging.error('Invalid data in answer: %s', repr(data))
             return ""
@@ -1115,7 +1204,7 @@ class Elm:
             answer += is_flow_control + sp + data
         elif len(request_header) == 3:
             if use_headers:
-                if length > 7: # produce a multframe output
+                if length > 7:  # produce a multframe output
                     answer = (hex(int(request_header, 16) + 8)[2:].upper() +
                               sp + "10" + sp + "%02X" % length + sp)
                     bytes_to_add = 6
@@ -1138,16 +1227,17 @@ class Elm:
                     answer = answer.rstrip(sp + nl)
                 else:
                     answer = (hex(int(request_header, 16) + 8)[2:].upper() +
-                              sp + "%02X"%length + sp)
+                              sp + "%02X" % length + sp)
                     answer += data
             else:
                 if length > 7:  # produce a multframe output
                     if ('cmd_caf' in self.counters and
-                            not self.counters['cmd_caf']): # PCI byte in requests
+                            not self.counters[
+                                'cmd_caf']):  # PCI byte in requests
                         answer = "10" + sp + "%02X" % length + sp
-                        pci=True
+                        pci = True
                     else:
-                        pci=False
+                        pci = False
                         answer = "%03X" % length + nl + "0: "
                     bytes_to_add = 6
                     answer += data[:(3 if sp else 2) * bytes_to_add] + nl
@@ -1171,7 +1261,8 @@ class Elm:
                     answer = answer.rstrip(sp + nl)
                 else:
                     if ('cmd_caf' in self.counters and
-                            not self.counters['cmd_caf']): # PCI byte in requests
+                            not self.counters[
+                                'cmd_caf']):  # PCI byte in requests
                         answer = "%02X" % length + sp + data
                     else:
                         answer = data
@@ -1183,15 +1274,15 @@ class Elm:
                 logging.error('Unimplemented case.')
                 return ""
             if length < MIN_SIZE_UDS_LENGTH:
-                answer = (("%02X"%(128 + length) + sp +
+                answer = (("%02X" % (128 + length) + sp +
                            request_header[4:6] + sp +
                            request_header[2:4]) + sp + data)
             else:
-                answer = ("80" + sp + # Extra length byte follows
+                answer = ("80" + sp +  # Extra length byte follows
                           request_header[4:6] + sp +
                           request_header[2:4] + sp +
-                          "%02X"%length + sp + data)
-            try: # calculate checksum
+                          "%02X" % length + sp + data)
+            try:  # calculate checksum
                 answer += sp + "%02X" % (sum(bytearray.fromhex(answer)) % 256)
             except ValueError as e:
                 logging.error("Error in generated answer %s from HEX data "
@@ -1230,7 +1321,7 @@ class Elm:
 
         # Compute use_headers
         use_headers = ("cmd_use_header" in self.counters and
-                self.counters["cmd_use_header"])
+                       self.counters["cmd_use_header"])
 
         # Compute sp (space)
         if ('cmd_spaces' in self.counters
@@ -1288,7 +1379,7 @@ class Elm:
             elif i.tag.lower() == 'space':
                 answ += (i.text or "") + sp
             elif (i.tag.lower() == 'eval' or
-                    i.tag.lower() == 'exec'):
+                  i.tag.lower() == 'exec'):
                 logging.debug("Write: %s", repr(answ))
                 if i.tag.lower() == 'exec' and do_write:
                     self.write_to_device(answ.encode())
@@ -1359,8 +1450,8 @@ class Elm:
                     break
                 try:
                     request_data = (''.join('{:02x}'.format(x)
-                                     for x in bytearray.fromhex(
-                                        request_data[:4])).upper())
+                                            for x in bytearray.fromhex(
+                        request_data[:4])).upper())
                 except ValueError as e:
                     logging.error('Invalid request %s related to response %s '
                                   'including <%s> tag: %s',
@@ -1368,10 +1459,10 @@ class Elm:
                                   i.tag.lower(), e)
                     return ""
                 if i.tag.lower() == 'pos_answer':
-                    data = ("%02X"%(bytearray.fromhex(request_data[:2])[0]
-                                    | 0x40) +
+                    data = ("%02X" % (bytearray.fromhex(request_data[:2])[0]
+                                      | 0x40) +
                             uds_pos_answ + (i.text or ""))
-                else: # Generate a negative response UDS SID
+                else:  # Generate a negative response UDS SID
                     data = "7F" + sp + request_data[:2] + (i.text or "")
                 answ += self.uds_answer(data=data,
                                         request_header=request_header,
@@ -1423,9 +1514,9 @@ class Elm:
                 if re.match(cra_pattern, i.text):
                     # concatenate answ from header, size and data/subd
                     answ += ((((i.text or "") + sp + (size.text or "") + sp)
-                            if use_headers else "") +
-                            ((data.text or "") if sp else unspaced_data) +
-                            sp + (nl if data.tag.lower() == 'data' else ""))
+                              if use_headers else "") +
+                             ((data.text or "") if sp else unspaced_data) +
+                             sp + (nl if data.tag.lower() == 'data' else ""))
             else:
                 logging.error(
                     'Unknown tag "%s" in response "%s"', i.tag, resp)
@@ -1453,13 +1544,13 @@ class Elm:
          pre-process r_task and r_cont return values and return a tuple with
          all the three return values of the invoked method.
 
-        :param header:
-        :param ecu:
-        :param do_write:
-        :param task_method:
-        :param length:
-        :param frame:
-        :param cmd:
+        :param header: header string
+        :param ecu: ECU string
+        :param do_write: boolean set to True if the output has to be produced
+        :param task_method: pointer to the method to be executed
+        :param length: length byte extracted by handle_request
+        :param frame: frame number extracted by handle_request
+        :param cmd: request string produced by the ISO-TP data link
         :return: a tuple of three elements with the same return parameters
                 as the Task methods
         """
@@ -1508,6 +1599,11 @@ class Elm:
         return (r_cmd, r_task, r_cont)
 
     def account_task(self, ecu):
+        """
+        Create and increase the task counter.
+        :param ecu: ECU string
+        :return: (none)
+        """
         if ecu not in self.tasks:
             return
         try:
@@ -1534,6 +1630,7 @@ class Elm:
         :return: (header, request, None or an XML string)
         """
 
+        org_cmd = cmd
         # Sanitize cmd
         cmd = cmd.replace(" ", "")
         cmd = cmd.upper()
@@ -1545,9 +1642,8 @@ class Elm:
 
         # cmd_can is experimental (to be removed)
         if ('cmd_can' in self.counters and
-                self.counters['cmd_can'] and
-                cmd[:2] != 'AT'
-                and self.is_hex_sp(cmd [:3])):
+                self.counters['cmd_can']
+                and is_hex_sp(cmd[:3])):
             self.counters['cmd_set_header'] = cmd[:3]
             header = cmd[:3]
             self.counters['cmd_caf'] = False
@@ -1562,7 +1658,7 @@ class Elm:
             else:
                 ecu = header
 
-        # manages delay
+        # manages delay timer
         logging.debug("Handling: %s, header %s, ECU %s",
                       repr(cmd), repr(header), repr(ecu))
         if self.delay > 0:
@@ -1579,29 +1675,38 @@ class Elm:
                 self.task_shared_ns[ecu] = SimpleNamespace()
             self.shared = self.task_shared_ns[ecu]
 
-        # manages cmd_caf, length, frame - Process UDS ISO-TP Multiframe data link
+        # manage cmd_caf, length, frame - Process UDS ISO-TP Multiframe data link
         size = cmd[:2]
-        length = None # no byte length in request
-        frame = None # Single Frame
+        length = None  # no byte length in request
+        frame = None  # Single Frame by default
+        if ecu and is_hex_sp(cmd):  # not AT or ST command
+            if (ecu in self.request_timer and
+                    self.request_timer[ecu] + self.multiframe_timer <
+                    time.time()):
+                if ecu in self.tasks and len(self.tasks[ecu]):
+                    logging.warning(
+                        "UDS P3 timer expired, removing active tasks.")
+                    del self.tasks[ecu]
+            self.request_timer[ecu] = time.time()
         if ('cmd_caf' in self.counters and
-                not self.counters['cmd_caf'] and # PCI byte in requests
-                size != 'AT' and self.is_hex_sp(size)):
+                not self.counters['cmd_caf'] and  # PCI byte in requests
+                is_hex_sp(cmd)):  # not AT or ST command
             try:
                 int_size = int(size, 16)
             except ValueError as e:
                 logging.error('Improper size %s for request %s: %s',
-                              repr(size), repr(cmd), e)
+                              repr(size), repr(org_cmd), e)
                 return header, cmd, ""
             payload = cmd[2:]
             if not payload:
-                logging.error('Missing data for request "%s"', repr(cmd))
+                logging.error('Missing data for request "%s"', repr(org_cmd))
                 return header, cmd, ""
-            if size[0] == '0': # Single-Frame
-                if int_size < 8: # valid value
+            if size[0] == '0':  # Single-Frame
+                if int_size < 8:  # valid value
                     if len(payload) < int_size * 2:
                         logging.error(
                             'In request %s, data %s has an improper length '
-                            'of %s bytes', repr(cmd), repr(payload), size)
+                            'of %s bytes', repr(org_cmd), repr(payload), size)
                         return header, cmd, ""
                     cmd = payload[:int_size * 2]
                     length = int_size
@@ -1613,9 +1718,10 @@ class Elm:
                                   'greater than 7 bytes. %s',
                                   repr(size))
                     return header, cmd, ""
-            elif size[0] == '1': # e.g., 10 = first frame of a ISO-TP Multiframe fequest
+            elif size[
+                0] == '1':  # e.g., 10 = first frame of a ISO-TP Multiframe fequest
                 try:
-                    length = int(cmd[1:4], 16) # read ISO-TP Multiframe length
+                    length = int(cmd[1:4], 16)  # read ISO-TP Multiframe length
                     logging.debug(
                         'ISO-TP Multiframe message with length 0x%s = (int) %s '
                         '(message %s)', repr(cmd[1:4]), length, repr(cmd))
@@ -1624,7 +1730,7 @@ class Elm:
                         "cmd: %s", length, frame, header, cmd)
                 except ValueError as e:
                     logging.error('Improper size %s for request %s: %s',
-                                  repr(cmd[2:4]), repr(cmd), e)
+                                  repr(cmd[2:4]), repr(org_cmd), e)
                     return header, cmd, ""
                 cmd = cmd[4:]
                 frame = 0
@@ -1632,21 +1738,22 @@ class Elm:
                 cmd = cmd[2:]
                 if int_size == 32:  # the frame includes 20 after 1F
                     frame = -1  # Marker for ISO-TP Multiframe() to detect a recycle
-                if int_size > 32 and int_size < 48:  # from 21 to 2F
-                    frame = int_size - 32  # compute the multframe count
+                if 32 < int_size < 48:  # from 21 to 2F
+                    frame = int_size - 32  # compute the multiframe count
                 logging.debug(
                     "Consecutive-Frame. Length: %s, frame: %s, header: %s, "
                     "cmd: %s", length, frame, header, cmd)
-            elif size[0] == '3':  # e.g., from 30 on = flow control of a ISO-TP Multiframe fequest
+            elif size[
+                0] == '3':  # e.g., from 30 on = flow control of a ISO-TP Multiframe fequest
                 try:
                     self.shared.flow_control_fc_flag = int(size[1])
                     self.shared.flow_control_block_size = int(cmd[2:4], 16)
                     self.shared.flow_control_separation_time = int(cmd[4:6], 16)
                 except Exception as e:
                     logging.error(
-                        'Improper Flow-control-Frame %s: %s', repr(cmd), e)
+                        'Improper Flow-control-Frame %s: %s', repr(org_cmd), e)
                     return header, cmd, ""
-                if self.shared.flow_control_fc_flag == 0: # Clear To Send
+                if self.shared.flow_control_fc_flag == 0:  # Clear To Send
                     if self.shared.flow_control_block_size > 0:
                         logging.debug(
                             'Flow-control-Frame. Input is ignored by now: '
@@ -1657,31 +1764,31 @@ class Elm:
                             self.shared.flow_control_fc_flag,
                             self.shared.flow_control_block_size,
                             self.shared.flow_control_separation_time)
-                elif self.shared.flow_control_fc_flag == 1: # Wait
+                elif self.shared.flow_control_fc_flag == 1:  # Wait
                     sleep = self.shared.flow_control_separation_time
                     if sleep > 240:
                         sleep = ((self.shared.flow_control_separation_time -
                                   240) * 100)
                     logging.debug(
                         'Sleeping for %s milliseconds', sleep)
-                    time.sleep(sleep/1000)
-                elif self.shared.flow_control_fc_flag == 2: # 2 = Overflow/abort
+                    time.sleep(sleep / 1000)
+                elif self.shared.flow_control_fc_flag == 2:  # 2 = Overflow/abort
                     logging.error('Overflow-abort received in ISO-TP '
-                                  'Flow-control-Frame. %s', repr(cmd))
+                                  'Flow-control-Frame. %s', repr(org_cmd))
                     return header, cmd, ""
                 else:
                     logging.error(
                         'Improper Flow-control-Frame FC flag %s. %s: %s',
-                        self.shared.flow_control_fc_flag, repr(cmd))
+                        self.shared.flow_control_fc_flag, repr(org_cmd))
                     return header, cmd, ""
                 return header, cmd, None
             else:
                 logging.error('Invalid ISO-TP type %s for frame %s.',
-                              repr(size[0]), repr(cmd))
+                              repr(size[0]), repr(org_cmd))
                 return header, cmd, ""
 
         # Manage ISO-TP Multiframe
-        if length is not None and frame is not None: # ISO-TP Multiframe condition
+        if length is not None and frame is not None:  # ISO-TP Multiframe condition
             if ecu not in self.tasks:
                 self.tasks[ecu] = []
             if len(self.tasks[ecu]) > MAX_TASKS:
@@ -1691,7 +1798,7 @@ class Elm:
                     ecu, self.tasks[ecu][-1].__module__)
                 return header, cmd, ""
             if (len(self.tasks[ecu]) and
-                self.tasks[ecu][-1].__module__ == ISO_TP_MULTIFRAME_MODULE):
+                    self.tasks[ecu][-1].__module__ == ISO_TP_MULTIFRAME_MODULE):
                 logging.error(
                     'Improper frame within ISO-TP ISO-TP Multiframe. ECU: %s, '
                     'data length: %s, frame: %s, data: %s',
@@ -1703,22 +1810,26 @@ class Elm:
             )
             self.tasks[ecu][-1].__module__ = ISO_TP_MULTIFRAME_MODULE
         # Manage active tasks
-        if ecu in self.tasks and self.tasks[ecu]: # if a task exists
-            if self.len_hex(cmd):
+        if ecu in self.tasks and self.tasks[ecu]:  # if a task exists
+            if len_hex(cmd):
                 r_cmd, *_, r_cont = self.task_action(header, ecu, do_write,
-                    self.tasks[ecu][-1].run, cmd, length, frame)
+                                                     self.tasks[ecu][-1].run,
+                                                     cmd, length, frame)
                 if r_cont is None:
                     return header, cmd, r_cmd
                 else:
                     cmd = r_cont
                     frame = None
                     length = None
-            else:
+            else: # AT or ST command
+                frame = None
                 if INTERRUPT_TASK_IF_NOT_HEX:
                     logging.warning('Interrupted task "%s" for ECU "%s"',
                                     self.tasks[ecu][-1].__module__, ecu)
                     r_cmd, *_, r_cont = self.task_action(header, ecu, do_write,
-                        self.tasks[ecu][-1].stop, cmd, length, frame)
+                                                         self.tasks[ecu][
+                                                             -1].stop, cmd,
+                                                         length, frame)
                     if ecu in self.tasks and self.tasks[ecu]:
                         del self.tasks[ecu][-1]
                     if r_cont is None:
@@ -1730,6 +1841,10 @@ class Elm:
                         'Non-hex request "%s" will not be passed to active '
                         'task "%s" for ECU "%s".',
                         cmd, self.tasks[ecu][-1].__module__, ecu)
+
+        if frame is not None:
+            logging.error("Invalid multiframe %s", repr(org_cmd))
+            return header, cmd, ""
 
         # Process response for data stored in cmd
         i_obd_msg = iter(self.sortedOBDMsg)
@@ -1792,13 +1907,13 @@ class Elm:
                             self.tasks[ecu][-1].start, cmd, length, frame)
                         if r_cont is None:
                             return header, cmd, r_cmd
-                        else: # chain a subsequent command
-                            if cmd == r_cont: # no transformation performed
+                        else:  # chain a subsequent command
+                            if cmd == r_cont:  # no transformation performed
                                 logging.debug(
                                     'Passthrough task executed: '
                                     'continue processing %s for ECU %s.',
                                     cmd, ecu)
-                            else: # newly reprocess the changed request
+                            else:  # newly reprocess the changed request
                                 chained_command += 1
                                 if chained_command > MAX_TASKS:
                                     logging.critical(
@@ -1808,7 +1923,7 @@ class Elm:
                                     return header, cmd, ""
                                 cmd = r_cont
                                 i_obd_msg = iter(self.sortedOBDMsg)
-                                continue # restart the loop from the beginning
+                                continue  # restart the loop from the beginning
                     else:
                         logging.error(
                             'Unexisting plugin "%s" for pid "%s"',
@@ -1823,11 +1938,11 @@ class Elm:
                             val['Exec'], pid, e)
                 log_string = ""
                 if 'Info' in val:
-                    log_string = "logging.info(%s)"%val['Info']
+                    log_string = "logging.info(%s)" % val['Info']
                 if 'Warning' in val:
-                    log_string = "logging.warning(%s)"%val['Warning']
+                    log_string = "logging.warning(%s)" % val['Warning']
                 if 'Log' in val:
-                    log_string = "logging.debug(%s)"%val['Log']
+                    log_string = "logging.debug(%s)" % val['Log']
                 if log_string:
                     try:
                         exec(log_string)
@@ -1887,7 +2002,7 @@ class Elm:
             logging.warning(
                 'Missing data in dictionary: %s. Answer:\n%s',
                 repr(cmd), repr(fw_data))
-        if self.len_hex(cmd):
+        if len_hex(cmd):
             if header:
                 logging.info("Unknown request: %s, header=%s",
                              repr(cmd), self.counters["cmd_set_header"])
@@ -1900,18 +2015,3 @@ class Elm:
         else:
             logging.info("Unknown ELM command: %s", repr(cmd))
         return header, cmd, self.ELM_R_UNKNOWN
-
-    def is_hex_sp(self, s):
-        return re.match(r"^[0-9a-fA-F \t\r\n]*$", s or "") is not None
-
-    def len_hex(self, s):
-        """
-        Check that the argument string is hexadecimal. If not, return False.
-        If hex, return the number of hex bytes.
-        :param s: hex string
-        :return: either the number of hex bytes or false
-        """
-        try:
-            return len(bytearray.fromhex(s))
-        except Exception:
-            return False

@@ -381,6 +381,48 @@ class Interpreter(Cmd):
             return
         print("Using " + self.emulator.get_port_name(extended=True))
 
+    def do_timer(self, arg):
+        "Print or set the UDS timers P1, P2, P3, P4. The first argument\n"\
+        "is the timer name, the second is the value in seconds. Without\n"\
+        "arguments, print all timer values. Decimals are allowed."
+        args = arg.split()
+        usage = "Usage: timer {P1|P2|P3|P4} seconds"
+        if not args:
+            print ("P1: {} seconds "
+                   "- UDS P1 timer - Inter byte time for ECU response".format(
+                self.emulator.interbyte_out_delay))
+            print("P2: {} seconds "
+                  "- UDS P2 timer - Time between tester request and ECU "
+                  "response or two ECU responses".format(
+                self.emulator.delay))
+            print("P3: {} seconds "
+                  "- UDS P3 Timer - Time between end of ECU responses and "
+                  "start of new tester request".format(
+                self.emulator.multiframe_timer))
+            print("P4: {} seconds "
+                  "- UDS P4 timer - Inter byte time for tester request".format(
+                self.emulator.counters['req_timeout']))
+            return
+        if len(args) != 2:
+            print("Invalid format. {}", usage)
+            return
+        try:
+            if args[0].lower() == 'p1':
+                self.emulator.interbyte_out_delay = float(args[1])
+            elif args[0].lower() == 'p2':
+                self.emulator.delay = float(args[1])
+            elif args[0].lower() == 'p3':
+                self.emulator.multiframe_timer = float(args[1])
+            elif args[0].lower() == 'p4':
+                self.emulator.counters['req_timeout'] = float(args[1])
+            else:
+                print ("Invalid format for timer {}. {}".format(
+                        repr(args[0]), usage))
+        except ValueError:
+            print ("Invalid format for timer value {}. {}".format(
+                repr(args[1]), usage))
+            return
+
     def do_tasks(self, arg):
         "Print all available plugins; for each used ECU, print all active\n"\
         "tasks and dump related namespaces; dump also the shared namespaces."
@@ -655,7 +697,7 @@ class Interpreter(Cmd):
         return Cmd.precmd(self, line)
 
     def postcmd(self, stop, line):
-        self.emulator.setSortedOBDMsg()
+        self.emulator.set_sorted_obd_msg()
         return Cmd.postcmd(self, stop, line)
 
     def preloop(self):
@@ -713,7 +755,7 @@ def set_scenario(emulator, scenario):
         if scenario:
             print("Invalid scenario '%s'" % scenario)
         emulator.scenario = 'car'
-    emulator.setSortedOBDMsg()
+    emulator.set_sorted_obd_msg()
     print("Emulator scenario switched to '%s'" % emulator.scenario)
 
 

@@ -93,7 +93,7 @@ All subsequent information are not needed for a basic usage of the tool and allo
 
 # Compatibility
 
-*ELM327-emulator* has been tested with Python 3.5, 3.6 and 3.7. Python 2 is not supported.
+*ELM327-emulator* has been tested with Python 3.6, 3.7, 3.8. Previous Python versions are not supported.
 
 When using serial communication, with UNIX OSs, this code uses pty pseudo-terminals. With Windows, you should first install [com0com](https://sourceforge.net/projects/com0com) (a kernel-mode virtual serial port driver), or [other virtual serial port software](http://com0com.sourceforge.net/); alternatively, [cygwin](http://www.cygwin.com/) and [Windows Subsystem for Linux](https://docs.microsoft.com/en-us/windows/wsl) (WSL) are supported.
 
@@ -104,17 +104,6 @@ When natively running on Windows (to be used when connecting a Windows applicati
 ```shell
 python3 -m elm -p COM5
 ```
-
-In addition, *ELM327-emulator* allows testing OBD-II requests through the *test* command directly via the command line, like in this example, where the '010C' pid is tested:
-
-```shell
-python3 -m elm -s car
-test 010c
-test ath1
-test 010c
-```
-
-The answer (*Command output*) will be `41 0C 13 FB \r\r>`, `OK\r\r>`, `7E8 04 41 0C 09 F6 \r\r>`, which will reflect what *ELM327-emulator* returns to a real OBD-II application.
 
 # Usage
 The description of the *ELM327-emulator* command-line option is the following:
@@ -226,6 +215,7 @@ Command|Description
 `resume`|resume the execution after pausing; also prints the used device. (Related attribute is `emulator.threadState = emulator.THREAD.ACTIVE`)
 `delay <n>`|delay each emulator response of `<n>` seconds (floating-point number; default is 0.5 seconds)
 `wait <n>`|delay the execution of the next command of `<n>` seconds (floating-point number; default is 10 seconds)
+`timer [<name> <value>]`|Print or set the UDS timers P1, P2, P3, P4. The first argument is the timer name, the second is the value in seconds. Without arguments, print all timer values. Decimals are allowed.
 `engineoff`|switch to *engineoff* scenario
 `scenario <scenario>`|switch to `<scenario>` scenario; if the scenario is missing or invalid, defaults to `'car'`. The autocompletion (by pressing or double-pressing TAB with UNIX systems) allows prompting all compatible scenarios defined in `emulator.ObdMessage`. (Related attribute is `emulator.scenario`.)
 `default`|reset to *default* scenario
@@ -239,6 +229,19 @@ Command|Description
 In addition to the previously listed keywords, any Python command is allowed to query/configure the backend thread.
 
 At the command prompt, cursors and [keyboard shortcuts](https://github.com/chzyer/readline/blob/master/doc/shortcut.md) are allowed. Autocompletion (via TAB key) is active with UNIX systems for all previously described commands and also allows Python keywords and namespaces (built-ins, self and global). If the autocompletion matches a single item, this is immediately expanded; Conversely, if more possibilities are matched, none of them is returned, but pressing TAB again a list of available options is displayed. Tab autocompletion is not supported on Windows.
+
+## Testing OBD-II requests
+
+*ELM327-emulator* allows testing OBD-II requests through the *test* command directly via the command line, like in this example, where the '010C' pid is tested:
+
+```shell
+python3 -m elm -s car
+test 010c
+test ath1
+test 010c
+```
+
+The answer (*Command output*) will be `41 0C 13 FB \r\r>`, `OK\r\r>`, `7E8 04 41 0C 09 F6 \r\r>`, which will reflect what *ELM327-emulator* returns to a real OBD-II application.
 
 ## Special setters
 
@@ -403,11 +406,11 @@ scenario mt05
 edit MONITOR 0x0E AA BB
 ```
 
-Notice that the mt05 scenario is automatically set by the 'UDS_START_COMM' PID (81). The method to dynamically change scenario is `self.setSortedOBDMsg(scenario)`.
+Notice that the mt05 scenario is automatically set by the 'UDS_START_COMM' PID (81). The method to dynamically change scenario is `self.set_sorted_obd_msg(scenario)`.
 
 ## Advanced usage
 
-The emulator includes a timeout management for each entered character, which by default is not active (e.g., set to 1440 seconds). This setting can be configured through `emulator.counters['req_timeout']`. Decimals are allowed. Some adapters provide a feature that discards characters if each of them is not entered within a short time limit (apart from the first one after a CR/Carriage Return). The appropriate emulation for this timeout is to set `emulator.counters['req_timeout']=0.015` (e.g., 15 milliseconds). Typing commands by hand via terminal emulator with such adapters is not possible as the allowed timing is too short. The same happens when setting *req_timeout* to 0.015.
+*ELM327-emulator* allows changing the UDS P1, P2, P3 and P4 timers via the `timer` command. The P4 timer controls the max delay between each entered character and by default is not active (e.g., set to 1440 seconds). The P4 timer can be configured via `timer P4 value` or by setting `emulator.counters['req_timeout']`. Decimals are allowed. Some adapters set P4 by default, discarding characters if each of them is not entered within a short time limit (apart from the first one after a CR/Carriage Return). The appropriate emulation for this timeout is to set `emulator.counters['req_timeout']=0.015` (e.g., 15 milliseconds). Typing commands by hand via terminal emulator with such adapters is not possible as the allowed timing is too short. The same happens when setting *req_timeout* to 0.015 (or `timer P4 0.015`).
 
 The command prompt also allows configuring the `emulator.answer` dictionary (ref. also previous paragraph), which has the goal to dynamically redefine answers for specific PIDs (`'Pid': '...'`). Its syntax is:
 
@@ -417,7 +420,7 @@ emulator.answer = { 'pid' : 'answer', 'pid' : 'answer', ... }
 
 Example:
 
-```python
+```
 emulator.answer = { 'SPEED': '<writeln>NO DATA</writeln>', 'RPM': '<writeln>NO DATA</writeln>' }
 # Or, alternatively:
 emulator.answer['SPEED']='<writeln>NO DATA</writeln>'
@@ -430,7 +433,7 @@ The above example forces SPEED and RPM PIDs to always return "NO DATA".
 
 To reset the *emulator.answer* string to its default value:
 
-```python
+```
 emulator.answer = {}
 # Or, alternatively:
 del emulator.answer['SPEED']
@@ -582,7 +585,7 @@ The output is:
 
 Or, alternatively, use the header variable instead of the header digits:
 
-```python
+```
 emulator.answer['CUSTOM_FUEL_LEVEL'] = '<exec>ECU_R_ADDR_I + " 03 61 29 " + "%.2X" % int(15.5*2)</exec><writeln> </writeln>'
 scenario car
 test ath1
@@ -592,7 +595,7 @@ test 2129
 
 The following command sets SPEED ([Vehicle speed](https://en.wikipedia.org/wiki/OBD-II_PIDs#Service_01)) to 60 km/h via command line (60 can be changed to any integer value between 0 and 255):
 
-```python
+```
 emulator.answer['SPEED'] = '<header>7E8</header><size>03</size><subd>41 0D</subd><eval>"%.2X" % 60</eval><space /><writeln />'
 scenario car
 test ath1
@@ -614,7 +617,7 @@ emulator.answer['RPM'] = '<exec>ECU_R_ADDR_E + " 04 41 0C %.4X" % int(4 * 500)</
 
 or
 
-```python
+```
 emulator.answer['RPM'] = '<header>7E8</header><size>04</size><subd>41 0C</subd><eval>"%.4X" % int(4 * 500)</eval><space /><writeln />'
 scenario car
 test ath1
@@ -632,7 +635,7 @@ To list the configuration, type `emulator.answer`, or simply `counters`. To remo
 
 Command to configure PID '0100' answer (*PIDS_A*) to `BUS INIT: OK` for its first query and to `48 6B 13 41 00 BE 1F B8 11 AD \r` for all the subsequent queries:
 
-```python
+```
 emulator.answer['ELM_PIDS_A'] = '<exec>"BUS INIT: OK" if self.counters["ELM_PIDS_A"] &lt; 2 else "48 6B 13 41 00 BE 1F B8 11 AD "</exec><writeln />'
 scenario car
 test ath1
@@ -705,6 +708,19 @@ The result will be `7E8 30 30 20 00 \r\r>`.
 
 To write the output of a `test` command to the application, copy its *Raw command* output and paste it to a `write` command.
 
+## Timers
+
+The command `timer` allow showing or changing the UDS timers.
+
+Values are in seconds (floating numbers are allowed).
+
+Timer name|Description|Default value|Note
+----------|-----------|-------------|----
+P1|Inter byte time for ECU response|0|If set to a value different than 0, *ELM327-emulator* outputs characters one by one, adding a delay after each of them.
+P2|Time between tester request and ECU response or two ECU responses|0|Same as the `delay` command.
+P3|Time between end of ECU responses and start of new tester request|5|If expiring within a multiframe or within an active task, the related operation is interrupted and the active tasks of the ECU are removed.
+P4|Inter byte time for tester request|1440|Changing this value configures the *req_timeout* counter.
+
 ## Tasks
 
 *ELM327-emulator* provides an extendable plugin architecture defining *tasks*, which are entities allowing the implementation of stateless and stateful procedures, that can be nested and are chainable. Through plugins, *ELM327-emulator* offers a development framework to easily implement emulation objects, which are able to manage persistent data within the same instance (its namespace) and within the same ECU (shared namespace). Tasks allow emulating multiple ECUs concurrently, where each ECU has its own persistent data space.
@@ -717,8 +733,9 @@ A task is invoked in the dictionary through the `'Task'` tag, that refers to the
 
 Tasks are interrupted by the following conditions:
 
-- task termination performed by the plugin itself (e.g, returning a method with `False` or with `self.TASK.TERMINATE` in the return tuple)
-- communication reset (e.g., communication disconnection, or "ATZ", or *reset* command).
+- task termination performed by the plugin itself (e.g, returning a method with `False` or with `self.TASK.TERMINATE` in the return tuple);
+- communication reset (e.g., communication disconnection, or "ATZ", or *reset* command);
+- expiration of the P3 timer.
 
 Tasks and plugins can be monitored through the `tasks` command.
 
@@ -798,19 +815,18 @@ For instance, a plugin named *plugins/task_routine.py* defines the task *task_ro
         },
 ```
 
-The following table shows the UDS protocol sequence:
+The following table shows the UDS protocol sequence for this example:
 
 Application (request)| ECU (response)|Protocol                            |Description
 -----------|-------------|-----------------------------------------------|-----------------
-10 85      | 50 85       |StartDiagnosticSession, ECUProgrammingMode     |Start Programming Mode (positive answer)
-27 01      | 67 01 12 44 |SecurityAccess, requestSeed                    |Start seed & key and request the seed from ECU (positive answer, the seed 12 44 is then sent back from the ECU to the application)
-27 02 33 22| 67 02       |SecurityAccess, sendKey                        |Send security key 33 22 to ECU (positive answer)
-31 01      | 71 01       |StartRoutineByLocalIdentifier, ID = 01 (Start) |Start flash driver download into RAM (positive answer)
+10 85      | 50 85       |StartDiagnosticSession, ECUProgrammingMode     |Start Programming Mode (ECU returns a positive answer)
+27 01      | 67 01 12 44 |SecurityAccess, requestSeed                    |Start seed & key and request seed to ECU (ECU returns a positive answer, the seed 12 44 is then sent back from the ECU to the application)
+27 02 33 22| 67 02       |SecurityAccess, sendKey                        |Send security key 33 22 to ECU (ECU returns a positive answer)
+31 01      | 71 01       |StartRoutineByLocalIdentifier, ID = 01 (Start) |Start flash driver download into RAM (ECU returns a positive answer)
 
-In such example, a request of type `3101...` will start the task *task_routine*, which can immediately return (if `Tasks.RETURN.TERMINATE` is used) or will also be able (not in this example of task) to process any subsequent request (also if not matching `3101...`), until the plugin is terminated (case when `Tasks.RETURN.CONTINUE` is used). In the above example, the `'Header'` attribute is not set, so any header will be valid.
+In such example, a request of type `3101...` will start the task *task_routine*, which can immediately return (if `Tasks.RETURN.TERMINATE` is used), or (in case `Tasks.RETURN.CONTINUE` is used) will also be able (not in this example of task) to process any subsequent request (also if not matching `3101...`), until the plugin is terminated. In the above example, the `'Header'` attribute is not set, so any header will be valid.
 
-In the following example of a basic task related to the Python plugin named "task_routine.py", the
-shared `self.shared.auth_successful` attribute is checked in order to immediately return either a positive or negative answer (`Task.RETURN.ANSWER` uses `Tasks.RETURN.TERMINATE`):
+In the following code shows a basic task related to the Python plugin named "task_routine.py":
 
 ```python
 from elm import Tasks
@@ -828,7 +844,7 @@ class Task(Tasks): # UDS Routine Control (31): Start (01)
             return Task.RETURN.ANSWER(self.NA('33')) # Return 7F 31 33
 ```
 
-In the above example, notice also that the *UDS_SEND_KEY* PID sets `self.shared.auth_successful` to *True* if the security key is correct and returns either positive or negative answer, exploiting a `ResponseFooter` type lambda function. The example shows that both tasks and response functions are ways to implement process steps (in this example, the result is similar): while response functions are quick to implement, tasks allow much more flexibility.
+In the above example, the shared `self.shared.auth_successful` attribute is checked in order to immediately return either a positive or negative answer (`Task.RETURN.ANSWER` uses `Tasks.RETURN.TERMINATE`). Notice also that the *UDS_SEND_KEY* PID sets `self.shared.auth_successful` to *True* if the security key is correct and returns either positive or negative answer, exploiting a `ResponseFooter` type lambda function. The example shows that both tasks and response functions are ways to implement process steps (in the specific case shown by the example, the result is similar): while response functions are quick to implement, tasks allow much more flexibility.
 
 Notice that `self.shared` is only available within the same ECU. If multiple ECUs are concurrently configured and interacted (each one with its own header), different ECUs will have their own shared namespace.
 
@@ -1209,6 +1225,12 @@ Note: with Windows, options `-d` and `-t` are not available.
 The following script shows an example of batch mode usage. *obd_dictionary* is run after starting *ELM327-emulator* in background and is used here as example of external application interfacing the emulator. The output of the emulator is saved to $FILE and the background process id is saved to $EMUL_PID.
 
  ```shell
+#!/usr/bin/env bash
+
+set -o errexit
+set -o pipefail
+set -o nounset
+
 FILE=/tmp/elm$$
 echo -e 'scenario car\ncounters' | elm -b "${FILE}" &
 EMUL_PID=$!
