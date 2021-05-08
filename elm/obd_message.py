@@ -804,7 +804,32 @@ ObdMessage = {
             'Descr': 'In-use performance tracking (compression ignition)',
             'Response': PA('00 00')
         },
-    # ----------------------------------------------------------------------
+        'UNKNOWN_2100_E': {
+            'Request': '^2100' + ELM_FOOTER,
+            'Descr': 'UNKNOWN_2100',
+            'Response': PA(
+                '4A4D5A424B313459323731353437303037FFFFFFFF2AFFFFFF'
+                'FF033D0DA4FFFF9641FFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFF'
+                'FFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFF0000FFFFFFFF'
+                'FFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFF'
+                'FFFFFFFFFFFFFFFFFFFFFFFFFFFFFF36C9FF30')
+        },
+        'ECU_IVN_HW': {
+            'Request': '^2103' + ELM_FOOTER,
+            'Descr': 'ECU internal version numbers - Hardware Part Number',
+            'Response': PA('46 31'),
+        },
+        'UNK_3B00': {
+            'Request': '^3B00' + ELM_DATA_FOOTER,
+            'Descr': 'UNK_3B00',
+            'Response': PA(''),
+        },
+        'UNK_3B03': {
+            'Request': '^3B03' + ELM_DATA_FOOTER,
+            'Descr': 'UNK_3B03',
+            'Response': PA(''),
+        },
+        # ----------------------------------------------------------------------
     # UDS commands used by MT05
         'UDS_START_COMM': {
             'Request': '^81' + ELM_FOOTER,

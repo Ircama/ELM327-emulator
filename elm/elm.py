@@ -74,6 +74,7 @@ uds_sid_pos_answer = {
     "30": 1,  # IO Control by Local Id
     "31": 1,  # Routine Control - Start Routine by Local ID (RC)
     "38": 0,  # Start Routine by Address
+    "3B": 1,  # ?
     "3D": 0,  # Write Memory by Address (WMBA)
     "3E": 1,  # Tester Present (TP)
     "85": 1,  # Control DTC Setting
