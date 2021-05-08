@@ -386,7 +386,8 @@ class Interpreter(Cmd):
         "is the timer name, the second is the value in seconds. Without\n"\
         "arguments, print all timer values. Decimals are allowed."
         args = arg.split()
-        usage = "Usage: timer {P1|P2|P3|P4} seconds"
+        usage = (
+            'Usage: timer {P1|P2|P3|P4} seconds; ref. "help timer" command.')
         if not args:
             print ("P1: {} seconds "
                    "- UDS P1 timer - Inter byte time for ECU response".format(
@@ -404,7 +405,8 @@ class Interpreter(Cmd):
                 self.emulator.counters['req_timeout']))
             return
         if len(args) != 2:
-            print("Invalid format. {}", usage)
+            print("Invalid format. {}. {}".format(
+                repr(args[0]), usage))
             return
         try:
             if args[0].lower() == 'p1':

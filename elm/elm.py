@@ -20,7 +20,6 @@ if not os.name == 'nt':
     import pty
 import threading
 import time
-import sys
 import traceback
 import errno
 from random import randint, choice
@@ -28,7 +27,7 @@ from .obd_message import ObdMessage
 from .obd_message import ELM_R_OK, ELM_R_UNKNOWN, ST
 from .obd_message import ECU_ADDR_E, ECU_R_ADDR_E, ECU_ADDR_I, ECU_R_ADDR_I
 from .__version__ import __version__
-from functools import reduce
+from functools import reduce # only used in readme examples
 import string
 import xml.etree.ElementTree as ET
 import importlib
@@ -1658,7 +1657,7 @@ class Elm:
             else:
                 ecu = header
 
-        # manages delay timer
+        # manages the UDS P2 delay timer
         logging.debug("Handling: %s, header %s, ECU %s",
                       repr(cmd), repr(header), repr(ecu))
         if self.delay > 0:

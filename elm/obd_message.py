@@ -809,13 +809,13 @@ ObdMessage = {
         'UDS_START_COMM': {
             'Request': '^81' + ELM_FOOTER,
             'Descr': 'UDS Start Communication',
-            'Exec': 'self.setSortedOBDMsg("mt05")',
+            'Exec': 'self.set_sorted_obd_msg("mt05")',
             'Response': PA('EF 8F')
         },
         'UDS_STOP_COMM': {
             'Request': '^82' + ELM_FOOTER,
             'Descr': 'UDS Stop Communication',
-            'Exec': 'self.setSortedOBDMsg("default")',
+            'Exec': 'self.set_sorted_obd_msg("default")',
             'Response': PA('')
         },
     },

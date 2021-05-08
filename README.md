@@ -410,7 +410,7 @@ Notice that the mt05 scenario is automatically set by the 'UDS_START_COMM' PID (
 
 ## Advanced usage
 
-*ELM327-emulator* allows changing the UDS P1, P2, P3 and P4 timers via the `timer` command. The P4 timer controls the max delay between each entered character and by default is not active (e.g., set to 1440 seconds). The P4 timer can be configured via `timer P4 value` or by setting `emulator.counters['req_timeout']`. Decimals are allowed. Some adapters set P4 by default, discarding characters if each of them is not entered within a short time limit (apart from the first one after a CR/Carriage Return). The appropriate emulation for this timeout is to set `emulator.counters['req_timeout']=0.015` (e.g., 15 milliseconds). Typing commands by hand via terminal emulator with such adapters is not possible as the allowed timing is too short. The same happens when setting *req_timeout* to 0.015 (or `timer P4 0.015`).
+*ELM327-emulator* allows changing the UDS P1, P2, P3 and P4 [timers](#timers) via the `timer` command. The P4 timer controls the max delay between each entered character and by default is not active (e.g., set to 1440 seconds). The P4 timer can either be configured via `timer P4 value`, or by setting `emulator.counters['req_timeout']`. Decimals are allowed. Some adapters set P4 by default, discarding characters if each of them is not entered within a short time limit (apart from the first one after a CR/Carriage Return). The appropriate emulation for this timeout is to set `emulator.counters['req_timeout']=0.015` (e.g., 15 milliseconds). Typing commands by hand via terminal emulator with such adapters is not possible as the allowed timing is too short. The same happens when setting *req_timeout* to 0.015 (or `timer P4 0.015`).
 
 The command prompt also allows configuring the `emulator.answer` dictionary (ref. also previous paragraph), which has the goal to dynamically redefine answers for specific PIDs (`'Pid': '...'`). Its syntax is:
 
@@ -710,16 +710,16 @@ To write the output of a `test` command to the application, copy its *Raw comman
 
 ## Timers
 
-The command `timer` allow showing or changing the UDS timers.
+The `timer` command allows showing or changing the UDS timers.
 
 Values are in seconds (floating numbers are allowed).
 
 Timer name|Description|Default value|Note
-----------|-----------|-------------|----
-P1|Inter byte time for ECU response|0|If set to a value different than 0, *ELM327-emulator* outputs characters one by one, adding a delay after each of them.
-P2|Time between tester request and ECU response or two ECU responses|0|Same as the `delay` command.
-P3|Time between end of ECU responses and start of new tester request|5|If expiring within a multiframe or within an active task, the related operation is interrupted and the active tasks of the ECU are removed.
-P4|Inter byte time for tester request|1440|Changing this value configures the *req_timeout* counter.
+:--------:|-----------|:-----------:|----
+P1|Inter byte time for ECU response|0|This timer is implemented by adding a fixed delay to each outputted character. If set to a value different than 0, *ELM327-emulator* outputs characters one by one, adding the indicated delay value after each of them.
+P2|Time between tester request and ECU response or two ECU responses|0|Same as the `delay` command: this timer is implemented by adding a fixed delay (the one indicated in the `timer P2` value) after receiving each request (including also AT/ST commands) and before computing the response.
+P3|Time between end of ECU responses and start of new tester request|5|The related value controls the expiration timeout between two responses: if expiring within a multiframe or within an active task, the related operation is interrupted and the active tasks of the same ECU are removed, executing the *stop()* method.
+P4|Inter byte time for tester request|1440|The related value controls the time between each received request character to keep the whole request valid. If exceeding the timeout, the request is discarded. Changing this value configures the [req_timeout](#advanced-usage) counter.
 
 ## Tasks
 
@@ -1056,21 +1056,16 @@ To totally disable logging for all handlers: `logging.disable(logging.CRITICAL)`
 
 Command to count the number of different PIDs (OBD Commands) used by the client (excluding AT Commands):
 ```python
-import re
-from functools import reduce
 reduce(lambda x, key: x + (1 if re.match('^[A-Z]', key) and not key.startswith('AT_') and emulator.counters[key] > 0 else 0), emulator.counters, 0)
 ```
 
 The following command returns the total number of OBD Commands (PID queries issued by the client excluding AT Commands):
 ```python
-import re
-from functools import reduce
 reduce(lambda x, key: x + (emulator.counters[key] if re.match('^[A-Z]', key) and not key.startswith('AT_') else 0), emulator.counters, 0)
 ```
 
 To only count AT Commands:
 ```python
-from functools import reduce
 reduce(lambda x, key: x + (emulator.counters[key] if key.startswith('AT_') else 0), emulator.counters, 0)
 ```
 
@@ -1436,10 +1431,12 @@ It is an OBD-II scanner software specialized to manage ECU's from Delphi Electro
 *ELM327-emulator* is already able to provide a basic emulation of the Delphi MT05 ECU and, if needed, can be extended via the development of additional tasks and through the editing of the ObdMessage configuration.
 
 # Standards
-- UDS (application/session layer) is mentioned in ISO14229-1 (former ISO 15765-3, UDS on CAN)
-- ISO 15765-2 (network/transport layer) describes the CAN protocol
-- [ISO 14230-2:1999](https://www.sis.se/api/document/preview/612053/) (Data Link Layer)
-- [ISO 14230-3:1999](https://www.sis.se/api/document/preview/895162/) (Application Layer)
+- The UDS Application layer is reported in [ISO 14229-1:2020](https://www.iso.org/standard/72439.html) (former ISO 15765-3, UDS on CAN)
+- [ISO 15765-2](https://en.wikipedia.org/wiki/ISO_15765-2) (transport protocol and network layer services) describes the CAN protocol
+- [ISO 15765-3:2004](https://www.iso.org/standard/33618.html) describes the implementation of unified diagnostic services (UDS on CAN at the Session and Application Layer)
+- [ISO 14229-2:2013](https://www.iso.org/standard/45763.html): UDS Session layer services
+- [ISO 14230-2:1999](https://www.sis.se/api/document/preview/612053/): Data Link Layer
+- [ISO 14230-3:1999](https://www.sis.se/api/document/preview/895162/): Application Layer
 - OBD-II pids: SAE J1979 E/E Diagnostic Test Modes / ISO 15031
 
 # Credits
