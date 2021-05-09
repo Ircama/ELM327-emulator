@@ -166,12 +166,12 @@ class Edit:
 
 def dump_var(var_name, value):
     """
-    Used by do_task() to dump variables
+    Used by do_tasks() to format dumped variables
     :param var_name: name of the variable
     :param value: value of the variable
     :return: (none)
     """
-    if var_name == "logging":
+    if var_name in ["logging", "emulator", "shared"]:
         return
     if var_name == "time_started":
         print("    {}: {}".format(

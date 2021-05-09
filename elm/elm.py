@@ -44,7 +44,7 @@ ISO_TP_MULTIFRAME_MODULE = 'ISO-TP request pending'
 MIN_SIZE_UDS_LENGTH = 20  # Minimum size to use a UDS header with additional length byte (ISO 14230-2)
 INTERRUPT_TASK_IF_NOT_HEX = False
 ELM_VALID_CHARS = r"^[a-zA-Z0-9 \n\r\b\t@,.?]*$"
-ECU_TASK = "task_equ_"
+ECU_TASK = "task_ecu_"
 
 """
 Ref. to ISO 14229-1 and ISO 14230, this is a list of SIDs (UDS service
@@ -129,9 +129,12 @@ class Tasks():
 
     def __init__(self, emulator, pid, header, ecu, request, attrib,
                  do_write=False):
+        self.emulator = emulator  # reference to the emulator namespace
+        self.shared = None  # A ISO-TP Multiframe special task will not use a shared namespace
+        if ecu in self.emulator.task_shared_ns:
+            self.shared = self.emulator.task_shared_ns[ecu]  # shared namespace
         if pid: # None if ECU Task, pid if ELM command Task
             self.pid = pid  # PID label
-            self.emulator = emulator  # reference to the emulator namespace
             self.header = header  # request header
             self.request = request  # original request data (stored before running the start() method)
             self.attrib = attrib  # dictionary element (None if not pertinent)
@@ -140,10 +143,9 @@ class Tasks():
             self.length = None  # ISO-TP Multiframe request length counter
             self.flow_control = 0  # ISO-TP Multiframe request flow control
             self.flow_control_end = 0x20  # ISO-TP Multiframe request flow control repetitions
-            self.shared = None  # A ISO-TP Multiframe special task will not use a shared namespace
             self.ecu = ecu # ECU name
-            if ecu in self.emulator.task_shared_ns:
-                self.shared = self.emulator.task_shared_ns[ecu]  # shared namespace
+        else:
+            self.shared = self  # ECU Task
         self.logging = emulator.logger  # logger reference
         self.time_started = time.time()  # timer (to be used to simulate background processing)
 
@@ -419,7 +421,40 @@ class Elm:
         self.answer = {}
         self.counters = {}
         self.counters.update(self.presets)
+        if hasattr(self, "tasks"):
+            for ecu in self.tasks:
+                for i in reversed(self.tasks[ecu]):
+                    logging.debug(
+                        'Stopping task "%s", ECU="%s", '
+                        'method=stop()',
+                        self.tasks[ecu][i].__module__,
+                        ecu)
+                    try:  # Run the stop() method
+                        self.tasks[ecu][i].stop(None)
+                    except Exception as e:
+                        logging.critical(
+                            'Error while stopping task "%s", ECU="%s", '
+                            'method=stop(): %s',
+                            self.tasks[ecu][i].__module__,
+                            ecu,
+                            e, exc_info=True)
         self.tasks = {}
+        if hasattr(self, "task_shared_ns"):
+            for ecu in self.task_shared_ns:
+                logging.debug(
+                    'Stopping ECU task "%s", ECU="%s", '
+                    'method=stop()',
+                    self.task_shared_ns[ecu].__module__,
+                    ecu)
+                try: # Run the stop() method
+                    self.task_shared_ns[ecu].stop(None)
+                except Exception as e:
+                    logging.critical(
+                        'Error while stopping ECU task "%s", ECU="%s", '
+                        'method=stop(): %s',
+                        self.task_shared_ns[ecu].__module__,
+                        ecu,
+                        e, exc_info=True)
         self.task_shared_ns = {}
         self.shared = None
 
@@ -1740,7 +1775,27 @@ class Elm:
                 if ecu in self.tasks and len(self.tasks[ecu]):
                     logging.warning(
                         "UDS P3 timer expired, removing active tasks.")
+                    for i in reversed(self.tasks[ecu]):
+                        self.task_action(
+                            header, ecu, do_write, self.tasks[ecu][i].stop,
+                            cmd, length, frame)
                     del self.tasks[ecu]
+                logging.debug(
+                    'UDS P3 timer expired: running stop() method for '
+                    'ECU task "%s", ECU="%s".',
+                    self.task_shared_ns[ecu].__module__,
+                    ecu)
+                try:  # Run the stop() method
+                    r_cmd, r_task, r_cont = self.task_shared_ns[ecu].stop(None)
+                    if r_task is Tasks.RETURN.TERMINATE and r_cont == 'DELETE':
+                        del self.task_shared_ns[ecu]
+                except Exception as e:
+                    logging.critical(
+                        'Error while running stop() method for ECU '
+                        'task "%s", ECU="%s": %s',
+                        self.task_shared_ns[ecu].__module__,
+                        ecu,
+                        e, exc_info=True)
             self.request_timer[ecu] = time.time()
         if ('cmd_caf' in self.counters and
                 not self.counters['cmd_caf'] and  # PCI byte in requests

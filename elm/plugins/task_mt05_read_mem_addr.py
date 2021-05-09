@@ -10,28 +10,13 @@
 
 import time
 from elm import Tasks
-import mmap
 
 MEM_RANGE = 0x3fffff
-MMAP_INPUT_FILE = "mmap-input.bin"
-EDIT_INPUT_MMAP_FILE = True
 
 
 # UDS - MODE 23 - Read memory by address
 class Task(Tasks):
     def run(self, cmd, *_): # cmd includes the request data
-
-        # The first time the task is instanced, open the memory map file
-        if not (hasattr(self.shared, 'read_mmap')):
-            try:
-                with open(MMAP_INPUT_FILE, "r+b") as f:
-                    self.shared.read_mmap = mmap.mmap(
-                        f.fileno(),
-                        MEM_RANGE if EDIT_INPUT_MMAP_FILE else 0)
-            except Exception as e:
-                self.logging.critical('Error while opening file "%s": %s',
-                                      MMAP_INPUT_FILE, e)
-                return Task.RETURN.ERROR
 
         # Extract the address and the number of bytes to read from the request
         try:

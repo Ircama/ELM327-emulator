@@ -9,34 +9,13 @@
 ###########################################################################
 
 from elm import Tasks
-import mmap
 
 MEM_RANGE = 0x3fffff
-MMAP_INPUT_FILE = "mmap-input.bin"
-MMAP_OUTPUT_FILE = "mmap-output.bin"
-EDIT_INPUT_MMAP_FILE = True
 
 
 # UDS - MODE 3D - Write memory by address
 class Task(Tasks):
     def run(self, cmd, *_): # cmd includes the request data
-
-        # The first time the task is instanced, open the memory map file
-        if EDIT_INPUT_MMAP_FILE:
-            mmap_file = MMAP_INPUT_FILE
-        else:
-            mmap_file = MMAP_OUTPUT_FILE
-        if not (hasattr(self.shared, 'mmap')):
-            try:
-                if not EDIT_INPUT_MMAP_FILE:
-                    with open(mmap_file, 'w'):
-                        pass # create and reset output file
-                with open(mmap_file, "r+b") as f:
-                    self.shared.mmap = mmap.mmap(f.fileno(), MEM_RANGE)
-            except Exception as e:
-                self.logging.critical('Error while writing file "%s": %s',
-                                      mmap_file, e)
-                return Task.RETURN.ERROR
 
         # Extract the byte vector and the address from the request
         try:
