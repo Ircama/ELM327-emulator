@@ -25,6 +25,7 @@ try:
     import os
     import os.path
     import argparse
+    import datetime
     if os.name == 'nt':
         import tendo.ansiterm
     else:
@@ -161,6 +162,24 @@ class Edit:
         else:
             if self.pid in self.emulator.answer:
                 del self.emulator.answer[self.pid]
+
+
+def dump_var(var_name, value):
+    """
+    Used by do_task() to dump variables
+    :param var_name: name of the variable
+    :param value: value of the variable
+    :return: (none)
+    """
+    if var_name == "logging":
+        return
+    if var_name == "time_started":
+        print("    {}: {}".format(
+            var_name,
+            datetime.datetime.fromtimestamp(float(value)).strftime('%c, ')) +
+            str(round((float(value) % 1) * 1000000, 1)) + " microseconds.")
+        return
+    print("    {}: {}".format(var_name, value))
 
 
 class Interpreter(Cmd):
@@ -449,7 +468,7 @@ class Interpreter(Cmd):
                                 s = pprint.pformat(v, indent=6)
                                 if '\n' in s:
                                     s = '\n' + s
-                                print("    {}: {}".format(k, s))
+                                dump_var(k, s)
                         else:
                             print(" - {}, ECU {} without namespace."
                                   .format(j.__module__, repr(i)))
@@ -467,7 +486,7 @@ class Interpreter(Cmd):
                         s = pprint.pformat(v, indent=6)
                         if '\n' in s:
                             s = '\n' + s
-                        print("    {}: {}".format(k, s))
+                        dump_var(k, s)
                 else:
                     print(" - no namespace data for ECU {}.".format(repr(i)))
         else:

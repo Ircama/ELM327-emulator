@@ -33,7 +33,6 @@ import xml.etree.ElementTree as ET
 import importlib
 import pkgutil
 import inspect
-from types import SimpleNamespace
 
 # Configuration constants__________________________________________________
 FORWARD_READ_TIMEOUT = 0.2  # seconds
@@ -45,6 +44,7 @@ ISO_TP_MULTIFRAME_MODULE = 'ISO-TP request pending'
 MIN_SIZE_UDS_LENGTH = 20  # Minimum size to use a UDS header with additional length byte (ISO 14230-2)
 INTERRUPT_TASK_IF_NOT_HEX = False
 ELM_VALID_CHARS = r"^[a-zA-Z0-9 \n\r\b\t@,.?]*$"
+ECU_TASK = "task_equ_"
 
 """
 Ref. to ISO 14229-1 and ISO 14230, this is a list of SIDs (UDS service
@@ -129,22 +129,23 @@ class Tasks():
 
     def __init__(self, emulator, pid, header, ecu, request, attrib,
                  do_write=False):
-        self.emulator = emulator  # reference to the emulator namespace
-        self.pid = pid  # PID label
-        self.header = header  # request header
-        self.ecu = ecu
-        self.request = request  # original request data (stored before running the start() method)
+        if pid: # None if ECU Task, pid if ELM command Task
+            self.pid = pid  # PID label
+            self.emulator = emulator  # reference to the emulator namespace
+            self.header = header  # request header
+            self.request = request  # original request data (stored before running the start() method)
+            self.attrib = attrib  # dictionary element (None if not pertinent)
+            self.do_write = do_write  # (boolean) will write to the application
+            self.frame = None  # ISO-TP Multiframe request frame counter
+            self.length = None  # ISO-TP Multiframe request length counter
+            self.flow_control = 0  # ISO-TP Multiframe request flow control
+            self.flow_control_end = 0x20  # ISO-TP Multiframe request flow control repetitions
+            self.shared = None  # A ISO-TP Multiframe special task will not use a shared namespace
+            self.ecu = ecu # ECU name
+            if ecu in self.emulator.task_shared_ns:
+                self.shared = self.emulator.task_shared_ns[ecu]  # shared namespace
         self.logging = emulator.logger  # logger reference
-        self.attrib = attrib  # dictionary element
-        self.do_write = do_write  # (boolean) will write to the application
         self.time_started = time.time()  # timer (to be used to simulate background processing)
-        self.frame = None  # ISO-TP Multiframe request frame counter
-        self.length = None  # ISO-TP Multiframe request length counter
-        self.flow_control = 0  # ISO-TP Multiframe request flow control
-        self.flow_control_end = 0x20  # ISO-TP Multiframe request flow control repetitions
-        self.shared = None  # A ISO-TP Multiframe special task will not use a shared namespace
-        if ecu in self.emulator.task_shared_ns:
-            self.shared = self.emulator.task_shared_ns[ecu]  # shared namespace
 
     def HD(self, header):
         """
@@ -210,6 +211,8 @@ class Tasks():
         :param request:
         :return: boolean (true if the given request matches the original task request)
         """
+        if not self.attrib:
+            return None
         return re.match(self.attrib['Request'], request)
 
     def start(self, cmd, length=None, frame=None):
@@ -1668,7 +1671,7 @@ class Elm:
             else:
                 ecu = header
 
-        # manages the UDS P2 delay timer
+        # Manage the UDS P2 delay timer
         logging.debug("Handling: %s, header %s, ECU %s",
                       repr(cmd), repr(header), repr(ecu))
         if self.delay > 0:
@@ -1678,72 +1681,52 @@ class Elm:
             logging.error("Unknown scenario %s", repr(self.scenario))
             return header, cmd, ""
 
-
-
-
-
-# da qui
-        if "" in self.plugins:
-            if ecu not in self.tasks:
-                self.tasks[ecu] = []
-            if len(self.tasks[ecu]) > MAX_TASKS:
-                logging.critical(
-                    'Too many active tasks for ECU %s. '
-                    'Latest one was %s.',
-                    ecu, self.tasks[ecu][-1].__module__)
-                return header, cmd, ""
-            try:
-                self.tasks[ecu].append(
-                    self.plugins[val['Task']].Task(
-                        self, pid, header, ecu, cmd, val, do_write)
-                )
+        #  Manage ECU task and shared namespace
+        if ecu in self.task_shared_ns: # ECU task exists with its namespace
+            try: # Run the run() method
+                r_cmd, r_task, r_cont = self.task_shared_ns[ecu].run(cmd)
             except Exception as e:
                 logging.critical(
-                    'Cannot add task "%s", ECU="%s": %s',
-                    val['Task'], ecu, e, exc_info=True)
+                    'Error in ECU task "%s", ECU="%s", '
+                    'method=run(): %s',
+                    self.task_shared_ns[ecu].__module__,
+                    ecu,
+                    e, exc_info=True)
+                return header, cmd, ""
+            if r_task is Tasks.RETURN.CONTINUE and r_cont is not None:
+                cmd = r_cont
+        else: # create the ECU task and shared namespace for the ECU
+            try: # use the plugin if existing, otherwise directly use Task()
+                if ecu and ECU_TASK + ecu in self.plugins:
+                    self.task_shared_ns[ecu] = self.plugins[
+                        ECU_TASK + ecu].Task(
+                        emulator=self, pid=None, header=header, ecu=ecu,
+                        request=cmd, attrib=None, do_write=do_write)
+                else:
+                    self.task_shared_ns[ecu] = Tasks(
+                        emulator=self, pid=None, header=header, ecu=ecu,
+                        request=cmd, attrib=None, do_write=do_write)
+            except Exception as e:
+                logging.critical(
+                    'Cannot start ECU task "%s", ECU="%s": %s',
+                    ECU_TASK + ecu, ecu, e, exc_info=True)
                 return header, cmd, None
-            logging.debug('Starting task "%s" for ECU "%s"',
-                          self.tasks[ecu][-1].__module__, ecu)
-            r_cmd, *_, r_cont = self.task_action(
-                header, ecu, do_write,
-                self.tasks[ecu][-1].start, cmd, length, frame)
-            if r_cont is None:
-                return header, cmd, r_cmd
-            else:  # chain a subsequent command
-                if cmd == r_cont:  # no transformation performed
-                    logging.debug(
-                        'Passthrough task executed: '
-                        'continue processing %s for ECU %s.',
-                        cmd, ecu)
-                else:  # newly reprocess the changed request
-                    chained_command += 1
-                    if chained_command > MAX_TASKS:
-                        logging.critical(
-                            'Too many subsequent chained commands '
-                            'for ECU %s. Latest task was %s.',
-                            ecu, val['Task'])
-                        return header, cmd, ""
-                    cmd = r_cont
-                    i_obd_msg = iter(self.sortedOBDMsg)
-                    continue  # restart the loop from the beginning
-        else:
-            logging.error(
-                'Unexisting plugin "%s" for pid "%s"',
-                val['Task'], pid)
-            return header, cmd, None
-# a qui
-
-
-
-
-
-
-
-        # create the namespace shared for the ECU if not existing
+            logging.debug('Starting ECU task "%s" for ECU "%s"',
+                          self.task_shared_ns[ecu].__module__, ecu)
+            try:
+                r_cmd, r_task, r_cont = self.task_shared_ns[ecu].start(cmd)
+            except Exception as e:
+                logging.critical(
+                    'Error in ECU task "%s", ECU="%s", '
+                    'method=start(): %s',
+                    self.task_shared_ns[ecu].__module__,
+                    ecu,
+                    e, exc_info=True)
+                return header, cmd, ""
+            if r_task is Tasks.RETURN.CONTINUE and r_cont is not None:
+                cmd = r_cont
         self.shared = None
         if ecu:
-            if ecu not in self.task_shared_ns:
-                self.task_shared_ns[ecu] = SimpleNamespace()
             self.shared = self.task_shared_ns[ecu]
 
         # manage cmd_caf, length, frame - Process UDS ISO-TP Multiframe data link
