@@ -35,7 +35,7 @@ import pkgutil
 import inspect
 from types import SimpleNamespace
 
-# Configuration constants
+# Configuration constants__________________________________________________
 FORWARD_READ_TIMEOUT = 0.2  # seconds
 SERIAL_BAUDRATE = 38400  # bps
 NETWORK_INTERFACES = ""
@@ -79,12 +79,20 @@ uds_sid_pos_answer = {
     "3E": 1,  # Tester Present (TP)
     "85": 1,  # Control DTC Setting
 }
+# End of configuration constants_______________________________________________
 
 
 def setup_logging(
         default_path=Path(__file__).stem + '.yaml',
         default_level=logging.INFO,
         env_key=os.path.basename(Path(__file__).stem).upper() + '_LOG_CFG'):
+    """
+    Setup logging facility
+    :param default_path: logging file pathname
+    :param default_level: default logging level
+    :param env_key: default environment variable
+    :return: (none)
+    """
     path = default_path
     if not os.path.exists(path):
         path = os.path.join(
@@ -1650,7 +1658,9 @@ class Elm:
             self.counters['cmd_use_header'] = True
             cmd = cmd[3:]
 
+        # Set header and ecu
         header = None
+        ecu = None
         if "cmd_set_header" in self.counters:
             header = self.counters['cmd_set_header']
             if len(header) == 6:
@@ -1667,6 +1677,67 @@ class Elm:
         if not self.scenario in self.ObdMessage:
             logging.error("Unknown scenario %s", repr(self.scenario))
             return header, cmd, ""
+
+
+
+
+
+# da qui
+        if "" in self.plugins:
+            if ecu not in self.tasks:
+                self.tasks[ecu] = []
+            if len(self.tasks[ecu]) > MAX_TASKS:
+                logging.critical(
+                    'Too many active tasks for ECU %s. '
+                    'Latest one was %s.',
+                    ecu, self.tasks[ecu][-1].__module__)
+                return header, cmd, ""
+            try:
+                self.tasks[ecu].append(
+                    self.plugins[val['Task']].Task(
+                        self, pid, header, ecu, cmd, val, do_write)
+                )
+            except Exception as e:
+                logging.critical(
+                    'Cannot add task "%s", ECU="%s": %s',
+                    val['Task'], ecu, e, exc_info=True)
+                return header, cmd, None
+            logging.debug('Starting task "%s" for ECU "%s"',
+                          self.tasks[ecu][-1].__module__, ecu)
+            r_cmd, *_, r_cont = self.task_action(
+                header, ecu, do_write,
+                self.tasks[ecu][-1].start, cmd, length, frame)
+            if r_cont is None:
+                return header, cmd, r_cmd
+            else:  # chain a subsequent command
+                if cmd == r_cont:  # no transformation performed
+                    logging.debug(
+                        'Passthrough task executed: '
+                        'continue processing %s for ECU %s.',
+                        cmd, ecu)
+                else:  # newly reprocess the changed request
+                    chained_command += 1
+                    if chained_command > MAX_TASKS:
+                        logging.critical(
+                            'Too many subsequent chained commands '
+                            'for ECU %s. Latest task was %s.',
+                            ecu, val['Task'])
+                        return header, cmd, ""
+                    cmd = r_cont
+                    i_obd_msg = iter(self.sortedOBDMsg)
+                    continue  # restart the loop from the beginning
+        else:
+            logging.error(
+                'Unexisting plugin "%s" for pid "%s"',
+                val['Task'], pid)
+            return header, cmd, None
+# a qui
+
+
+
+
+
+
 
         # create the namespace shared for the ECU if not existing
         self.shared = None

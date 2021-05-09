@@ -804,6 +804,29 @@ ObdMessage = {
             'Descr': 'In-use performance tracking (compression ignition)',
             'Response': PA('00 00')
         },
+        # UDS raw
+        'UNKNOWN_00': {
+            'Request': '^00$',
+            'Descr': 'UNKNOWN_00',
+            'Response': AW('7B 00')
+        },
+        'UDS_STDS_FLASH': {
+            'Request': '^1085' + ELM_FOOTER, # 85 = Flash Programming Session
+            'Descr': 'UDS Start Diagnostic Session - ECU Prog Mode',
+            'Response': PA('')
+        },
+        'UDS_ECU_RESET': {
+            'Request': '^1101' + ELM_FOOTER,
+            'Descr': 'EcuReset',
+            'Response': PA('')
+        },
+        'CLEAR_DTC': {
+            'Request': '^14' + ELM_DATA_FOOTER,
+            'Descr': 'Clear DTC',
+            'ResponseFooter': lambda self, cmd, pid, val: (
+                self.choice([NA('78'), PA(cmd[2:])])
+            )
+        },
         'UNKNOWN_2100_E': {
             'Request': '^2100' + ELM_FOOTER,
             'Descr': 'UNKNOWN_2100',
@@ -818,6 +841,21 @@ ObdMessage = {
             'Request': '^2103' + ELM_FOOTER,
             'Descr': 'ECU internal version numbers - Hardware Part Number',
             'Response': PA('46 31'),
+        },
+        'UNKNOWN_220200': {
+            'Request': '^220000',
+            'Descr': 'UNKNOWN_220200',
+            'Response': PA('00BE3FA813')
+        },
+        'UDS_REQ_SEED': {
+            'Request': '^2701' + ELM_FOOTER,
+            'Descr': 'SecurityAccess - requestSeed',
+            'Response': PA('B6F1EF')
+        },
+        'UDS_SEND_KEY': {
+            'Request': '^2702' + ELM_FOOTER,
+            'Descr': 'SecurityAccess - Send Key to ECU',
+            'Response': PA('')
         },
         'UNK_3B00': {
             'Request': '^3B00' + ELM_DATA_FOOTER,
