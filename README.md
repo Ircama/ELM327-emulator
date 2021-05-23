@@ -5,7 +5,7 @@ __A Python emulator of the ELM327 OBD-II adapter connected to a vehicle supporti
 
 *ELM327-emulator* provides an emulated [OBD-II](https://en.wikipedia.org/wiki/On-board_diagnostics) interface to client applications via TCP/IP networking, or serial communication (including [pseudo-terminal](https://en.wikipedia.org/wiki/Pseudoterminal) function for non Windows operating systems), or direct interaction with communication devices and simulates an [ELM327](https://en.wikipedia.org/wiki/ELM327) adapter connected to a vehicle. It includes a command-line interface for extensive monitoring and controlling.
 
-It is able to support basic ELM327 commands and OBD service requests through stateless request/responses via OBD-II, but can also handle stateful [UDS](https://en.wikipedia.org/wiki/Unified_Diagnostic_Services) communication with [ISO-TP](https://en.wikipedia.org/wiki/ISO_15765-2) Flow Control, concurrently emulating multiple [ECU](https://en.wikipedia.org/wiki/Engine_control_unit)s. It is designed to be extended via a plugin architecture to allow easy development of specific tasks implementing workflows. Many AT commands are supported, as well as some [OBDLink](https://www.obdlink.com/) AT/ST [commands](https://www.scantool.net/scantool/downloads/98/stn1100-frpm.pdf).
+It is able to support basic ELM327 commands and OBD service requests through stateless request/responses via OBD-II, but can also handle stateful [UDS](https://en.wikipedia.org/wiki/Unified_Diagnostic_Services) communication with [ISO-TP](https://en.wikipedia.org/wiki/ISO_15765-2) Flow Control and [Keyword Protocol 2000](https://en.wikipedia.org/wiki/Keyword_Protocol_2000), concurrently emulating multiple [ECU](https://en.wikipedia.org/wiki/Engine_control_unit)s. It is designed to be extended via a plugin architecture to allow easy development of specific tasks implementing workflows. Many AT commands are supported, as well as some [OBDLink](https://www.obdlink.com/) AT/ST [commands](https://www.scantool.net/scantool/downloads/98/stn1100-frpm.pdf).
 
 *ELM327-emulator* supports many operating systems including Windows, macOS and UNIX/Linux; it is agnostic of the client application and has been tested with [python-OBD](https://github.com/brendan-w/python-OBD) as well as with many applications on UNIX/Linux and on smartphone devices. It supports TCP/IP, Bluetooth, serial COM ports and pseudo-tty devices (for non Windows operating systems).
 
@@ -412,11 +412,14 @@ Notice that the mt05 scenario is automatically set by the 'UDS_START_COMM' PID (
 
 *ELM327-emulator* includes a basic processing of the ISO 15765-2 ISO-TP Layer and KWP2000 ISO 14230-2:1999 Data Link layer. The following elements are implemented:
 
-- CAN Headers, including KWP2000 frame length management,
+- 3-byte and 4-byte KWP2000 header with frame length management (the "Format" byte always assumes address information and physical addressing; other cases are ignored),
+- ISO-TP 11 bit CAN identifier (29 bit CAN identifiers are not supported)
 - ISO-TP Single frame (SF), First frame (FF), Consecutive frame (CF), Flow control frame (FC),
 - Basic input flow control of ISO-TP (with generation of FC output frames); output flow control (handling of FC input frames) is ignored,
-- Checksum byte (CS) at the end of the ISO 14230-2:1999 message block (checksum verification in requests and checksum generation in responses),
+- KWP2000 Checksum byte (CS) at the end of the ISO 14230-2:1999 message block (checksum verification in requests and checksum generation in responses),
 - ISO-TP P1, P2, P3 and P4 [timers](#timers).
+
+The KWP2000 format is detected by a header >= three bytes.
 
 ## Advanced usage
 
@@ -756,8 +759,8 @@ All plugins shall implement a class named *Task* derived from the *Tasks* class.
 In a plugin, at least the *run()* method should be implemented, overriding the default method of the *Tasks* class. Allowed methods:
 
 - `def start(self, cmd, *_)`: invoked to process the first request of a just created task (not required)
-- `def stop(self, cmd, *_)`: invoked to process a request before interrupting the task (not required)
-- `def run(self, cmd, *_)`: invoked on any request after the first one; if *start()* or *stop()* are not implemented, *run()* is always invoked.
+- `def stop(self, cmd, *_)`: invoked to process a request before interrupting the task (not required). Default is to return `Tasks.RETURN.ERROR` (do nothing).
+- `def run(self, cmd, *_)`: invoked on any request after the first one; if *start()* is not implemented, *run()* is always invoked.
 
 Task methods are called after processing the ISO-TP data link, so the request passed to the task methods includes the whole message, where the associated multiframe (consisting of multiple frames received from the communication port) is already assembled and interpreted into a single data string of consecutive hex values, without spaces. Tasks methods return a response string that will be subsequently processed by the embedded ISO-TP data link, generating the output strings then sent to the communication port.
 
@@ -805,14 +808,14 @@ The definition of an ECU task is not required; if missing, a default shared name
 
 The `start()` method of the ECU task is executed upon the first request reference of an ECU, when the shared namespace for the ECU is created. It can for instance be used to run one time tasks like creating resources used by subsequent tasks (e.g., mapped memory). A typical return code is `return Tasks.RETURN.TASK_CONTINUE()`, so that the request is subsequently interpreted, while `Tasks.RETURN.TERMINATE` can be used for testing purpose and skips interpreting the request related to the ECU.
 
-The `run()` method of the ECU is invoked on any request after the first one; if *start()* or *stop()* are not implemented, *run()* is always invoked.
+The `run()` method of the ECU is invoked on any request after the first one; if *start()* is not implemented, *run()* is always invoked.
 
 The ECU tasks is terminated when a method returns with `False` or with `self.TASK.TERMINATE` in the return tuple, or by the following conditions:
 
 - communication reset (e.g., communication disconnection, or "ATZ", or *reset* command);
 - expiration of the P3 timer.
 
-With these two conditions, the `stop()` method is also executed (useful for instance to remove login parameters after P3 timer expiration).
+With these two conditions, the `stop()` method is also executed (useful for instance to remove login parameters after P3 timer expiration). The default definition of the `stop()` method is to return `Tasks.RETURN.ERROR` (do nothing).
 
 All ECU task methods return the same three-element tuple of the tasks, where the first element for ECU task methods is ignored, the second one is either `Tasks.RETURN.CONTINUE` or `Tasks.RETURN.TERMINATE` (only for testing), the third one is the preprocessing output (generally unneeded) or *None* for no preprocessing. *TASK_CONTINUE()* means *None, Tasks.RETURN.CONTINUE, None*.
 
@@ -1486,8 +1489,8 @@ It is an OBD-II scanner software specialized to manage ECU's from Delphi Electro
 - [ISO 15765-2](https://en.wikipedia.org/wiki/ISO_15765-2) (transport protocol and network layer services) describes the CAN protocol
 - [ISO 15765-3:2004](https://www.iso.org/standard/33618.html) describes the implementation of unified diagnostic services (UDS on CAN at the Session and Application Layer)
 - [ISO 14229-2:2013](https://www.iso.org/standard/45763.html): UDS Session layer services
-- [ISO 14230-2:1999](https://www.sis.se/api/document/preview/612053/): Data Link Layer
-- [ISO 14230-3:1999](https://www.sis.se/api/document/preview/895162/): Application Layer
+- [ISO 14230-2:1999](https://www.sis.se/api/document/preview/612053/): Keyword Protocol 2000 Data Link Layer
+- [ISO 14230-3:1999](https://www.sis.se/api/document/preview/895162/): Keyword Protocol 2000 Application Layer
 - OBD-II pids: SAE J1979 E/E Diagnostic Test Modes / ISO 15031
 
 # Credits

@@ -12,9 +12,9 @@ ECU_ADDR_K = "7D2"
 ECU_R_ADDR_K = "7DA"
 ECU_ADDR_H = "7E2"  # HVECU address (Hybrid control module)
 ECU_R_ADDR_H = "7EA"  # Responses sent by HVECU (Hybrid control module) 7E2/7EA
-ECU_ADDR_E = "7E0"  # Engine ECU address
+ECU_ADDR_E = "7E0"  # Engine control module ECU address
 ECU_R_ADDR_E = "7E8"  # Responses sent by Engine ECU - ECM (engine control module) 7E0/7E8
-ECU_ADDR_T = "7E1"  # Transmission ECU address (transmission control module)
+ECU_ADDR_T = "7E1"  # Transmission control module ECU address (transmission control module)
 ECU_R_ADDR_T = "7E9"  # Responses sent by Transmission ECU - TCM (transmission control module) 7E1/7E9
 ECU_ADDR_U = "7E2"
 ECU_R_ADDR_U = "7EA"
@@ -54,8 +54,6 @@ ELM_R_OK = ST("OK")
 ELM_R_UNKNOWN = ST("?")
 ELM_FOOTER = r'[0123456]?$'
 ELM_DATA_FOOTER = r'([0-9A-Z][0-9A-Z])+$'
-
-# This dictionary uses the ISO 15765-4 CAN 11 bit ID 500 kbaud protocol
 
 # PID Dictionary
 
@@ -883,7 +881,8 @@ ObdMessage = {
         },
     },
 # --------------------------------------------------------------------------
-# Pids of a Toyota Auris Hybrid car
+# Pids of a Toyota Auris Hybrid car (ISO 15765-4 CAN 11 bit ID 500 kbaud protocol)
+
     'car': {
     # AT Commands
         'ELM_DP': {

@@ -171,7 +171,7 @@ def dump_var(var_name, value):
     :param value: value of the variable
     :return: (none)
     """
-    if var_name in ["logging", "emulator", "shared"]:
+    if var_name in ["logging", "emulator", "shared", "__module__"]:
         return
     if var_name == "time_started":
         print("    {}: {}".format(
@@ -480,7 +480,10 @@ class Interpreter(Cmd):
             print("Shared namespaces:")
             for i in sorted(self.emulator.task_shared_ns):
                 if self.emulator.task_shared_ns[i].__dict__:
-                    print(" - ECU {}:".format(repr(i)))
+                    print(
+                        " - {}, ECU {}.".format(
+                            self.emulator.task_shared_ns[i].__module__,
+                            repr(i)))
                     for k, v in self.emulator.task_shared_ns[
                             i].__dict__.items():
                         s = pprint.pformat(v, indent=6)

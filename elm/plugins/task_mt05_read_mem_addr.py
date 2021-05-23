@@ -29,7 +29,7 @@ class Task(Tasks):
 
         # Execute the command: read bytes to the memory map in the shared area
         try:
-            value = self.shared.read_mmap[address:address + length]
+            vector = self.shared.read_mmap[address:address + length]
         except KeyError as e:
             self.logging.error('Read memory by address - '
                                'Unhandled data address %s (%s)',
@@ -37,14 +37,16 @@ class Task(Tasks):
             return Task.RETURN.ANSWER(self.NA('12')) # Sub-function not supported
 
         # Check that the number of saved bytes matches the length in the request
-        if len(value) != length:
+        if len(vector) != length:
             self.logging.error('Read memory by address - Memory map '
                                '%s does not match with length %s, %s',
-                               value, length, len(value))
+                               vector, length, len(vector))
             return Task.RETURN.ERROR
-        data = ' '.join('{:02x}'.format(x) for x in value).upper()
 
-        # Write a message and add a delay if "executed_routine" is set
+        # Generate the hex bytestring
+        data = ' '.join('{:02x}'.format(x) for x in vector).upper()
+
+        # Add a delay if "executed_routine" is set (and log a message)
         if (hasattr(self.shared, 'executed_routine') and
                 self.shared.executed_routine):
             self.logging.info(

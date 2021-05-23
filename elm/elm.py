@@ -45,7 +45,7 @@ MIN_SIZE_UDS_LENGTH = 20  # Minimum size to use a UDS header with additional len
 INTERRUPT_TASK_IF_NOT_HEX = False
 ELM_VALID_CHARS = r"^[a-zA-Z0-9 \n\r\b\t@,.?]*$"
 ECU_TASK = "task_ecu_"
-DEFAULT_ECU_TASK = 'Default ECU Task'
+DEFAULT_ECU_TASK = 'Default ECU Task module'
 
 """
 Ref. to ISO 14229-1 and ISO 14230, this is a list of SIDs (UDS service
@@ -246,7 +246,7 @@ class Tasks():
                 response in the first element (or Null to disable subsequent
                 processing)
         """
-        return self.run(cmd, length, frame)
+        return Tasks.RETURN.ERROR
 
     def run(self, cmd, length=None, frame=None):
         """
@@ -438,15 +438,15 @@ class Elm:
                     logging.debug(
                         'Stopping task "%s", ECU="%s", '
                         'method=stop()',
-                        self.tasks[ecu][i].__module__,
+                        i.__module__,
                         ecu)
                     try:  # Run the stop() method
-                        self.tasks[ecu][i].stop(None)
+                        i.stop(None)
                     except Exception as e:
                         logging.critical(
                             'Error while stopping task "%s", ECU="%s", '
                             'method=stop(): %s',
-                            self.tasks[ecu][i].__module__,
+                            i.__module__,
                             ecu,
                             e, exc_info=True)
         self.tasks = {}
@@ -1225,16 +1225,14 @@ class Elm:
             self,
             data, request_header, use_headers, sp, nl, is_flow_control=None):
         """
-        Generate an UDS envelope and answer basing on information included in parameters.
-        The format should be compliant with:
-        ISO 14230-2:1999 Data Link Layer:
-        https://www.sis.se/api/document/preview/612053/
-        ISO 14230-3:1999 Application Layer:
-        https://www.sis.se/api/document/preview/895162/
+        Generate an UDS envelope and answer basing on information included in
+        parameters.
+        The format should be compliant with ISO-TP 11 bit header or KWP2000.
         :param data: data bytes of the answer
         :param request_header: string containing the header used in the request
                 (to be used to compute the response header)
-        :param use_headers: boolean to indicate whether the header shall be included
+        :param use_headers: boolean to indicate whether the header shall be
+                included
         :param sp: space string
         :param nl: newline string
         :param is_flow_control: string including the flow control byte
@@ -1255,11 +1253,11 @@ class Elm:
         except ValueError:
             logging.error('Invalid data in answer: %s', repr(data))
             return ""
-        if len(request_header) == 3 and is_flow_control:
+        if len(request_header) == 3 and is_flow_control:  # 11 bit header + FC
             if use_headers:
                 answer = hex(int(request_header, 16) + 8)[2:].upper() + sp
             answer += is_flow_control + sp + data
-        elif len(request_header) == 3:
+        elif len(request_header) == 3:  # ISO-TP 11 bit CAN identifier
             if use_headers:
                 if length > 7:  # produce a multframe output
                     answer = (hex(int(request_header, 16) + 8)[2:].upper() +
@@ -1323,12 +1321,14 @@ class Elm:
                         answer = "%02X" % length + sp + data
                     else:
                         answer = data
-        elif len(request_header) == 6 and is_flow_control:
-            logging.error('Unimplemented flow control.')
+        elif len(request_header) == 6 and is_flow_control:  # KWP2000 FC
+            logging.error(
+                'KWP2000 format with flow control: unimplemented case.')
             return ""
-        elif len(request_header) == 6:
+        elif len(request_header) == 6:  # KWP2000 encoding including length and checksum
             if not use_headers:
-                logging.error('Unimplemented case.')
+                logging.error(
+                    'KWP2000 format without headers: unimplemented case.')
                 return ""
             if length < MIN_SIZE_UDS_LENGTH:
                 answer = (("%02X" % (128 + length) + sp +
@@ -1832,7 +1832,7 @@ class Elm:
                 return header, cmd, ""
             payload = cmd[2:]
             if not payload:
-                logging.error('Missing data for request "%s"', repr(org_cmd))
+                logging.error('Missing data for request %s', repr(org_cmd))
                 return header, cmd, ""
             if size[0] == '0':  # Single-Frame
                 if int_size < 8:  # valid value
