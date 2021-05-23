@@ -45,6 +45,7 @@ MIN_SIZE_UDS_LENGTH = 20  # Minimum size to use a UDS header with additional len
 INTERRUPT_TASK_IF_NOT_HEX = False
 ELM_VALID_CHARS = r"^[a-zA-Z0-9 \n\r\b\t@,.?]*$"
 ECU_TASK = "task_ecu_"
+DEFAULT_ECU_TASK = 'Default ECU Task'
 
 """
 Ref. to ISO 14229-1 and ISO 14230, this is a list of SIDs (UDS service
@@ -1752,10 +1753,11 @@ class Elm:
                         ECU_TASK + ecu].Task(
                         emulator=self, pid=None, header=header, ecu=ecu,
                         request=cmd, attrib=None, do_write=do_write)
-                else:
-                    self.task_shared_ns[ecu] = Tasks(
+                else:  # Create a default ECU task
+                    self.task_shared_ns[ecu] = EcuTasks(
                         emulator=self, pid=None, header=header, ecu=ecu,
                         request=cmd, attrib=None, do_write=do_write)
+                    self.task_shared_ns[ecu].__module__ = DEFAULT_ECU_TASK
             except Exception as e:
                 logging.critical(
                     'Cannot start ECU task "%s", ECU="%s": %s',
@@ -1797,8 +1799,7 @@ class Elm:
                         "UDS P3 timer expired, removing active tasks.")
                     for i in reversed(self.tasks[ecu]):
                         self.task_action(
-                            header, ecu, do_write, self.tasks[ecu][i].stop,
-                            cmd, length, frame)
+                            header, ecu, do_write, i.stop, cmd, length, frame)
                     del self.tasks[ecu]
                 if ecu in self.task_shared_ns:
                     logging.debug(

@@ -93,7 +93,7 @@ All subsequent information are not needed for a basic usage of the tool and allo
 
 # Compatibility
 
-*ELM327-emulator* has been tested with Python 3.6, 3.7, 3.8. Previous Python versions are not supported.
+*ELM327-emulator* has been tested with Python 3.6, 3.7, 3.8, 3.9. Previous Python versions are not supported.
 
 When using serial communication, with UNIX OSs, this code uses pty pseudo-terminals. With Windows, you should first install [com0com](https://sourceforge.net/projects/com0com) (a kernel-mode virtual serial port driver), or [other virtual serial port software](http://com0com.sourceforge.net/); alternatively, [cygwin](http://www.cygwin.com/) and [Windows Subsystem for Linux](https://docs.microsoft.com/en-us/windows/wsl) (WSL) are supported.
 
