@@ -842,9 +842,9 @@ ObdMessage = {
             'Descr': 'ECU internal version numbers - Hardware Part Number',
             'Response': PA('46 31'),
         },
-        'UNKNOWN_220200': {
-            'Request': '^220000',
-            'Descr': 'UNKNOWN_220200',
+        'DTC_CNT': {
+            'Request': '^220000' + ELM_FOOTER,
+            'Descr': "Number of DTC's (if any)",
             'Response': PA('00BE3FA813')
         },
         'UDS_REQ_SEED': {
@@ -2413,9 +2413,9 @@ ObdMessage = {
     # -------------------------------------------------------------------
     # UDS - Mode 22 - Read Data By Identifier (answer with 0 additional bytes)
     # All answers are wrong values at the moment
-        'UNKNOWN_220200': {
-            'Request': '^220200',
-            'Descr': 'UNKNOWN_220200',
+        'DTC_CNT': {
+            'Request': '^220200' + ELM_FOOTER,
+            'Descr': "Number of DTC's (if any)",
             'Response': PA('01')
         },
         'SPARK_ADV': {
