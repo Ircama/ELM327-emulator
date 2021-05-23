@@ -125,6 +125,8 @@ class Tasks():
 
         def PASSTHROUGH(cmd): return None, Tasks.RETURN.TERMINATE, cmd
 
+        def TASK_CONTINUE(): return None, Tasks.RETURN.CONTINUE, None
+
         def ANSWER(pa): return pa, Tasks.RETURN.TERMINATE, None
 
     def __init__(self, emulator, pid, header, ecu, request, attrib,
@@ -259,6 +261,14 @@ class Tasks():
                 processing)
         """
         return Tasks.RETURN.PASSTHROUGH(cmd)
+
+
+class EcuTasks(Tasks):
+    """
+    ECU Task (continue by default)
+    """
+    def run(self, cmd, length=None, frame=None):
+        return Tasks.RETURN.TASK_CONTINUE()
 
 
 class IsoTpMultiframe(Tasks):
@@ -1712,14 +1722,14 @@ class Elm:
         if self.delay > 0:
             time.sleep(self.delay)
 
-        if not self.scenario in self.ObdMessage:
+        if self.scenario not in self.ObdMessage:
             logging.error("Unknown scenario %s", repr(self.scenario))
             return header, cmd, ""
 
         #  Manage ECU task and shared namespace
-        if ecu in self.task_shared_ns: # ECU task exists with its namespace
-            try: # Run the run() method
-                r_cmd, r_task, r_cont = self.task_shared_ns[ecu].run(cmd)
+        if ecu in self.task_shared_ns:  # ECU task exists with its namespace
+            try:  # Run the run() method
+                *_, r_task, r_cont = self.task_shared_ns[ecu].run(cmd)
             except Exception as e:
                 logging.critical(
                     'Error in ECU task "%s", ECU="%s", '
@@ -1728,10 +1738,15 @@ class Elm:
                     ecu,
                     e, exc_info=True)
                 return header, cmd, ""
-            if r_task is Tasks.RETURN.CONTINUE and r_cont is not None:
+            if r_task is Tasks.RETURN.TERMINATE:
+                logging.debug(
+                    'Terminated ECU task "%s" for ECU "%s"',
+                    self.task_shared_ns[ecu].__module__, ecu)
+                del self.task_shared_ns[ecu]
+            if r_cont is not None:
                 cmd = r_cont
-        else: # create the ECU task and shared namespace for the ECU
-            try: # use the plugin if existing, otherwise directly use Task()
+        else:  # create the ECU task and shared namespace for the ECU
+            try:  # use the plugin if existing, otherwise directly use Task()
                 if ecu and ECU_TASK + ecu in self.plugins:
                     self.task_shared_ns[ecu] = self.plugins[
                         ECU_TASK + ecu].Task(
@@ -1749,7 +1764,7 @@ class Elm:
             logging.debug('Starting ECU task "%s" for ECU "%s"',
                           self.task_shared_ns[ecu].__module__, ecu)
             try:
-                r_cmd, r_task, r_cont = self.task_shared_ns[ecu].start(cmd)
+                *_, r_task, r_cont = self.task_shared_ns[ecu].start(cmd)
             except Exception as e:
                 logging.critical(
                     'Error in ECU task "%s", ECU="%s", '
@@ -1758,10 +1773,15 @@ class Elm:
                     ecu,
                     e, exc_info=True)
                 return header, cmd, ""
-            if r_task is Tasks.RETURN.CONTINUE and r_cont is not None:
+            if r_task is Tasks.RETURN.TERMINATE:
+                logging.debug(
+                    'Terminated ECU task "%s" for ECU "%s"',
+                    self.task_shared_ns[ecu].__module__, ecu)
+                del self.task_shared_ns[ecu]
+            if r_cont is not None:
                 cmd = r_cont
         self.shared = None
-        if ecu:
+        if ecu and ecu in self.task_shared_ns:
             self.shared = self.task_shared_ns[ecu]
 
         # manage cmd_caf, length, frame - Process UDS ISO-TP Multiframe data link
@@ -1780,22 +1800,25 @@ class Elm:
                             header, ecu, do_write, self.tasks[ecu][i].stop,
                             cmd, length, frame)
                     del self.tasks[ecu]
-                logging.debug(
-                    'UDS P3 timer expired: running stop() method for '
-                    'ECU task "%s", ECU="%s".',
-                    self.task_shared_ns[ecu].__module__,
-                    ecu)
-                try:  # Run the stop() method
-                    r_cmd, r_task, r_cont = self.task_shared_ns[ecu].stop(None)
-                    if r_task is Tasks.RETURN.TERMINATE and r_cont == 'DELETE':
-                        del self.task_shared_ns[ecu]
-                except Exception as e:
-                    logging.critical(
-                        'Error while running stop() method for ECU '
-                        'task "%s", ECU="%s": %s',
+                if ecu in self.task_shared_ns:
+                    logging.debug(
+                        'UDS P3 timer expired: running stop() method for '
+                        'ECU task "%s", ECU="%s".',
                         self.task_shared_ns[ecu].__module__,
-                        ecu,
-                        e, exc_info=True)
+                        ecu)
+                    try:  # Run the stop() method
+                        r_cmd, r_task, r_cont = self.task_shared_ns[ecu].stop(
+                            None)
+                        if (r_task is Tasks.RETURN.TERMINATE and
+                                r_cont == 'DELETE'):
+                            del self.task_shared_ns[ecu]
+                    except Exception as e:
+                        logging.critical(
+                            'Error while running stop() method for ECU '
+                            'task "%s", ECU="%s": %s',
+                            self.task_shared_ns[ecu].__module__,
+                            ecu,
+                            e, exc_info=True)
             self.request_timer[ecu] = time.time()
         if ('cmd_caf' in self.counters and
                 not self.counters['cmd_caf'] and  # PCI byte in requests

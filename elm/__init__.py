@@ -15,5 +15,5 @@ if sys.hexversion < 0x3060000:
               map(str, sys.version_info[:3])) + ".")
     sys.exit(1)
 
-from .elm import Elm, Tasks
+from .elm import Elm, Tasks, EcuTasks
 from .interpreter import main

@@ -408,6 +408,16 @@ edit MONITOR 0x0E AA BB
 
 Notice that the mt05 scenario is automatically set by the 'UDS_START_COMM' PID (81). The method to dynamically change scenario is `self.set_sorted_obd_msg(scenario)`.
 
+## Data Link and Network Layers
+
+*ELM327-emulator* includes a basic processing of the ISO 15765-2 ISO-TP Layer and KWP2000 ISO 14230-2:1999 Data Link layer. The following elements are implemented:
+
+- CAN Headers, including KWP2000 frame length management,
+- ISO-TP Single frame (SF), First frame (FF), Consecutive frame (CF), Flow control frame (FC),
+- Basic input flow control of ISO-TP (with generation of FC output frames); output flow control (handling of FC input frames) is ignored,
+- Checksum byte (CS) at the end of the ISO 14230-2:1999 message block (checksum verification in requests and checksum generation in responses),
+- ISO-TP P1, P2, P3 and P4 [timers](#timers).
+
 ## Advanced usage
 
 *ELM327-emulator* allows changing the UDS P1, P2, P3 and P4 [timers](#timers) via the `timer` command. The P4 timer controls the max delay between each entered character and by default is not active (e.g., set to 1440 seconds). The P4 timer can either be configured via `timer P4 value`, or by setting `emulator.counters['req_timeout']`. Decimals are allowed. Some adapters set P4 by default, discarding characters if each of them is not entered within a short time limit (apart from the first one after a CR/Carriage Return). The appropriate emulation for this timeout is to set `emulator.counters['req_timeout']=0.015` (e.g., 15 milliseconds). Typing commands by hand via terminal emulator with such adapters is not possible as the allowed timing is too short. The same happens when setting *req_timeout* to 0.015 (or `timer P4 0.015`).
@@ -771,6 +781,7 @@ Special return values:
 - `Task.RETURN.PASSTHROUGH(cmd)`, or `(None, Tasks.RETURN.TERMINATE, cmd)`: if the task returns the same unchanged cmd in the request, it is generally used for pure pass-through, like performing some calculation in the task, or logging, and then terminating the task while sending the same request to the standard processing of its dictionary response elements; if the task changes the returned data, a full reprocessing of the request is done;
 - `Task.RETURN.ERROR`, or `(None, Tasks.RETURN.TERMINATE, None)`: used for error conditions; no output written while terminating the task;
 - `Task.RETURN.INCOMPLETE`, or `(None, Tasks.RETURN.CONTINUE, None)`, used to allow internal processing of the request, without producing output and keeping the task active, so that the same task will also process all subsequent input requests addressed to the same ECU, until the task is terminated.
+- `Tasks.RETURN.TASK_CONTINUE()`, used in ECU tasks, continues the procedure without preprocessing.
 
 Check the *Tasks* class for a list of the available variables initialized by the `__init__()` method.
 
@@ -783,6 +794,27 @@ Other than storing local variables, the task namespace is useful to persist clas
 The shared namespace for an ECU is named `self.shared` and allows access from different tasks or different task instances, if referring the same ECU. This area is automatically managed by *ELM327-emulator* and is already active when the task method is run. For instance, a task can create a variable named `self.shared.my_data = True`, that other tasks can use. This shared area is reset by a communication disconnection, or "ATZ", or *reset* command.
 
 The easies way to configure tasks is to use Tasks.RETURN.TERMINATE (so that a task terminates after method execution, e.g., `Task.RETURN.ANSWER(pa)`) and to exploit `self.shared` to store persistent data, shared by different tasks and functions.
+
+### ECU Tasks
+
+An ECU task is a request preprocessor which owns the shared namespace for its related ECU and is executed for each request referred to the ECU, before interpreting the request (or running the task).
+
+The plugin name of the ECU task shall be "task_ecu_" followed by the uppercase hex header digits of the (source/destination) CAN id of the ECU (then followed by ".py"). For instance, in case of a request directed to an ECU with CAN id "7E0" (`ATSH 7E0`), the task ECU plugin name shall be "task_ecu_7E0.py". In case of `ATSH 8011F1`, the task shall be "task_ecu_11F1.py".
+
+The definition of an ECU task is not required; if missing, a default shared namespace for the ECU is created when the ECU is first used and no further preprocessing occurs.
+
+The `start()` method of the ECU task is executed upon the first request reference of an ECU, when the shared namespace for the ECU is created. It can for instance be used to run one time tasks like creating resources used by subsequent tasks (e.g., mapped memory). A typical return code is `return Tasks.RETURN.TASK_CONTINUE()`, so that the request is subsequently interpreted, while `Tasks.RETURN.TERMINATE` can be used for testing purpose and skips interpreting the request related to the ECU.
+
+The `run()` method of the ECU is invoked on any request after the first one; if *start()* or *stop()* are not implemented, *run()* is always invoked.
+
+The ECU tasks is terminated when a method returns with `False` or with `self.TASK.TERMINATE` in the return tuple, or by the following conditions:
+
+- communication reset (e.g., communication disconnection, or "ATZ", or *reset* command);
+- expiration of the P3 timer.
+
+With these two conditions, the `stop()` method is also executed (useful for instance to remove login parameters after P3 timer expiration).
+
+All ECU task methods return the same three-element tuple of the tasks, where the first element for ECU task methods is ignored, the second one is either `Tasks.RETURN.CONTINUE` or `Tasks.RETURN.TERMINATE` (only for testing), the third one is the preprocessing output (generally unneeded) or *None* for no preprocessing. *TASK_CONTINUE()* means *None, Tasks.RETURN.CONTINUE, None*.
 
 ### Example
 
@@ -826,15 +858,32 @@ Application (request)| ECU (response)|Protocol                            |Descr
 
 In such example, a request of type `3101...` will start the task *task_routine*, which can immediately return (if `Tasks.RETURN.TERMINATE` is used), or (in case `Tasks.RETURN.CONTINUE` is used) will also be able (not in this example of task) to process any subsequent request (also if not matching `3101...`), until the plugin is terminated. In the above example, the `'Header'` attribute is not set, so any header will be valid.
 
-In the following code shows a basic task related to the Python plugin named "task_routine.py":
+The following code shows a sample of 7E0 ECU task related to the Python plugin named "task_ecu_7E0.py"; the `start()` method is executed the first time the ECU is used, while the `stop()` method is executed on expiration of the P3 timer; both reset the login state to False:
+
+```python
+from elm import Tasks, EcuTasks
+
+# 7E0 ECU task
+class Task(EcuTasks):
+    def start(self, *_):
+        self.auth_successful = False
+        return Tasks.RETURN.TASK_CONTINUE()
+
+    def stop(self, *_):
+        self.auth_successful = False
+        return Tasks.RETURN.TASK_CONTINUE()
+```
+
+Notice that `self.auth_successful` in the ECU task can be used in place of `self.shared.auth_successful` because the ECU task owns the ECU namespace.
+
+The following code shows a basic task related to the Python plugin named "task_routine.py"; the assumption is that the default `self.shared.auth_successful` state (`False`) in the ECU shared namespace is already set by the ECU task:
 
 ```python
 from elm import Tasks
 
 class Task(Tasks): # UDS Routine Control (31): Start (01)
     def run(self, cmd, *_):
-        if (hasattr(self.shared, 'auth_successful') and
-                self.shared.auth_successful):
+        if self.shared.auth_successful:
             self.logging.info('Routine %s successfully executed.',
                               cmd[4:])
             return Task.RETURN.ANSWER(self.PA('')) # Return 71 01
@@ -844,7 +893,7 @@ class Task(Tasks): # UDS Routine Control (31): Start (01)
             return Task.RETURN.ANSWER(self.NA('33')) # Return 7F 31 33
 ```
 
-In the above example, the shared `self.shared.auth_successful` attribute is checked in order to immediately return either a positive or negative answer (`Task.RETURN.ANSWER` uses `Tasks.RETURN.TERMINATE`). Notice also that the *UDS_SEND_KEY* PID sets `self.shared.auth_successful` to *True* if the security key is correct and returns either positive or negative answer, exploiting a `ResponseFooter` type lambda function. The example shows that both tasks and response functions are ways to implement process steps (in the specific case shown by the example, the result is similar): while response functions are quick to implement, tasks allow much more flexibility.
+In the above example, the shared `self.shared.auth_successful` attribute is checked in order to immediately return either a positive or negative answer (`Task.RETURN.ANSWER` uses `Tasks.RETURN.TERMINATE`). Notice also that the *UDS_SEND_KEY* PID sets `self.shared.auth_successful` to *True* if the security key is correct and returns either positive or negative answer, exploiting a `ResponseFooter` type lambda function. The example shows that both tasks and response functions are ways to implement process steps (in the specific case shown by the example, the result is similar). While response functions are quick to implement, tasks allow much more flexibility.
 
 Notice that `self.shared` is only available within the same ECU. If multiple ECUs are concurrently configured and interacted (each one with its own header), different ECUs will have their own shared namespace.
 
@@ -853,6 +902,8 @@ The `tasks` command returns the dump of all the used namespaces, both ECU-shared
 The plugins named *task_mt05_read_mem_addr.py* and *task_mt05_write_mem_addr.py* show how to read and write memory by address, mapping the memory space into a file.
 
 The plugin named *task_erase_memory.py* shows how to use the `start()` and `run()` methods, as well as `Tasks.RETURN.CONTINUE` which simulates a certain function processing time.
+
+The plugin named *task_ecu_11F1.py* is an example of memory map run at the first usage of the 11F1 ECU. The *task_mt05_...* plugins assume that the memory map structures are already instantiated by the ECU task.
 
 ### Helper functions
 
