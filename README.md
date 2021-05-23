@@ -794,17 +794,18 @@ A task can exploit its own namespace, which is related to a specific task instan
 
 Other than storing local variables, the task namespace is useful to persist class properties if the task terminates with `Tasks.RETURN.CONTINUE`, so that any subsequent request of the same ECU will be processed by the same task, until task termination. All subsequent calls of an active task share the same namespace. For instance, is a task is configured as a filter, its namespace can be used while preprocessing all subsequent requests directed to the ECU, sent to the same task until its termination.
 
-The shared namespace for an ECU is named `self.shared` and allows access from different tasks or different task instances, if referring the same ECU. This area is automatically managed by *ELM327-emulator* and is already active when the task method is run. For instance, a task can create a variable named `self.shared.my_data = True`, that other tasks can use. This shared area is reset by a communication disconnection, or "ATZ", or *reset* command.
+The shared namespace for an ECU is named `self.shared` and can be associated to an [ECU Task](#ecu-tasks). 
+For instance, a task can create a variable named `self.shared.my_data = True`, that other tasks can use. The shared namespace can be used by different commands or tasks, if referring the same ECU. This area is created by *ELM327-emulator* at the first request referring to an ECU (and, if available, the related ECU Task `start()` method is executed). The shared namespace is already active when the task method is run. This shared area is reset by a communication disconnection, or "ATZ", or *reset* command.
 
 The easies way to configure tasks is to use Tasks.RETURN.TERMINATE (so that a task terminates after method execution, e.g., `Task.RETURN.ANSWER(pa)`) and to exploit `self.shared` to store persistent data, shared by different tasks and functions.
 
 ### ECU Tasks
 
-An ECU task is a request preprocessor which owns the shared namespace for its related ECU and is executed for each request referred to the ECU, before interpreting the request (or running the task).
+An ECU Task is an optional request preprocessor which owns the shared namespace for its related ECU and is executed for each request referred to the ECU (regardless the request is a task or a simple command), before interpreting the request (or running the task).
 
-The plugin name of the ECU task shall be "task_ecu_" followed by the uppercase hex header digits of the (source/destination) CAN id of the ECU (then followed by ".py"). For instance, in case of a request directed to an ECU with CAN id "7E0" (`ATSH 7E0`), the task ECU plugin name shall be "task_ecu_7E0.py". In case of `ATSH 8011F1`, the task shall be "task_ecu_11F1.py".
+The plugin of the ECU Task shall be named "task_ecu_" followed by the uppercase hex header digits of the (source/destination) CAN id of the ECU (then followed by ".py"). For instance, in case of a request directed to an ECU with CAN id "7E0" (`ATSH 7E0`), the task ECU plugin name shall be "task_ecu_7E0.py". In case of `ATSH 8011F1`, the task shall be "task_ecu_11F1.py".
 
-The definition of an ECU task is not required; if missing, a default shared namespace for the ECU is created when the ECU is first used and no further preprocessing occurs.
+The definition of an ECU task is not required; if missing, a default shared namespace for the ECU is created when the ECU is first used and no further preprocessing occurs. The task namespace will be anyway usable.
 
 The `start()` method of the ECU task is executed upon the first request reference of an ECU, when the shared namespace for the ECU is created. It can for instance be used to run one time tasks like creating resources used by subsequent tasks (e.g., mapped memory). A typical return code is `return Tasks.RETURN.TASK_CONTINUE()`, so that the request is subsequently interpreted, while `Tasks.RETURN.TERMINATE` can be used for testing purpose and skips interpreting the request related to the ECU.
 
@@ -818,6 +819,8 @@ The ECU tasks is terminated when a method returns with `False` or with `self.TAS
 With these two conditions, the `stop()` method is also executed (useful for instance to remove login parameters after P3 timer expiration). The default definition of the `stop()` method is to return `Tasks.RETURN.ERROR` (do nothing).
 
 All ECU task methods return the same three-element tuple of the tasks, where the first element for ECU task methods is ignored, the second one is either `Tasks.RETURN.CONTINUE` or `Tasks.RETURN.TERMINATE` (only for testing), the third one is the preprocessing output (generally unneeded) or *None* for no preprocessing. *TASK_CONTINUE()* means *None, Tasks.RETURN.CONTINUE, None*.
+
+The plugin named "task_ecu_11F1.py" is an example of ECU Task.
 
 ### Example
 

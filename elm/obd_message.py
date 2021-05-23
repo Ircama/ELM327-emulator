@@ -4254,6 +4254,11 @@ ObdMessage = {
             'Descr': 'OBD Compliance',
             'Response': PA('03') # OBD + OBD 2
         },
+        'CLEAR_DIAG_TC': {
+            'Request': '^04' + ELM_FOOTER,
+            'Descr': 'Clear Diagnostic Trouble Codes, malfunction indicator and stored values',
+            'Response': PA('')
+        },
         'CALIBRATION_ID': {
             'Request': '^0904' + ELM_FOOTER,
             'Descr': 'Calibration ID',
@@ -4263,6 +4268,11 @@ ObdMessage = {
             'Request': '^0906' + ELM_FOOTER,
             'Descr': 'Calibration Verification Numbers',
             'Response': PA('00 00 F2 29')
+        },
+        'CLEAR_DTC': {
+            'Request': '^14' + ELM_DATA_FOOTER,
+            'Descr': 'Clear DTC',
+            'Response': PA('')
         },
         "MONITOR": {
             'Request': '^2101' + ELM_FOOTER, # 21 (Read Data By Local Id) and 01 (Subfunction)
