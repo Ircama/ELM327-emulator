@@ -805,20 +805,11 @@ An ECU Task is an optional request preprocessor which owns the shared namespace 
 
 The plugin of the ECU Task shall be named "task_ecu_" followed by the uppercase hex header digits of the (source/destination) CAN id of the ECU (then followed by ".py"). For instance, in case of a request directed to an ECU with CAN id "7E0" (`ATSH 7E0`), the task ECU plugin name shall be "task_ecu_7E0.py". In case of `ATSH 8011F1`, the task shall be "task_ecu_11F1.py".
 
-The definition of an ECU task is not required; if missing, a default shared namespace for the ECU is created when the ECU is first used and no further preprocessing occurs. The task namespace will be anyway usable.
+The plugin shall implement a class named *Task* derived from the *EcuTasks* class.
 
-The `start(cmd)` method of the ECU task is executed upon the first request reference of an ECU, when the shared namespace for the ECU is created. It can for instance be used to run one time tasks like initializing resources used by subsequent tasks and commands (e.g., initialize shared variables and mapped memory). A typical return code is `return Tasks.RETURN.TASK_CONTINUE(cmd)`, so that the ECU task is not terminated and the request is subsequently processed. `Tasks.RETURN.TERMINATE` can be used for testing purpose: it skips processing the request related to the ECU.
+Defining an ECU task is not required; if missing, a default shared namespace for the ECU is automatically created when the ECU is first used; no further preprocessing occurs. The task namespace will be anyway usable.
 
-The `run(cmd)` method of the ECU is invoked on any request after the first one; if *start(cmd)* is not implemented, *run(cmd)* is always invoked.
-
-The ECU tasks is terminated when a method returns with `self.TASK.TERMINATE` (*False*) in the return tuple, or by the following conditions:
-
-- communication reset (e.g., communication disconnection, or "ATZ", or *reset* command);
-- expiration of the P3 timer.
-
-With these two conditions, the `stop(cmd)` method is also executed (useful for instance to remove login parameters after P3 timer expiration). The default definition of the `stop(cmd)` method is to return `Tasks.RETURN.ERROR` (do nothing).
-
-All ECU task methods return the same three-element tuple of the tasks, where the first element for ECU task methods is generally *None* (if set, its data is written as output response), the second one is either `Tasks.RETURN.CONTINUE` or `Tasks.RETURN.TERMINATE` (the latter is only for testing), the third one is the preprocessing output, or *None* for no processing. *TASK_CONTINUE(cmd)* means *None, Tasks.RETURN.CONTINUE, cmd*.
+The allowed methods are the same as the normal tasks. The `start()` method of the ECU task is executed upon the first request reference of an ECU, when the shared namespace for the ECU is created. It can for instance be used to run one-time tasks like initializing resources used by subsequent commands (e.g., initialize shared variables and mapped memory used by a task). A typical return code is `return Tasks.RETURN.TASK_CONTINUE(cmd)` (*EcuTask* can be used in place of *Task*), so that the ECU task is not terminated and the request is subsequently processed. `Tasks.RETURN.TERMINATE` can be used for testing purpose: it skips processing the request related to the ECU.
 
 Example of an ECU Task fully disabling the ECU processing and always returning "NO DATA":
 
@@ -826,9 +817,20 @@ Example of an ECU Task fully disabling the ECU processing and always returning "
 from elm import EcuTasks
 
 class Task(EcuTasks):
-    def run(self, cmd):
+    def run(self, cmd, *_):
         return "NO DATA", EcuTasks.RETURN.TERMINATE, None
 ```
+
+The `run()` method of the ECU is invoked on any request after the first one; if *start()* is not implemented, *run()* is always invoked.
+
+The ECU tasks is terminated when a method returns with `self.TASK.TERMINATE` (or *False*) in the return tuple, or by the following conditions:
+
+- communication reset (e.g., communication disconnection, or "ATZ", or *reset* command);
+- expiration of the P3 timer.
+
+With these two conditions, the `stop()` method is also executed (useful for instance to remove login parameters after P3 timer expiration). The default definition of the `stop()` method is to return `Tasks.RETURN.ERROR` (do nothing).
+
+All ECU task methods return the same three-element tuple of the tasks, where the first element for ECU task methods is generally *None* (if set, its data is written as output response), the second one is either `Tasks.RETURN.CONTINUE` or `Tasks.RETURN.TERMINATE` (the latter is only for testing), the third one is the preprocessing output, or *None* for no processing. *TASK_CONTINUE(cmd)* means *None, Tasks.RETURN.CONTINUE, cmd*.
 
 The plugin named "task_ecu_11F1.py" is an example of ECU Task.
 
@@ -877,17 +879,17 @@ In such example, a request of type `3101...` will start the task *task_routine*,
 The following code shows a sample of 7E0 ECU task related to the Python plugin named "task_ecu_7E0.py"; the `start()` method is executed the first time the ECU is used, while the `stop()` method is executed on expiration of the P3 timer; both reset the login state to False:
 
 ```python
-from elm import Tasks, EcuTasks
+from elm import EcuTasks
 
 # 7E0 ECU task
 class Task(EcuTasks):
-    def start(self, cmd):
+    def start(self, cmd, *_):
         self.auth_successful = False
-        return Tasks.RETURN.TASK_CONTINUE(cmd)
+        return EcuTasks.RETURN.TASK_CONTINUE(cmd)
 
-    def stop(self, cmd):
+    def stop(self, cmd, *_):
         self.auth_successful = False
-        return Tasks.RETURN.TASK_CONTINUE(cmd)
+        return EcuTasks.RETURN.TASK_CONTINUE(cmd)
 ```
 
 Notice that `self.auth_successful` in the ECU task can be used in place of `self.shared.auth_successful` because the ECU task owns the ECU namespace.

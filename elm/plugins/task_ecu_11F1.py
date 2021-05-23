@@ -19,7 +19,7 @@ EDIT_INPUT_MMAP_FILE = True
 
 # 11F1 ECU task
 class Task(EcuTasks):
-    def start(self, cmd):
+    def start(self, cmd, *_):
         # The first time the task is instanced, open the memory map file(s)
         try:
             with open(MMAP_INPUT_FILE, "r+b") as f:
@@ -44,6 +44,6 @@ class Task(EcuTasks):
                                       MMAP_OUTPUT_FILE, e)
         return Tasks.RETURN.TASK_CONTINUE(cmd)
 
-    def stop(self, cmd):
+    def stop(self, cmd, *_):
         self.auth_successful = False
         return Tasks.RETURN.TASK_CONTINUE(cmd)
