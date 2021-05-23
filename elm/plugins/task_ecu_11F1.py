@@ -19,7 +19,7 @@ EDIT_INPUT_MMAP_FILE = True
 
 # 11F1 ECU task
 class Task(EcuTasks):
-    def start(self, *_):
+    def start(self, cmd):
         # The first time the task is instanced, open the memory map file(s)
         try:
             with open(MMAP_INPUT_FILE, "r+b") as f:
@@ -29,7 +29,7 @@ class Task(EcuTasks):
         except Exception as e:
             self.logging.critical('Error while opening file "%s": %s',
                                   MMAP_INPUT_FILE, e)
-            return Tasks.RETURN.TASK_CONTINUE()
+            return Tasks.RETURN.TASK_CONTINUE(cmd)
 
         if EDIT_INPUT_MMAP_FILE:
             self.shared.mmap = self.shared.read_mmap
@@ -42,8 +42,8 @@ class Task(EcuTasks):
             except Exception as e:
                 self.logging.critical('Error while writing file "%s": %s',
                                       MMAP_OUTPUT_FILE, e)
-        return Tasks.RETURN.TASK_CONTINUE()
+        return Tasks.RETURN.TASK_CONTINUE(cmd)
 
-    def stop(self, *_):
+    def stop(self, cmd):
         self.auth_successful = False
-        return Tasks.RETURN.TASK_CONTINUE()
+        return Tasks.RETURN.TASK_CONTINUE(cmd)

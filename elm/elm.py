@@ -126,7 +126,7 @@ class Tasks():
 
         def PASSTHROUGH(cmd): return None, Tasks.RETURN.TERMINATE, cmd
 
-        def TASK_CONTINUE(): return None, Tasks.RETURN.CONTINUE, None
+        def TASK_CONTINUE(cmd): return None, Tasks.RETURN.CONTINUE, cmd
 
         def ANSWER(pa): return pa, Tasks.RETURN.TERMINATE, None
 
@@ -269,7 +269,7 @@ class EcuTasks(Tasks):
     ECU Task (continue by default)
     """
     def run(self, cmd, length=None, frame=None):
-        return Tasks.RETURN.TASK_CONTINUE()
+        return Tasks.RETURN.TASK_CONTINUE(cmd)
 
 
 class IsoTpMultiframe(Tasks):
@@ -1595,7 +1595,8 @@ class Elm:
         return answ
 
     def task_action(
-            self, header, ecu, do_write, task_method, cmd, length, frame):
+            self, header, ecu, do_write, task_method, cmd, length, frame,
+            is_ecu=False):
         """
         Call a task method (start(), run(), or stop()), manage the exception,
          pre-process r_task and r_cont return values and return a tuple with
@@ -1608,14 +1609,16 @@ class Elm:
         :param length: length byte extracted by handle_request
         :param frame: frame number extracted by handle_request
         :param cmd: request string produced by the ISO-TP data link
+        :param is_ecu: True if ECU Task
         :return: a tuple of three elements with the same return parameters
                 as the Task methods
         """
-        logging.debug(
-            "Running task %s.%s(%s, %s, %s) for ECU %s",
-            self.tasks[ecu][-1].__module__,
-            task_method.__name__, cmd, length,
-            frame, ecu)
+        if not is_ecu:
+            logging.debug(
+                "Running task %s.%s(%s, %s, %s) for ECU %s",
+                self.tasks[ecu][-1].__module__,
+                task_method.__name__, cmd, length,
+                frame, ecu)
 
         r_cmd = None
         r_task = Tasks.RETURN.TERMINATE
@@ -1623,33 +1626,53 @@ class Elm:
         try:
             r_cmd, r_task, r_cont = task_method(cmd, length, frame)
         except Exception as e:
-            logging.critical(
-                'Error in task "%s", ECU="%s", '
-                'method=%s(): %s',
-                self.tasks[ecu][-1].__module__,
-                ecu,
-                task_method.__name__,
-                e, exc_info=True)
-            del self.tasks[ecu][-1]
+            if is_ecu:
+                logging.critical(
+                    'Error in ECU task "%s", ECU="%s", '
+                    'method=run(): %s',
+                    self.task_shared_ns[ecu].__module__,
+                    ecu,
+                    e, exc_info=True)
+                del self.task_shared_ns[ecu]
+            else:
+                logging.critical(
+                    'Error in task "%s", ECU="%s", '
+                    'method=%s(): %s',
+                    self.tasks[ecu][-1].__module__,
+                    ecu,
+                    task_method.__name__,
+                    e, exc_info=True)
+                del self.tasks[ecu][-1]
             return Tasks.RETURN.ERROR
-        logging.debug("r_cmd=%s, r_task=%s, r_cont=%s", r_cmd, r_task, r_cont)
+        if not is_ecu:
+            logging.debug(
+                "r_cmd=%s, r_task=%s, r_cont=%s", r_cmd, r_task, r_cont)
         if r_cont is not None:
             if r_cmd is not None:
                 resp = self.handle_response(
                     r_cmd,
                     do_write=do_write,
                     request_header=header,
-                    request_data=self.tasks[ecu][-1].task_get_request())
+                    request_data=cmd if is_ecu else
+                        self.tasks[ecu][-1].task_get_request())
                 if not do_write:
-                    logging.warning("Task for ECU %s returned %s",
-                                    ecu, repr(resp))
+                    logging.warning(
+                        "%sTask for ECU %s returned %s",
+                        "ECU " if is_ecu else "",
+                        ecu, repr(resp))
         if r_task is Tasks.RETURN.TERMINATE:
-            logging.debug(
-                'Terminated task "%s" for ECU "%s"',
-                self.tasks[ecu][-1].__module__, ecu)
-            self.account_task(ecu)
-            del self.tasks[ecu][-1]
-        if r_cont is not None:
+            if is_ecu:
+                logging.debug(
+                    'Terminated ECU task "%s" for ECU "%s"',
+                    self.task_shared_ns[ecu].__module__, ecu)
+                del self.task_shared_ns[ecu]
+            else:
+                logging.debug(
+                    'Terminated task "%s" for ECU "%s"',
+                    self.tasks[ecu][-1].__module__, ecu)
+                self.account_task(ecu)
+                del self.tasks[ecu][-1]
+        if r_cont is not None and not is_ecu:
             logging.debug(
                 "Continue processing command %s after execution of task "
                 "for ECU %s.", repr(r_cont), ecu)
@@ -1729,22 +1752,13 @@ class Elm:
 
         #  Manage ECU task and shared namespace
         if ecu in self.task_shared_ns:  # ECU task exists with its namespace
-            try:  # Run the run() method
-                *_, r_task, r_cont = self.task_shared_ns[ecu].run(cmd)
-            except Exception as e:
-                logging.critical(
-                    'Error in ECU task "%s", ECU="%s", '
-                    'method=run(): %s',
-                    self.task_shared_ns[ecu].__module__,
-                    ecu,
-                    e, exc_info=True)
-                return header, cmd, ""
-            if r_task is Tasks.RETURN.TERMINATE:
-                logging.debug(
-                    'Terminated ECU task "%s" for ECU "%s"',
-                    self.task_shared_ns[ecu].__module__, ecu)
-                del self.task_shared_ns[ecu]
-            if r_cont is not None:
+            r_cmd, *_, r_cont = self.task_action(header, ecu, do_write,
+                                                 self.task_shared_ns[ecu].run,
+                                                 cmd, None, None,
+                                                 is_ecu=True)
+            if r_cont is None:
+                return header, cmd, r_cmd
+            else:
                 cmd = r_cont
         else:  # create the ECU task and shared namespace for the ECU
             try:  # use the plugin if existing, otherwise directly use Task()
@@ -1760,27 +1774,18 @@ class Elm:
                     self.task_shared_ns[ecu].__module__ = DEFAULT_ECU_TASK
             except Exception as e:
                 logging.critical(
-                    'Cannot start ECU task "%s", ECU="%s": %s',
+                    'Cannot instantiate ECU task "%s", ECU="%s": %s',
                     ECU_TASK + ecu, ecu, e, exc_info=True)
                 return header, cmd, None
-            logging.debug('Starting ECU task "%s" for ECU "%s"',
+            logging.debug('Instantiating ECU task "%s" for ECU "%s"',
                           self.task_shared_ns[ecu].__module__, ecu)
-            try:
-                *_, r_task, r_cont = self.task_shared_ns[ecu].start(cmd)
-            except Exception as e:
-                logging.critical(
-                    'Error in ECU task "%s", ECU="%s", '
-                    'method=start(): %s',
-                    self.task_shared_ns[ecu].__module__,
-                    ecu,
-                    e, exc_info=True)
-                return header, cmd, ""
-            if r_task is Tasks.RETURN.TERMINATE:
-                logging.debug(
-                    'Terminated ECU task "%s" for ECU "%s"',
-                    self.task_shared_ns[ecu].__module__, ecu)
-                del self.task_shared_ns[ecu]
-            if r_cont is not None:
+            r_cmd, *_, r_cont = self.task_action(header, ecu, do_write,
+                                                 self.task_shared_ns[ecu].start,
+                                                 cmd, None, None,
+                                                 is_ecu=True)
+            if r_cont is None:
+                return header, cmd, r_cmd
+            else:
                 cmd = r_cont
         self.shared = None
         if ecu and ecu in self.task_shared_ns:
@@ -1799,7 +1804,8 @@ class Elm:
                         "UDS P3 timer expired, removing active tasks.")
                     for i in reversed(self.tasks[ecu]):
                         self.task_action(
-                            header, ecu, do_write, i.stop, cmd, length, frame)
+                            header, ecu, do_write, i.stop, cmd, length, frame,
+                            is_ecu=False)
                     del self.tasks[ecu]
                 if ecu in self.task_shared_ns:
                     logging.debug(
@@ -1947,7 +1953,8 @@ class Elm:
             if len_hex(cmd):
                 r_cmd, *_, r_cont = self.task_action(header, ecu, do_write,
                                                      self.tasks[ecu][-1].run,
-                                                     cmd, length, frame)
+                                                     cmd, length, frame,
+                                                     is_ecu=False)
                 if r_cont is None:
                     return header, cmd, r_cmd
                 else:
@@ -1962,7 +1969,8 @@ class Elm:
                     r_cmd, *_, r_cont = self.task_action(header, ecu, do_write,
                                                          self.tasks[ecu][
                                                              -1].stop, cmd,
-                                                         length, frame)
+                                                         length, frame,
+                                                         is_ecu=False)
                     if ecu in self.tasks and self.tasks[ecu]:
                         del self.tasks[ecu][-1]
                     if r_cont is None:
@@ -2037,7 +2045,8 @@ class Elm:
                                       self.tasks[ecu][-1].__module__, ecu)
                         r_cmd, *_, r_cont = self.task_action(
                             header, ecu, do_write,
-                            self.tasks[ecu][-1].start, cmd, length, frame)
+                            self.tasks[ecu][-1].start, cmd, length, frame,
+                            is_ecu=False)
                         if r_cont is None:
                             return header, cmd, r_cmd
                         else:  # chain a subsequent command
