@@ -128,7 +128,7 @@ class Tasks():
 
         def TASK_CONTINUE(cmd): return None, Tasks.RETURN.CONTINUE, cmd
 
-        def ANSWER(pa): return pa, Tasks.RETURN.TERMINATE, None
+        def ANSWER(answer): return answer, Tasks.RETURN.TERMINATE, None
 
     def __init__(self, emulator, pid, header, ecu, request, attrib,
                  do_write=False):
@@ -719,10 +719,10 @@ class Elm:
 
     def run(self):  # daemon thread
         """
-        This is the core procedure.
+        This is the core method.
 
-        Can be run directly or by the Context Manager through
-        the thread: ref. __enter__()
+        Can be run directly (in-process) or by the Context Manager within
+        a thread: ref. __enter__()
 
         No return code.
         """
@@ -2022,55 +2022,60 @@ class Elm:
                             "Error while processing '%s' for PID %s (%s)",
                             self.answer, pid, e)
                 if 'Task' in val:
-                    if val['Task'] in self.plugins:
-                        if ecu not in self.tasks:
-                            self.tasks[ecu] = []
-                        if len(self.tasks[ecu]) > MAX_TASKS:
-                            logging.critical(
-                                'Too many active tasks for ECU %s. '
-                                'Latest one was %s.',
-                                ecu, self.tasks[ecu][-1].__module__)
-                            return header, cmd, ""
-                        try:
-                            self.tasks[ecu].append(
-                                self.plugins[val['Task']].Task(
-                                    self, pid, header, ecu, cmd, val, do_write)
-                            )
-                        except Exception as e:
-                            logging.critical(
-                                'Cannot add task "%s", ECU="%s": %s',
-                                val['Task'], ecu, e, exc_info=True)
-                            return header, cmd, None
-                        logging.debug('Starting task "%s" for ECU "%s"',
-                                      self.tasks[ecu][-1].__module__, ecu)
-                        r_cmd, *_, r_cont = self.task_action(
-                            header, ecu, do_write,
-                            self.tasks[ecu][-1].start, cmd, length, frame,
-                            is_ecu=False)
-                        if r_cont is None:
-                            return header, cmd, r_cmd
-                        else:  # chain a subsequent command
-                            if cmd == r_cont:  # no transformation performed
-                                logging.debug(
-                                    'Passthrough task executed: '
-                                    'continue processing %s for ECU %s.',
-                                    cmd, ecu)
-                            else:  # newly reprocess the changed request
-                                chained_command += 1
-                                if chained_command > MAX_TASKS:
-                                    logging.critical(
-                                        'Too many subsequent chained commands '
-                                        'for ECU %s. Latest task was %s.',
-                                        ecu, val['Task'])
-                                    return header, cmd, ""
-                                cmd = r_cont
-                                i_obd_msg = iter(self.sortedOBDMsg)
-                                continue  # restart the loop from the beginning
-                    else:
+                    if val['Task'] not in self.plugins:
                         logging.error(
-                            'Unexisting plugin "%s" for pid "%s"',
-                            val['Task'], pid)
+                            'Unexisting plugin %s for pid %s',
+                            repr(val['Task']), repr(pid))
                         return header, cmd, None
+                    if val['Task'].startswith('task_ecu_'):
+                        logging.error(
+                            'ECU Tasks are not expected to be run by '
+                            'standard requests. Plugin %s, pid %s',
+                            repr(val['Task']), repr(pid))
+                        return header, cmd, None
+                    if ecu not in self.tasks:
+                        self.tasks[ecu] = []
+                    if len(self.tasks[ecu]) > MAX_TASKS:
+                        logging.critical(
+                            'Too many active tasks for ECU %s. '
+                            'Latest one was %s.',
+                            ecu, self.tasks[ecu][-1].__module__)
+                        return header, cmd, ""
+                    try:
+                        self.tasks[ecu].append(
+                            self.plugins[val['Task']].Task(
+                                self, pid, header, ecu, cmd, val, do_write)
+                        )
+                    except Exception as e:
+                        logging.critical(
+                            'Cannot add task "%s", ECU="%s": %s',
+                            val['Task'], ecu, e, exc_info=True)
+                        return header, cmd, None
+                    logging.debug('Starting task "%s" for ECU "%s"',
+                                  self.tasks[ecu][-1].__module__, ecu)
+                    r_cmd, *_, r_cont = self.task_action(
+                        header, ecu, do_write,
+                        self.tasks[ecu][-1].start, cmd, length, frame,
+                        is_ecu=False)
+                    if r_cont is None:
+                        return header, cmd, r_cmd
+                    else:  # chain a subsequent command
+                        if cmd == r_cont:  # no transformation performed
+                            logging.debug(
+                                'Passthrough task executed: '
+                                'continue processing %s for ECU %s.',
+                                cmd, ecu)
+                        else:  # newly reprocess the changed request
+                            chained_command += 1
+                            if chained_command > MAX_TASKS:
+                                logging.critical(
+                                    'Too many subsequent chained commands '
+                                    'for ECU %s. Latest task was %s.',
+                                    ecu, val['Task'])
+                                return header, cmd, ""
+                            cmd = r_cont
+                            i_obd_msg = iter(self.sortedOBDMsg)
+                            continue  # restart the loop from the beginning
                 if 'Exec' in val:
                     try:
                         exec(val['Exec'])

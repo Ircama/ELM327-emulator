@@ -848,7 +848,7 @@ ObdMessage = {
         'UDS_REQ_SEED': {
             'Request': '^2701' + ELM_FOOTER,
             'Descr': 'SecurityAccess - requestSeed',
-            'Response': PA('B6F1EF')
+            'Response': PA('B6F1EF') # response SID
         },
         'UDS_SEND_KEY': {
             'Request': '^2702' + ELM_FOOTER,
@@ -2338,13 +2338,13 @@ ObdMessage = {
             'Request': '^1002' + ELM_FOOTER,
             'Descr': 'DiagnosticSessionControl - Programming Session',
             'Header': ECU_ADDR_E,
-            'Response': NA('22')
+            'Response': NA('22') # conditionsNotCorrect
         },
         'UDS_EDS': {
             'Request': '^1003' + ELM_FOOTER,
             'Descr': 'UDS Extended Diagnostics Session',
             'Header': ECU_ADDR_E,
-            'Response': NA('12')
+            'Response': NA('12') # subFunctionNotSupported
         },
         'UDS_SESSION_REQ': {
             'Request': '^1092' + ELM_FOOTER,
@@ -2474,7 +2474,7 @@ ObdMessage = {
             'Request': '^2701' + ELM_FOOTER,
             'Descr': 'SecurityAccess - requestSeed',
             'Header': ECU_ADDR_E,
-            'Response': PA('D6 D0 63 12')
+            'Response': PA('D6 D0 63 12') # response SID
         },
         'UDS_SEND_KEY': {
             'Request': '^2702' + ELM_FOOTER,
@@ -4326,7 +4326,7 @@ ObdMessage = {
         'UDS_SA_REQ_SEED': {
             'Request': '^2701' + ELM_FOOTER,
             'Descr': 'UDS SecurityAccess - requestSeed',
-            'Response': PA('12 34')
+            'Response': PA('12 34') # response SID
         },
         'UDS_SA_SEND_KEY': {
             'Request': '^2702' + ELM_DATA_FOOTER,
