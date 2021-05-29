@@ -511,7 +511,7 @@ Tag|Line separator|Behaviour|Helper function
 `<rd>`    |No     |Force the usage of the request data included in this tag to generate the response instead of the one included in the real request.|
 `<flow>`  |Yes    |Generate a flow control response.|
 `<answer>`|Yes    |Generate an UDS generic response basing on request header (including header, length and generic data including the string in within this tag). Automatically generate Single Frames, Flow control frames, First Frame and Consecutive Frames. It is up to the dictionary or task to generate the appropriate positive or negative answer bytes.|AW(answer)
-`<pos_answer>`|Yes|Generate an UDS positive answer response basing on request header and request data (the generated response includes header, length and UDS positive response data, then adding the string within this tag). Automatically generate multiframes if needed. If `<rh>` is used, the default request header is replaced by the one in this tag. If `<rd>` is used, the default request data is replaced by this tag. See the table named `uds_sid_pos_answer` in *elm.py* to check how *ELM327-emulator* computes the number of bytes to add to the answer for each requested SID.|PA(pos_answer)
+`<pos_answer>`|Yes|Generate an UDS positive answer response basing on request header and request data (the generated response includes header, length and UDS positive response data, then adding the string within this tag). Automatically generate multiframes if needed. If `<rh>` is used, the default request header is replaced by the one in this tag. If `<rd>` is used, the default request data is replaced by this tag. See the table named `uds_sid_pos_answer` in [elm.py](elm/elm.py) to check how *ELM327-emulator* computes the number of bytes to add to the answer for each requested SID.|PA(pos_answer)
 `<neg_answer>`|Yes|Generate an UDS negative answer response basing on request header and request data (the generated response includes header, length and UDS negative response data, then adding the string within this tag). Automatically generate multiframes if needed.|NA(neg_answer)
 
 Strings among tags are allowed and are returned as they are, with no line separator and stripping blank heading and footing characters.
@@ -786,7 +786,7 @@ Special return values:
 - `Task.RETURN.INCOMPLETE`, or `(None, Tasks.RETURN.CONTINUE, None)`, used to allow internal processing of the request, without producing output and keeping the task active, so that the same task will also process all subsequent input requests addressed to the same ECU, until the task is terminated.
 - `Tasks.RETURN.TASK_CONTINUE(cmd)`, or `(None, Tasks.RETURN.CONTINUE, cmd)` used for instance in ECU Tasks in order to pass the request to the subsequent processor, by keeping the ECU Task active for all subsequent requests, with its ECU namespace.
 
-Check the *Tasks* class in [elm.py](elm.py) for a list of the available variables initialized by the `__init__()` method.
+Check the *Tasks* class in [elm.py](elm/elm.py) for a list of the available variables initialized by the `__init__()` method.
 
 ### Task namespaces
 
@@ -1156,7 +1156,7 @@ It queries the vehicle via *python-OBD* for all available commands and is also a
 
 Its output is a Python *ObdMessage* dictionary that can either replace the *obd_message.py* module of *ELM327-emulator*, or extend the existing dictionary via *merge* command, so that the emulator will be able to provide the same commands returned by the vehicle.
 
-Notice that querying the vehicle might be invasive and some commands can change the car configuration (enabling or disabling belts alarm, enabling or disabling reverse beeps, clearing diagnostic codes, controlling fans, etc.). In order to prevent dangerous PIDs to be used for building the dictionary, a PID blacklist (*blacklisted_pids*) can be edited in *elm.py*. To check all PIDs without performing actual OBD-II queries (dry-run mode), use the `-p 0` option (the standard error output with default logging level shows the list of produced PIDs).
+Notice that querying the vehicle might be invasive and some commands can change the car configuration (enabling or disabling belts alarm, enabling or disabling reverse beeps, clearing diagnostic codes, controlling fans, etc.). In order to prevent dangerous PIDs to be used for building the dictionary, a PID blacklist (*blacklisted_pids*) can be edited in [elm.py](elm/elm.py). To check all PIDs without performing actual OBD-II queries (dry-run mode), use the `-p 0` option (the standard error output with default logging level shows the list of produced PIDs).
 
 *obd_dictionary* can be run as:
 
