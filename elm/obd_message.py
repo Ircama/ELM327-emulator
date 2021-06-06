@@ -233,7 +233,7 @@ ObdMessage = {
             '"Volt = {:.1f}".format('
             '0.1 * abs(9 - (self.counters[pid] + 9) % 18) + 13)',
             'ResponseHeader': \
-            lambda self, cmd, pid, val: \
+            lambda self, cmd, pid, uc_val: \
                 "<string>{:.1f}</string>".format( \
                     0.1 * abs(9 - (self.counters[pid] + 9) % 18) + 13),
             'Response': ST("V")
@@ -531,7 +531,7 @@ ObdMessage = {
             'Request': '^0100$',
             'Descr': 'PIDS_A',
             'ResponseHeader': \
-            lambda self, cmd, pid, val: \
+            lambda self, cmd, pid, uc_val: \
                 '<string>SEARCHING...</string>'
                 '<exec>time.sleep(4.5)</exec>' + ST('') + \
                 ST('UNABLE TO CONNECT') \
@@ -543,7 +543,7 @@ ObdMessage = {
             'Request': '^0600$',
             'Descr': 'MIDS_A',
             'ResponseHeader': \
-            lambda self, cmd, pid, val: \
+            lambda self, cmd, pid, uc_val: \
                 '<string>SEARCHING...</string>'
                 '<exec>time.sleep(4.5)</exec>' + ST('') + \
                 ST('UNABLE TO CONNECT') \
@@ -590,7 +590,7 @@ ObdMessage = {
             'Request': '^010C' + ELM_FOOTER,
             'Descr': 'Engine RPM',
             'ResponseFooter': \
-            lambda self, cmd, pid, val: (
+            lambda self, cmd, pid, uc_val: (
                 PA(self.sequence(
                     pid, base=2400, max=200, factor=80, n_bytes=2))
                 + ' ' + HD(ECU_R_ADDR_H) + SZ('04') + DT('41 0C '
@@ -601,7 +601,7 @@ ObdMessage = {
             'Request': '^010D' + ELM_FOOTER,
             'Descr': 'Vehicle Speed',
             'ResponseFooter': \
-            lambda self, cmd, pid, val: (
+            lambda self, cmd, pid, uc_val: (
                 PA(self.sequence(pid, base=0, max=30, factor=4, n_bytes=1))
                 + ' ' + HD(ECU_R_ADDR_H) + SZ('03') + DT('41 0D '
                 + self.sequence(pid, base=0, max=30, factor=4, n_bytes=1))
@@ -717,7 +717,7 @@ ObdMessage = {
             'Request': '^0100' + ELM_FOOTER,
             'Descr': 'PIDS_A',
             'ResponseHeader': \
-                lambda self, cmd, pid, val: \
+                lambda self, cmd, pid, uc_val: \
                     '<string>SEARCHING...</string>'
                     '<exec>time.sleep(3)</exec>' + ST('') \
                         if self.counters[pid] == 1 else "",
@@ -821,7 +821,7 @@ ObdMessage = {
         'CLEAR_DTC': {
             'Request': '^14' + ELM_DATA_FOOTER,
             'Descr': 'Clear DTC',
-            'ResponseFooter': lambda self, cmd, pid, val: (
+            'ResponseFooter': lambda self, cmd, pid, uc_val: (
                 self.choice([NA('78'), PA(cmd[2:])])
             )
         },
@@ -4232,7 +4232,7 @@ ObdMessage = {
             'Request': '^010C' + ELM_FOOTER,
             'Descr': 'Engine RPM',
             'ResponseFooter': \
-                lambda self, cmd, pid, val: \
+                lambda self, cmd, pid, uc_val: \
                     PA(self.sequence(
                            pid, base=2400, max=200, factor=80, n_bytes=2))
         },
@@ -4240,7 +4240,7 @@ ObdMessage = {
             'Request': '^010D' + ELM_FOOTER,
             'Descr': 'Vehicle Speed',
             'ResponseFooter': \
-                lambda self, cmd, pid, val: \
+                lambda self, cmd, pid, uc_val: \
                     PA(self.sequence(
                             pid, base=0, max=30, factor=4, n_bytes=1))
         },
@@ -4333,7 +4333,7 @@ ObdMessage = {
             'Descr': 'UDS SecurityAccess - Send Key to ECU',
             'Exec': 'self.shared.auth_successful = cmd[4:] == "8474"', # Key
             'Info': '"auth_successful: %s.", self.shared.auth_successful',
-            'ResponseFooter': lambda self, cmd, pid, val: (
+            'ResponseFooter': lambda self, cmd, pid, uc_val: (
                 PA('34') if self.shared.auth_successful else NA('35')
             )
         },
@@ -4346,7 +4346,7 @@ ObdMessage = {
             'Request': '^38' + ELM_DATA_FOOTER,
             'Descr': 'UDS Start Routine by Address',
             'Exec': 'self.shared.executed_routine = cmd[2:] or None',
-            'ResponseFooter': lambda self, cmd, pid, val: PA(cmd[2:]) # return the address after the SID
+            'ResponseFooter': lambda self, cmd, pid, uc_val: PA(cmd[2:]) # return the address after the SID
         },
         'UDS_WRITE_MEM_ADDR': {
             'Request': '^3D' + ELM_DATA_FOOTER,

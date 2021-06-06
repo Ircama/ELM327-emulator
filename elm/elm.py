@@ -218,7 +218,7 @@ class Tasks():
         """
         if not self.attrib:
             return None
-        return re.match(self.attrib['Request'], request)
+        return re.match(self.attrib['REQUEST'], request)
 
     def start(self, cmd, length=None, frame=None):
         """
@@ -266,15 +266,15 @@ class Tasks():
 
 class EcuTasks(Tasks):
     """
-    ECU Task (continue by default)
+    ECU Task (same as normal tasks, but return is set to continue by default)
     """
     def run(self, cmd, length=None, frame=None):
-        return Tasks.RETURN.TASK_CONTINUE(cmd)
+        return EcuTasks.RETURN.TASK_CONTINUE(cmd)
 
 
 class IsoTpMultiframe(Tasks):
     """
-    Special task to aggregate a ISO-TP Multiframe request into a single string
+    Special task to aggregate an ISO-TP Multiframe request into a single string
     before processing the request.
     """
 
@@ -417,7 +417,7 @@ class Elm:
         self.counters['ELM_PIDS_A'] = 0
         self.counters['ELM_MIDS_A'] = 0
         self.counters['cmd_echo'] = not self.no_echo
-        self.counters['cmd_set_header'] = ECU_ADDR_E
+        self.counters['cmd_set_header'] = ECU_ADDR_E.upper()
         self.counters.update(self.presets)
 
     def set_defaults(self):
@@ -1223,7 +1223,8 @@ class Elm:
 
     def uds_answer(
             self,
-            data, request_header, use_headers, sp, nl, is_flow_control=None):
+            data, request_header, use_headers, cra_pattern, sp, nl,
+            is_flow_control=None):
         """
         Generate an UDS envelope and answer basing on information included in
         parameters.
@@ -1233,6 +1234,7 @@ class Elm:
                 (to be used to compute the response header)
         :param use_headers: boolean to indicate whether the header shall be
                 included
+        :param cra_pattern: ATCRA match string for header
         :param sp: space string
         :param nl: newline string
         :param is_flow_control: string including the flow control byte
@@ -1241,8 +1243,8 @@ class Elm:
         answer = ""
         if request_header is None and "cmd_set_header" in self.counters:
             request_header = self.counters['cmd_set_header']
-        request_header = request_header.translate(
-            request_header.maketrans('', '', string.whitespace)).upper()
+        request_header = (request_header or '').translate(
+            (request_header or '').maketrans('', '', string.whitespace)).upper()
         if not request_header:
             logging.error('Invalid request header; request %s', repr(data))
             return ""
@@ -1253,14 +1255,21 @@ class Elm:
         except ValueError:
             logging.error('Invalid data in answer: %s', repr(data))
             return ""
+        answer_header = hex(int(request_header, 16) + 8)[2:].upper()
+        if not re.match(cra_pattern, answer_header):
+            logging.debug('Skipping answer which does not match CRA: '
+                          'request_header=%s, answer_header=%s, cra_pattern=%s',
+                          repr(request_header), repr(answer_header),
+                          repr(cra_pattern))
+            return ""
         if len(request_header) == 3 and is_flow_control:  # 11 bit header + FC
             if use_headers:
-                answer = hex(int(request_header, 16) + 8)[2:].upper() + sp
+                answer = answer_header + sp
             answer += is_flow_control + sp + data
         elif len(request_header) == 3:  # ISO-TP 11 bit CAN identifier
             if use_headers:
                 if length > 7:  # produce a multframe output
-                    answer = (hex(int(request_header, 16) + 8)[2:].upper() +
+                    answer = (answer_header +
                               sp + "10" + sp + "%02X" % length + sp)
                     bytes_to_add = 6
                     answer += data[:(3 if sp else 2) * bytes_to_add] + nl
@@ -1271,7 +1280,7 @@ class Elm:
                     while remaining_length > 0:
                         if frame_count == 0x10:
                             frame_count = 0
-                        answer += (hex(int(request_header, 16) + 8)[2:].upper()
+                        answer += (answer_header
                                    + sp + "%02X" % (frame_count + 0x20) + sp)
                         remaining_length -= bytes_to_add
                         answer += (remaining_data[
@@ -1281,9 +1290,7 @@ class Elm:
                         frame_count += 1
                     answer = answer.rstrip(sp + nl)
                 else:
-                    answer = (hex(int(request_header, 16) + 8)[2:].upper() +
-                              sp + "%02X" % length + sp)
-                    answer += data
+                    answer = answer_header + sp + "%02X" % length + sp + data
             else:
                 if length > 7:  # produce a multframe output
                     if ('cmd_caf' in self.counters and
@@ -1347,7 +1354,7 @@ class Elm:
                               answer, repr(data), repr(request_header), e)
         else:
             logging.error('Invalid request header: %s', repr(request_header))
-        return answer
+        return answer + sp + nl
 
     def handle_response(self,
                         resp,
@@ -1370,11 +1377,12 @@ class Elm:
         logging.debug("Processing: %s", repr(resp))
 
         # Compute cra_pattern (ATCRA filter)
-        cra_pattern = r'.*'
+        cra_pattern = r'[0-9A-F]+'
         cra = self.counters["cmd_cra"] if "cmd_cra" in self.counters else None
         if cra:
-            cra = cra.replace('X', '.').replace('x', '?')
-            cra_pattern = r'^' + cra + r'$'
+            cra_pattern = (r'^' + cra
+                           .replace('X', '[0-9A-F]').replace('W', '[0-9A-F]+')
+                           + r'$')
 
         # Compute use_headers
         use_headers = ("cmd_use_header" in self.counters and
@@ -1466,16 +1474,18 @@ class Elm:
                 answ += self.uds_answer(data=i.text or "",
                                         request_header=request_header,
                                         use_headers=use_headers,
+                                        cra_pattern=cra_pattern,
                                         sp=sp,
                                         nl=nl,
-                                        is_flow_control='30') + sp + nl
+                                        is_flow_control='30')
 
             elif i.tag.lower() == 'answer':
                 answ += self.uds_answer(data=i.text or "",
                                         request_header=request_header,
                                         use_headers=use_headers,
+                                        cra_pattern=cra_pattern,
                                         sp=sp,
-                                        nl=nl) + sp + nl
+                                        nl=nl)
             elif i.tag.lower() == 'pos_answer' or i.tag.lower() == 'neg_answer':
                 if not request_data:
                     logging.error(
@@ -1524,8 +1534,9 @@ class Elm:
                 answ += self.uds_answer(data=data,
                                         request_header=request_header,
                                         use_headers=use_headers,
+                                        cra_pattern=cra_pattern,
                                         sp=sp,
-                                        nl=nl) + sp + nl
+                                        nl=nl)
 
             elif i.tag.lower() == 'header':
                 answers = True
@@ -1560,7 +1571,7 @@ class Elm:
                                   repr(resp))
                     break
                 unspaced_data = (data.text or "").translate(
-                    answ.maketrans('', '', string.whitespace))
+                    (data.text or "").maketrans('', '', string.whitespace))
                 if int_size < 16 and len(unspaced_data) != int_size * 2:
                     logging.error(
                         'In response %s, mismatch between number of data '
@@ -1568,7 +1579,7 @@ class Elm:
                         repr(resp), repr(data.text), repr(size.text))
                     break
                 incomplete_resp = False
-                if re.match(cra_pattern, i.text):
+                if re.match(cra_pattern, i.text.upper()):
                     # concatenate answ from header, size and data/subd
                     answ += ((((i.text or "") + sp + (size.text or "") + sp)
                               if use_headers else "") +
@@ -1623,7 +1634,7 @@ class Elm:
         r_cmd = None
         r_task = Tasks.RETURN.TERMINATE
         r_cont = None
-        try:
+        try:  # Run the task method
             r_cmd, r_task, r_cont = task_method(cmd, length, frame)
         except Exception as e:
             if is_ecu:
@@ -1647,19 +1658,18 @@ class Elm:
         if not is_ecu:
             logging.debug(
                 "r_cmd=%s, r_task=%s, r_cont=%s", r_cmd, r_task, r_cont)
-        if r_cont is not None:
-            if r_cmd is not None:
-                resp = self.handle_response(
-                    r_cmd,
-                    do_write=do_write,
-                    request_header=header,
-                    request_data=cmd if is_ecu else
-                        self.tasks[ecu][-1].task_get_request())
-                if not do_write:
-                    logging.warning(
-                        "%sTask for ECU %s returned %s",
-                        "ECU " if is_ecu else "",
-                        ecu, repr(resp))
+        if r_cont is not None and r_cmd is not None:
+            resp = self.handle_response(
+                r_cmd,
+                do_write=do_write,
+                request_header=header,
+                request_data=cmd if is_ecu else
+                    self.tasks[ecu][-1].task_get_request())
+            if not do_write:
+                logging.warning(
+                    "%sTask for ECU %s returned %s",
+                    "ECU " if is_ecu else "",
+                    ecu, repr(resp))
         if r_task is Tasks.RETURN.TERMINATE:
             if is_ecu:
                 logging.debug(
@@ -1676,7 +1686,7 @@ class Elm:
             logging.debug(
                 "Continue processing command %s after execution of task "
                 "for ECU %s.", repr(r_cont), ecu)
-        return (r_cmd, r_task, r_cont)
+        return r_cmd, r_task, r_cont
 
     def account_task(self, ecu):
         """
@@ -1696,13 +1706,13 @@ class Elm:
 
     def handle_request(self, cmd, do_write=False):
         """
-        It generates an XML response by processing a request,
+        Generate an XML response by processing a request,
         returning a string to be processed by process_response(),
-        which creates the final output format. It returns None
+        which creates the final output format. Return None
         if this there are no data to be processed.
 
         In some cases, process_response() is implicitly called,
-        passing do_write.
+        passing do_write. Task processing is included.
 
         :param cmd: the request to be processed
         :param do_write: passed to process_response() when
@@ -1711,11 +1721,11 @@ class Elm:
         """
 
         org_cmd = cmd
-        # Sanitize cmd
-        cmd = cmd.replace(" ", "")
-        cmd = cmd.upper()
+        # Sanitize cmd (request has all unspaced uppercase chars)
+        cmd = (cmd or '').translate(
+            (cmd or '').maketrans('', '', string.whitespace)).upper()
 
-        # increment 'commands' counter
+        # Increment 'commands' counter
         if 'commands' not in self.counters:
             self.counters['commands'] = 0
         self.counters['commands'] += 1
@@ -1746,6 +1756,10 @@ class Elm:
         if self.delay > 0:
             time.sleep(self.delay)
 
+        if cmd[1] == 'T' and org_cmd.upper()[1] != 'T':  # AT or ST shall be unspaced
+            logging.error("Improper AT or ST command %s.", repr(org_cmd))
+            return header, cmd, ""
+
         if self.scenario not in self.ObdMessage:
             logging.error("Unknown scenario %s", repr(self.scenario))
             return header, cmd, ""
@@ -1761,10 +1775,20 @@ class Elm:
             else:
                 cmd = r_cont
         else:  # create the ECU task and shared namespace for the ECU
-            try:  # use the plugin if existing, otherwise directly use Task()
-                if ecu and ECU_TASK + ecu in self.plugins:
-                    self.task_shared_ns[ecu] = self.plugins[
-                        ECU_TASK + ecu].Task(
+            plugin = None
+            for i in self.plugins:
+                i_pattern = (r'^' +
+                             i.upper()
+                             .replace('X', '[0-9A-F]')
+                             .replace('W', '[0-9A-F]+') +
+                             r'$')
+                if (i.startswith(ECU_TASK) and
+                        re.match(i_pattern, ECU_TASK.upper() + ecu)):
+                    plugin = i
+                    break
+            try:  # use the plugin if existing, else directly use EcuTasks()
+                if plugin:
+                    self.task_shared_ns[ecu] = self.plugins[plugin].Task(
                         emulator=self, pid=None, header=header, ecu=ecu,
                         request=cmd, attrib=None, do_write=do_write)
                 else:  # Create a default ECU task
@@ -1791,11 +1815,11 @@ class Elm:
         if ecu and ecu in self.task_shared_ns:
             self.shared = self.task_shared_ns[ecu]
 
-        # manage cmd_caf, length, frame - Process UDS ISO-TP Multiframe data link
+        # Manage cmd_caf, length, frame & process UDS ISO-TP Multiframe data link
         size = cmd[:2]
-        length = None  # no byte length in request
+        length = None  # No byte length in request
         frame = None  # Single Frame by default
-        if ecu and is_hex_sp(cmd):  # not AT or ST command
+        if ecu and is_hex_sp(cmd):  # Not AT or ST command
             if (ecu in self.request_timer and
                     self.request_timer[ecu] + self.multiframe_timer <
                     time.time()):
@@ -1857,8 +1881,7 @@ class Elm:
                                   'greater than 7 bytes. %s',
                                   repr(size))
                     return header, cmd, ""
-            elif size[
-                0] == '1':  # e.g., 10 = first frame of a ISO-TP Multiframe fequest
+            elif size[0] == '1':  # E.g., 10 = first frame of an ISO-TP Multiframe Request
                 try:
                     length = int(cmd[1:4], 16)  # read ISO-TP Multiframe length
                     logging.debug(
@@ -1873,17 +1896,16 @@ class Elm:
                     return header, cmd, ""
                 cmd = cmd[4:]
                 frame = 0
-            elif size[0] == '2':  # e.g., 21 = ISO-TP Consecutive Frame
+            elif size[0] == '2':  # E.g., 21 = ISO-TP Consecutive Frame
                 cmd = cmd[2:]
-                if int_size == 32:  # the frame includes 20 after 1F
+                if int_size == 32:  # The frame includes 20 after 1F
                     frame = -1  # Marker for ISO-TP Multiframe() to detect a recycle
                 if 32 < int_size < 48:  # from 21 to 2F
                     frame = int_size - 32  # compute the multiframe count
                 logging.debug(
                     "Consecutive-Frame. Length: %s, frame: %s, header: %s, "
                     "cmd: %s", length, frame, header, cmd)
-            elif size[
-                0] == '3':  # e.g., from 30 on = flow control of a ISO-TP Multiframe fequest
+            elif size[0] == '3':  # E.g., from 30 on = flow control of a ISO-TP Multiframe Request
                 try:
                     self.shared.flow_control_fc_flag = int(size[1])
                     self.shared.flow_control_block_size = int(cmd[2:4], 16)
@@ -1948,6 +1970,7 @@ class Elm:
                     self, "ISO-TP-Multiframe", header, ecu, cmd, None, do_write)
             )
             self.tasks[ecu][-1].__module__ = ISO_TP_MULTIFRAME_MODULE
+
         # Manage active tasks
         if ecu in self.tasks and self.tasks[ecu]:  # if a task exists
             if len_hex(cmd):
@@ -1995,21 +2018,24 @@ class Elm:
                 key, val = next(i_obd_msg)
             except StopIteration:
                 break
-            if 'Request' in val and re.match(val['Request'], cmd):
-                if ('Header' in val and header and
-                        val['Header'] != self.counters["cmd_set_header"]):
+            uc_val = {k.upper(): v for k, v in val.items()}
+            if ('REQUEST' in uc_val and
+                    re.match(uc_val['REQUEST'], cmd)):
+                if ('HEADER' in uc_val and header and
+                        uc_val['HEADER'].upper() !=
+                        self.counters["cmd_set_header"]):
                     continue
                 pid = key if key else 'UNKNOWN'
                 if pid not in self.counters:
                     self.counters[pid] = 0
                 self.counters[pid] += 1
-                if 'Action' in val and val['Action'] == 'skip':
+                if 'ACTION' in uc_val and uc_val['ACTION'] == 'skip':
                     logging.info("Received %s. PID %s. Action=%s", cmd, pid,
-                                 val['Action'])
+                                 uc_val['ACTION'])
                     continue
-                if 'Descr' in val:
+                if 'DESCR' in uc_val:
                     logging.debug("Description: %s, PID %s (%s)",
-                                  val['Descr'], pid, cmd)
+                                  uc_val['DESCR'], pid, cmd)
                 else:
                     logging.warning(
                         "Internal error - Missing description for %s, PID %s",
@@ -2021,17 +2047,17 @@ class Elm:
                         logging.error(
                             "Error while processing '%s' for PID %s (%s)",
                             self.answer, pid, e)
-                if 'Task' in val:
-                    if val['Task'] not in self.plugins:
+                if 'TASK' in uc_val:
+                    if uc_val['TASK'] not in self.plugins:
                         logging.error(
                             'Unexisting plugin %s for pid %s',
-                            repr(val['Task']), repr(pid))
+                            repr(uc_val['TASK']), repr(pid))
                         return header, cmd, None
-                    if val['Task'].startswith('task_ecu_'):
+                    if uc_val['TASK'].startswith('task_ecu_'):
                         logging.error(
                             'ECU Tasks are not expected to be run by '
                             'standard requests. Plugin %s, pid %s',
-                            repr(val['Task']), repr(pid))
+                            repr(uc_val['TASK']), repr(pid))
                         return header, cmd, None
                     if ecu not in self.tasks:
                         self.tasks[ecu] = []
@@ -2043,13 +2069,14 @@ class Elm:
                         return header, cmd, ""
                     try:
                         self.tasks[ecu].append(
-                            self.plugins[val['Task']].Task(
-                                self, pid, header, ecu, cmd, val, do_write)
+                            self.plugins[uc_val['TASK']].Task(
+                                emulator=self, pid=pid, header=header, ecu=ecu,
+                                request=cmd, attrib=uc_val, do_write=do_write)
                         )
                     except Exception as e:
                         logging.critical(
                             'Cannot add task "%s", ECU="%s": %s',
-                            val['Task'], ecu, e, exc_info=True)
+                            uc_val['TASK'], ecu, e, exc_info=True)
                         return header, cmd, None
                     logging.debug('Starting task "%s" for ECU "%s"',
                                   self.tasks[ecu][-1].__module__, ecu)
@@ -2071,25 +2098,25 @@ class Elm:
                                 logging.critical(
                                     'Too many subsequent chained commands '
                                     'for ECU %s. Latest task was %s.',
-                                    ecu, val['Task'])
+                                    ecu, uc_val['TASK'])
                                 return header, cmd, ""
                             cmd = r_cont
                             i_obd_msg = iter(self.sortedOBDMsg)
                             continue  # restart the loop from the beginning
-                if 'Exec' in val:
+                if 'EXEC' in uc_val:
                     try:
-                        exec(val['Exec'])
+                        exec(uc_val['EXEC'])
                     except Exception as e:
                         logging.error(
                             "Cannot execute '%s' for PID %s (%s)",
-                            val['Exec'], pid, e)
+                            uc_val['EXEC'], pid, e)
                 log_string = ""
-                if 'Info' in val:
-                    log_string = "logging.info(%s)" % val['Info']
-                if 'Warning' in val:
-                    log_string = "logging.warning(%s)" % val['Warning']
-                if 'Log' in val:
-                    log_string = "logging.debug(%s)" % val['Log']
+                if 'INFO' in uc_val:
+                    log_string = "logging.info(%s)" % uc_val['INFO']
+                if 'WARNING' in uc_val:
+                    log_string = "logging.warning(%s)" % uc_val['WARNING']
+                if 'LOG' in uc_val:
+                    log_string = "logging.debug(%s)" % uc_val['LOG']
                 if log_string:
                     try:
                         exec(log_string)
@@ -2097,31 +2124,31 @@ class Elm:
                         logging.error(
                             "Error while logging '%s' for PID %s (%s)",
                             log_string, pid, e)
-                if any(x in val for x in
-                       ['Response', 'ResponseHeader', 'ResponseFooter']):
+                if any(x in uc_val for x in
+                       ['RESPONSE', 'RESPONSEHEADER', 'RESPONSEFOOTER']):
                     r_header = ''
-                    if 'ResponseHeader' in val:
+                    if 'RESPONSEHEADER' in uc_val:
                         try:
-                            r_header = val['ResponseHeader'](
-                                self, cmd, pid, val)
+                            r_header = uc_val['RESPONSEHEADER'](
+                                self, cmd, pid, uc_val)
                         except Exception as e:
                             logging.error(
                                 "Error while running 'ResponseHeader' %s '"
                                 "for PID %s (%s)",
-                                val['ResponseHeader'], pid, e)
+                                uc_val['RESPONSEHEADER'], pid, e)
                     r_footer = ''
-                    if 'ResponseFooter' in val:
+                    if 'RESPONSEFOOTER' in uc_val:
                         try:
-                            r_footer = val['ResponseFooter'](
-                                self, cmd, pid, val)
+                            r_footer = uc_val['RESPONSEFOOTER'](
+                                self, cmd, pid, uc_val)
                         except Exception as e:
                             logging.error(
                                 "Error while running 'ResponseFooter' %s '"
                                 "for PID %s (%s)",
-                                val['ResponseHeader'], pid, e)
+                                uc_val['RESPONSEHEADER'], pid, e)
                     r_response = ''
-                    if 'Response' in val:
-                        r_response = val['Response']
+                    if 'RESPONSE' in uc_val:
+                        r_response = uc_val['RESPONSE']
                     if not any([r_response, r_header, r_footer]):
                         return header, cmd, None
                     if isinstance(r_response, (list, tuple)):

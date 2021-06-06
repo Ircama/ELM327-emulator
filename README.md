@@ -176,7 +176,7 @@ The dictionary used to parse each ELM command is dynamically built as a union of
 
 If a custom scenario is selected through the *scenario* command, any key defined in the custom scenario replaces the default settings ('AT' and 'default' scenarios).
 
-The key used in the dictionary consists of a unique identifier for each PID. Allowed case-sensitive values for each key (PID):
+The key used in the dictionary consists of a unique identifier for each PID. Allowed case-insensitive values for each key (PID):
 
 - `'Request'`: received data; a [regular expression](https://docs.python.org/3/library/re.html) can be used
 - `'Descr'`: string describing the PID
@@ -329,7 +329,12 @@ The *cmd_spaces* setting is the same as:
 test ATS1
 ```
 
-`cmd_cra` keeps the value set by *ATCRA* when setting and resetting the receive address filter. Example.
+`cmd_cra` keeps the value set by *ATCRA* when setting and resetting the receive address filter. The following metacharacters are accepted:
+
+- *X* for any single hex digit,
+- *W* for any sequence of hex digits (one or more).
+
+Example.
 
 ```
 test ATCRA 7X8
@@ -533,11 +538,11 @@ Symbol (name)     |Escape Sequence
 
 The *exec* tag for instance can be used to embed real-time delays between strings or to differentiate answers. The return value of a statement is ignored. The evaluation of an expression is substituted. Example: `'Response' = '<string>SEARCHING...</string><exec>time.sleep(4.5)</exec><writeln /><writeln>UNABLE TO CONNECT</writeln>'. Notice that, as `time.sleep` is a statement, the related return value is ignored.
 
-Further processing can be achieved through a *lambda function* applied to `ResponseHeader`, `ResponseFooter`. It has to manage the following parameters: *self*, *cmd*, *pid*, *val* (e.g., `lambda self, cmd, pid, val:`).
+Further processing can be achieved through a *lambda function* applied to `ResponseHeader`, `ResponseFooter`. It has to manage the following parameters: *self*, *cmd*, *pid*, *uc_val* (e.g., `lambda self, cmd, pid, uc_val:`).
 
 - cmd: the request, received by the client application
 - pid: the PID identifier (which can be used as key to index `self.counters` and `ObdMessage`)
-- val: `ObdMessage` value related to `pid` (e.g., `val['Response']`).
+- uc_val: `ObdMessage` dictionary related to `pid` with all keys converted to uppercase (e.g., `uc_val['RESPONSE']`).
 
 Example of PID definition within the `ObdMessage` dictionary:
 
@@ -546,7 +551,7 @@ Example of PID definition within the `ObdMessage` dictionary:
             'Request': '^0100$',
             'Descr': 'PIDS_A',
             'ResponseHeader': \
-            lambda self, cmd, pid, val: \
+            lambda self, cmd, pid, uc_val: \
                 '<string>SEARCHING...</string>'
                 '<exec>time.sleep(4.5)</exec><writeln />'
                 '<writeln>UNABLE TO CONNECT</writeln>' \
@@ -803,7 +808,10 @@ The easies way to configure tasks is to use Tasks.RETURN.TERMINATE (so that a ta
 
 An ECU Task is an optional request preprocessor which owns the shared namespace for its related ECU and is executed for each request referred to the same ECU, before interpreting the request (or running the task, regardless the request is a task or a simple command).
 
-The plugin of the ECU Task shall be named "task_ecu_" followed by the uppercase hex header digits of the (source/destination) CAN id of the ECU (then followed by ".py"). For instance, in case of a request directed to an ECU with CAN id "7E0" (`ATSH 7E0`), the task ECU plugin shall be named "task_ecu_7E0.py". In case of `ATSH 8011F1`, the related ECU task shall be named "task_ecu_11F1.py".
+The plugin of the ECU Task shall be named "task_ecu_" followed by the hex header digits (case-insensitive) of the (source/destination) CAN id of the ECU (then followed by ".py"). For instance, in case of a request directed to an ECU with CAN id "7E0" (`ATSH 7E0`), the task ECU plugin shall be named "task_ecu_7E0.py". In case of `ATSH 8011F1`, the related ECU task shall be named "task_ecu_11F1.py". Hex digits accept the following metacharacters:
+
+- *X* for any single hex digit,
+- *W* for any sequence of hex digits (one or more).
 
 The plugin shall implement a class named *Task* derived from the *EcuTasks* class.
 
@@ -854,7 +862,7 @@ For instance, a plugin named *plugins/task_routine.py* defines the task *task_ro
             'Descr': 'UDS SecurityAccess - Send Key to ECU',
             'Exec': 'self.shared.auth_successful = cmd[4:] == "3322"', # Key
             'Info': '"auth_successful: %s", self.shared.auth_successful',
-            'ResponseFooter': lambda self, cmd, pid, val: (
+            'ResponseFooter': lambda self, cmd, pid, uc_val: (
                 PA('') if self.shared.auth_successful else NA('35')
             ) # Response: 67 02 if pos.; 7F 27 35 if neg. 35=invalidKey
         },
