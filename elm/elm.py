@@ -1257,10 +1257,10 @@ class Elm:
             return ""
         answer_header = hex(int(request_header, 16) + 8)[2:].upper()
         if not re.match(cra_pattern, answer_header):
-            logging.debug('Skipping answer which does not match CRA: '
-                          'request_header=%s, answer_header=%s, cra_pattern=%s',
-                          repr(request_header), repr(answer_header),
-                          repr(cra_pattern))
+            logging.debug(
+                'Skipping answer which does not match ATCRA: '
+                'request_header=%s, answer_header=%s, cra_pattern=%s.',
+                repr(request_header), repr(answer_header), repr(cra_pattern))
             return ""
         if len(request_header) == 3 and is_flow_control:  # 11 bit header + FC
             if use_headers:
@@ -1585,6 +1585,11 @@ class Elm:
                               if use_headers else "") +
                              ((data.text or "") if sp else unspaced_data) +
                              sp + (nl if data.tag.lower() == 'data' else ""))
+                else:
+                    logging.debug(
+                        'Skipping answer which does not match ATCRA: '
+                        'header=%s, cra_pattern=%s.',
+                        repr(i.text), repr(cra_pattern))
             else:
                 logging.error(
                     'Unknown tag "%s" in response "%s"', i.tag, resp)
