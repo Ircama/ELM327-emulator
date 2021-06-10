@@ -26,8 +26,15 @@ try:
     import os.path
     import argparse
     import datetime
+    try:
+        import readline
+    except ImportError:
+        readline = None
     if os.name == 'nt':
-        import tendo.ansiterm
+        try:
+            import pyreadline3
+        except ImportError:
+            pass
     else:
         import daemon
         import daemon.pidfile
@@ -35,10 +42,6 @@ try:
     from lockfile.pidlockfile import PIDLockFile
     from lockfile import AlreadyLocked, NotLocked, LockFailed
     from .__version__ import __version__
-    try:
-        import readline
-    except ImportError:
-        readline = None
     from .obd_message import ObdMessage, ECU_ADDR_E, ELM_R_OK
     from random import randint
     import xml.etree.ElementTree as ET
@@ -206,11 +209,9 @@ class Interpreter(Cmd):
         Cmd.__init__(self)
 
     def __set_ps_string(self, ps_string):
-        self.ps_color = ('\x01\033[01;32m\x02'
+        self.ps_color = ('\x01\033[01;32m\x02'  # enter + green color + exit
                          + ps_string
-                         + '>\x01\033[00m\x02 ')
-        if os.name == 'nt':
-            self.ps_color = '\033[01;32m' + ps_string + '>\033[00m '
+                         + '>\x01\033[00m\x02 ')  # enter + white color + exit
         self.ps_nocolor = ps_string + '> '
         self.__set_ps()
 
@@ -306,7 +307,7 @@ class Interpreter(Cmd):
             return
         self.color_active = not self.color_active
         if not self.color_active:
-            sys.stdout.write("\033[00m")
+            sys.stdout.write("\033[00m")  # white color
             sys.stdout.flush()
         print("Color %s" % repr(self.color_active))
         self.__set_ps()
@@ -533,7 +534,8 @@ class Interpreter(Cmd):
 
     def complete_scenario(self, text, line, start_index, end_index):
         if text:
-            return [sc for sc in self.emulator.ObdMessage if sc.startswith(text)]
+            return [sc for sc in self.emulator.ObdMessage
+                    if sc.startswith(text)]
         else:
             return [sc for sc in self.emulator.ObdMessage]
 
@@ -710,14 +712,15 @@ class Interpreter(Cmd):
                 rl += [self.host_lib]
         if not text:
             return [a[3:] for a in self.get_names() if a.startswith(dotext)]
-        return [a[3:] for a in self.get_names() if a.startswith(dotext)
-                ] + rl + [self.rlc(text, x) for x in range(400) if self.rlc(text, x)]
+        return ([a[3:] for a in self.get_names() if a.startswith(dotext)] +
+                rl +
+                [self.rlc(text, x) for x in range(400) if self.rlc(text, x)])
 
     def precmd(self, line):
         if self.color_active:
-            sys.stdout.write("\033[36m") # Cyan
+            sys.stdout.write("\033[36m")  # Cyan color
             sys.stdout.flush()
-            line = re.sub(r"^(.*[^\\])#.*$", r"\1", line) # strip the '#' comment if not escaped
+            line = re.sub(r"^(.*[^\\])#.*$", r"\1", line)  # strip the '#' comment if not escaped
         return Cmd.precmd(self, line)
 
     def postcmd(self, stop, line):
@@ -727,7 +730,9 @@ class Interpreter(Cmd):
     def preloop(self):
         if self.emulator.threadState == self.emulator.THREAD.TERMINATED:
             sys.exit(0)
-        if readline and os.path.exists(self.histfile) and not self.args.batch_mode:
+        if (readline and
+                os.path.exists(self.histfile) and
+                not self.args.batch_mode):
             try:
                 readline.read_history_file(self.histfile)
             except FileNotFoundError:
@@ -741,7 +746,7 @@ class Interpreter(Cmd):
             readline.set_history_length(self.histfile_size)
             readline.write_history_file(self.histfile)
         if self.color_active and not self.args.batch_mode:
-            sys.stdout.write("\033[00m") # white color
+            sys.stdout.write("\033[00m")  # White color
             sys.stdout.flush()
 
     # Execution of unrecognized commands
@@ -944,11 +949,12 @@ def main():
     if args.batch_mode and not args.batch_mode[0].isatty():
         sys.stdout = args.batch_mode[0]
 
-    # Instantiate the class
     if os.name == 'nt':
         args.daemon_mode = False
         args.terminate = False
+        os.system('color')  # enable the ANSI escape sequences with Windows
 
+    # Instantiate the class
     emulator = Elm(
         batch_mode=args.batch_mode or args.daemon_mode,
         newline=args.newline,
