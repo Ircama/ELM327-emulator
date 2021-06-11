@@ -1146,8 +1146,17 @@ reduce(lambda x, key: x + (emulator.counters[key] if key.startswith('AT_') else 
 ```
 
 Print the average number of processed commands per second within a 5 seconds period:
+
 ```python
+test at@1 # add at least one command
 a=emulator.counters['commands'];time.sleep(5);print((emulator.counters['commands']-a)/5)
+```
+
+Same as before, printing the average number of processed commands per second within a 1 second period for 20 times:
+
+```python
+test at@1 # add at least one command
+for i in range(20): \n\t a=emulator.counters['commands'] \n\t time.sleep(1) \n\t print((emulator.counters['commands']-a)/1)
 ```
 
 To save a CSV file including the *emulator.counters* dictionary:
