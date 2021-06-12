@@ -6,8 +6,6 @@ it is important to revise any third-party customization to avoid that security f
 Security bugs will be taken seriously and,
 if confirmed upon investigation, a new patch will be released within a reasonable amount of time, including a security bulletin and the credit to the discoverer.
 
-Warning: when using the TCP/IP networking, the INET socket is bound to all interfaces.
-
 ## Reporting a Security Bug
 
 The way to report a security bug is to open an [issue](https://github.com/Ircama/ELM327-emulator/issues) including related information

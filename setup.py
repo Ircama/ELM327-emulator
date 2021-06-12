@@ -117,7 +117,7 @@ setup(
         'python-daemon',
         'pyyaml',
         'obd',
-        "pyreadline3 ; platform_system=='Windows'"
+        "tendo ; platform_system=='Windows'"
     ],
     python_requires='>3.5'
 )

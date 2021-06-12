@@ -25,10 +25,6 @@ except ImportError as detail:
     sys.exit(1)
 
 ecu = {
-    "747": 'ECU_ADDR_J',
-    "74F": 'ECU_R_ADDR_J',
-    "7D2": 'ECU_ADDR_K',
-    "7DA": 'ECU_R_ADDR_K',
     "7B0": 'ECU_ADDR_S',   # Skid Control address ECU
     "7B8": 'ECU_R_ADDR_S', # Responses sent by 7B0 Skid Control ECU 7B0/7B8
     "7E2": 'ECU_ADDR_H',   # HVECU address (Hybrid control module)
@@ -67,24 +63,6 @@ blacklisted_pids = (
     'CUSTOM_SBB_ENA_A', # "Seat Belt Beep Enable All|A|0|0|No reply req'd" ('3BA7E0')
     'CUSTOM_RB_DIS', # "Reverse Beep Disable|A|0|0|No reply req'd" ('3BAC40')
 )
-
-header = """
-def SZ(size):
-    return ('<size>' + size + '</size>')
-
-def HD(header):
-    return ('<header>' + header + '</header>')
-
-def DT(data):
-    return ('<data>' + data + '</data>')
-
-def ST(writeln):
-    return ('<writeln>' + writeln + '</writeln>')
-
-ELM_R_OK = ST("OK")
-ELM_R_UNKNOWN = ST("?")
-ELM_FOOTER = '[0123456]?$'
-"""
 
 
 def add_at(data):
@@ -353,9 +331,7 @@ def obd_dictionary():
                         obd.logger.error("Unknown ECU " + repr(i[7]) +
                                          " in CSV line " + repr(i))
                     else:
-                        obd.logger.error(
-                            "Invalid CSV data: %s; fields are %s vs. %s.",
-                            repr(i), len(i), 8)
+                        obd.logger.error("Invalid CSV data: " + repr(i))
                 continue
             Pid = 'CUSTOM_' + i[1].upper().replace(' ', '_')
             Descr = i[0] + SEP + i[3] + SEP + i[4] + SEP + i[5] + SEP + i[6]
@@ -401,7 +377,20 @@ def obd_dictionary():
 
     # Print header information
     print("\n".join([ecu[k] + ' = "' + k + '"' for k in ecu]))
-    print(header)
+    print("""
+ELM_R_OK = "OK\\r"
+ELM_R_UNKNOWN = "?\\r"
+ELM_MAX_RESP = "[0123456]?$"
+
+def SZ(size):
+    return ('<size>' + size + '</size>')
+
+def HD(header):
+    return ('<header>' + header + '</header>')
+
+def DT(data):
+    return ('<data>' + data + '</data>')
+""")
     print("ObdMessage = {")
     print("    '" + args.car_name + "': {")
 
@@ -481,7 +470,7 @@ def obd_dictionary():
         # print all data
         print("        " + repr(cmd.name) + ": {")
         print("            'Request': '^" + cmd.command.decode() +
-              "' + ELM_FOOTER,")
+              "' + ELM_MAX_RESP,")
         descr_list = cmd.desc.split(SEP)
         print("            'Descr': '" + descr_list[0] + "',")
         if len(descr_list) >= 5:
@@ -499,6 +488,16 @@ def obd_dictionary():
     print("}")
     obd.logger.info("Dictionary production complete.")
 
+
+'''
+Sample:
+            'ENGINE_LOAD': {
+                'Request': '^0104' + ELM_MAX_RESP,
+                'Descr': 'Calculated Engine Load',
+                'Header': ECU_ADDR_E,
+                'Response': ECU_R_ADDR_E + ' 03 41 04 3F \r'
+            },
+'''
 
 def main():
     try:
