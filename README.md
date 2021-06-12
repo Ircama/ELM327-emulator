@@ -202,7 +202,7 @@ Command|Description
 `test`|Test the OBD-II request specified in the argument. Check also "verify" and "write".
 `write`|Write the formatted XML response specified in the argument to the connected application. (Use "verify" to avoid the write operation.)
 `verify`|Test the processing of the formatted XML response specified in the argument (like "write", but without writing to the application).
-`loglevel`|If an argument is given, set the logging level, otherwise show the current one. Valid numbers: CRITICAL=50, ERROR=40, WARNING=30, INFO=20, DEBUG=10.
+`loglevel`|If an argument is given, set the logging level, otherwise show the current one. Valid numbers or words: CRITICAL=50, ERROR=40, WARNING=30, INFO=20, DEBUG=10.
 `quit`|quit the program  (or end-of-file/Control-D, or break/Control-C)
 `counters`|print the number of each executed PIDs (upper case names), the values associated to some 'AT' PIDs (*cmd_...*), the unknown requests, the emulator response delay, the total number of executed commands (*commands*) and the current scenario (*scenario*). The related dictionary is `emulator.counters`.
 `edit`|Edit a PID answer. Arguments: PID, position, replaced bytes. If only the PID is given, remove a previous editing.
@@ -1095,7 +1095,7 @@ Data read from the OBD-II port are grouped together basing on a timeout paramete
 
 Example.
 
-- In a window, run a simulated OBD-II interface connected via TCP network: `python3 -m elm -s car -n 20000`. Then optionally set `loglevel 10`.
+- In a window, run a simulated OBD-II interface connected via TCP network: `python3 -m elm -s car -n 20000`. Then optionally set `loglevel debug`.
 - In another window, run *ELM327-emulator* configured as forwarder to the local TCP port 20000 and exposing a network port 35000: `python3 -m elm -s car -n 35000 -N 20000 -H localhost`.
 - In a third window, run a telnet client: `elnet localhost 35000`. Write `at@1` and press enter. Check the logs in the other windows.
 - Close the telnet client. Run an *OBD* application, select Wifi communication, IP address 127.0.0.1, port 35000. Check the logs in the other windows. You should succeed in connecting the application.
@@ -1116,7 +1116,11 @@ To set log level to debug:
 
 ```shell
 loglevel 10
+# or
+loglevel debug
 ```
+
+Press TAB to get the autocompletion of the loglevel argument (either number or word).
 
 Alternatively, the logging level can be set through `logging.getLogger().handlers[n].setLevel()`. To check that *console* is the first handler (e.g., `handlers[0]`), run `for n, l in enumerate(logging.getLogger().handlers): print(n, l.name)`. For instance, if *console* refers to the first handler (default settings of the provided `elm.yaml` file), the following commands will change the logging level:
 

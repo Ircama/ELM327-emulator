@@ -325,14 +325,34 @@ class Interpreter(Cmd):
         "If an argument is given, set the logging level,\n"\
         "otherwise show the current one.\n"\
         "CRITICAL=50, ERROR=40, WARNING=30, INFO=20, DEBUG=10."
-        if arg and arg.isnumeric():
+        if arg and arg.isnumeric():  # numeric
             logging.getLogger().handlers[0].setLevel(int(arg))
-            print("Logging level set to",
-                logging.getLogger().handlers[0].level)
+            log = logging.getLogger().handlers[0].level
+            if int(arg) in logging._levelToName:
+                print("Logging level set to {} ({})".format(
+                    log, logging._levelToName[log]))
+            else:
+                print("Logging level set to",
+                      logging.getLogger().handlers[0].level)
+        elif arg.upper() in [logging._levelToName[ll]  # literal
+                             for ll in logging._levelToName]:
+            logging.getLogger().handlers[0].setLevel(
+                dict(zip(
+                    logging._levelToName.values(),
+                    logging._levelToName.keys()))[arg.upper()])
+            log = logging.getLogger().handlers[0].level
+            print("Logging level set to {} ({})".format(
+                log, logging._levelToName[log]))
         else:
-            print(
-                "Current logging level:",
-                    logging.getLogger().handlers[0].level)
+            if arg:
+                print("Unknown setting:", repr(arg))
+            log = logging.getLogger().handlers[0].level
+            if log in logging._levelToName:
+                print("Current logging level: {} ({})".format(
+                    log, logging._levelToName[log]))
+            else:
+                print("Current logging level:",
+                      logging.getLogger().handlers[0].level)
 
     def do_verify(
             self, arg, do_write=False, request_header=None, request_data=None):
@@ -532,6 +552,18 @@ class Interpreter(Cmd):
         print(
             "Backend emulator resumed. Running on %s" % self.emulator.get_pty())
 
+    def complete_loglevel(self, text, line, start_index, end_index):
+        if text:
+            return ([str(ll) for ll in sorted(logging._levelToName)
+                           if ll > 0 and str(ll).startswith(text)] +
+                    [logging._levelToName[ll]
+                     for ll in sorted(logging._levelToName)
+                     if logging._levelToName[ll].startswith(text.upper())])
+        else:
+            return ([str(ll) for ll in sorted(logging._levelToName) if ll > 0] +
+                    [logging._levelToName[ll]
+                     for ll in sorted(logging._levelToName)])
+
     def complete_scenario(self, text, line, start_index, end_index):
         if text:
             return [sc for sc in self.emulator.ObdMessage
@@ -575,8 +607,8 @@ class Interpreter(Cmd):
             return
 
     def do_scenario(self, arg):
-        "Switch to the scenario specified in the argument; if the scenario is\n"\
-        "missing or invalid, defaults to 'car'."
+        "Switch to the scenario specified in the argument; if the scenario "\
+        "is\nmissing or invalid, defaults it to 'car'."
         if len(arg.split()) > 1:
             print ("Invalid format.")
             return
