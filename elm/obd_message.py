@@ -164,6 +164,36 @@ ObdMessage = {
             'Exec': 'self.reset(0.1)',
             'Response': ELM_R_OK
         },
+        'AT_FI': {
+            'Request': '^ATFI$',
+            'Descr': 'AT FAST INIT',
+            'Log': '"Perform a fast initiation"',
+            'Response': ELM_R_OK
+        },
+        'AT_DKW': {
+            'Request': '^ATKW$',
+            'Descr': 'AT DISPLAY KEY WORDS',
+            'Log': '"Display keywords"',
+            'ResponseFooter': lambda self, cmd, pid, uc_val:
+                self.counters["cmd_atkw"] if "cmd_atkw" in self.counters
+                else "0"
+        },
+        'AT_SKW': {
+            'Request': '^ATKW[01]$',
+            'Descr': 'AT SET KEY WORDS',
+            'Exec': 'self.counters["cmd_atkw"] = cmd[4:]',
+            'Log': '"Set key words to %s", '
+                   'self.counters["cmd_atkw"]',
+            'Response': ELM_R_OK
+        },
+        'AT_V': {
+            'Request': '^ATV[01]$',
+            'Descr': 'AT SET VARIABLE DLC ON/OFF',
+            'Exec': 'self.counters["cmd_atv"] = cmd[3:]',
+            'Log': '"Set variable DLC to %s", '
+                   'self.counters["cmd_atv"]',
+            'Response': ELM_R_OK
+        },
         'AT_DLC': {
             'Request': '^ATD[01]$',
             'Descr': 'AT Display of the DLC on/off',

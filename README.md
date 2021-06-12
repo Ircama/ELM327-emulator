@@ -256,6 +256,7 @@ Special setter  |Related AT/ST command  |Handled|Description                    
 `cmd_caf`       |*ATCAF0*, *ATCAF1*     |Yes    |Set CAN Auto formatting on/off (0 = use PCI byte in requests)|AT_CAF
 `cmd_cfc`       |*ATCFC0*, *ATCFC1*     |Yes    |Set CAN Flow control off or on   |AT_CFC
 `cmd_can`       |(none)                 |Yes    |Include headers in CAN requests (experimental - to be removed)|(none)
+`cmd_atkw`      |*ATKW*, *ATKW0*, *ATKW1*|Yes   |Display or set keyword           |AT_DKW, AT_SKW
 `cmd_fcsm`      |*ATFCSM m* (m = mode)  |No     |Set flow control to mode m       |AT_FCSM
 `cmd_proto`     |*ATSPx* (x=hex digit)  |No     |Set protocol                     |AT_PROTO
 `cmd_memory`    |*ATM0*, *ATM1*         |No     |Set Memory off or on             |AT_MEMORY
@@ -280,6 +281,7 @@ Special setter  |Related AT/ST command  |Handled|Description                    
 `cmd_st_fcap`   |*STCFCPA t*,*STCAFCP t*|No     |Add a flow control address pair  |ST_STCAFCP
 `cmd_stip4`     |*STIP4 n* (n = delay)  |No     |Set Tx Interbyte delay           |ST_IP4
 `cmd_stpto`     |*STPTO t* (t = timeout)|No     |Set OBD Request Timeout          |ST_PTO
+`cmd_atv`       |*ATV0*, *ATV1*         |No     |Set variable DLC on or off       |AT_V
 
 Unhandled setter means that the AT/ST command is recognized, the related counter is valued but no process is currently associated.
 
