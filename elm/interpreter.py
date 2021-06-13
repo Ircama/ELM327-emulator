@@ -573,11 +573,16 @@ class Interpreter(Cmd):
 
     def complete_test(self, text, line, start_index, end_index):
         pids = sorted([
-            re.sub(r'\^|\$|\[.*\]|\?|\+|\(.*\)|\*', '',
+            re.sub(r'^\^|\$$|\[.*\]|\?|\+|\(.*\)|\*', '',
                    i[1]['Request']).strip().upper()
             for i in self.emulator.sortedOBDMsg
             if len(i) == 2 and 'Request' in i[1]
         ])
+        if (not text and
+                line.endswith("@") and
+                len(line.split()) > 1):
+            return [sc.split("@")[1] for sc in pids
+                    if sc.startswith(line.split()[1].upper())]
         if text:
             return [sc for sc in pids
                     if sc.startswith(text.upper())]
