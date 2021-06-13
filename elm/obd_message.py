@@ -175,8 +175,8 @@ ObdMessage = {
             'Descr': 'AT DISPLAY KEY WORDS',
             'Log': '"Display keywords"',
             'ResponseFooter': lambda self, cmd, pid, uc_val:
-                self.counters["cmd_atkw"] if "cmd_atkw" in self.counters
-                else "0"
+                self.counters["cmd_atkw"] + " " if "cmd_atkw" in self.counters
+                else "0 "
         },
         'AT_SKW': {
             'Request': '^ATKW[01]$',
@@ -915,22 +915,13 @@ ObdMessage = {
 
     'car': {
     # AT Commands
-        'ELM_DP': {
-            'Request': '^AT DP' + ELM_FOOTER,
+        'AT_DESCRIBE_PROTO': {
+            'Request': '^ATDP$',
             'Descr': 'Current protocol',
             'Header': ECU_ADDR_E,
             'Response': [
                         ST('? '),
                         ST('AUTO, ISO 15765-4 (CAN 11/500) ')
-                        ]
-        },
-        'ELM_IGNITION': {
-            'Request': '^AT IGN' + ELM_FOOTER,
-            'Descr': 'IgnMon input level',
-            'Header': ECU_ADDR_E,
-            'Response': [
-                        ST('ON '),
-                        ST('? ')
                         ]
         },
         'ELM_DESCR': {

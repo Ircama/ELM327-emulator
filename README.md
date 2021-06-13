@@ -199,10 +199,10 @@ Command|Description
 :---------------:|-----------
 `help`|List available commands (or detailed help with "help cmd").
 `port`|Print the used TCP/IP port, or the used device, or the serial COM port, or the serial pseudo-tty, depending on the selected interface.
-`test`|Test the OBD-II request specified in the argument. Check also "verify" and "write".
+`test`|Test the OBD-II request specified in the argument. Check also "verify" and "write". The autocompletion (by pressing or double-pressing TAB) allows prompting all defined OBD-II requests (PIDs).
 `write`|Write the formatted XML response specified in the argument to the connected application. (Use "verify" to avoid the write operation.)
 `verify`|Test the processing of the formatted XML response specified in the argument (like "write", but without writing to the application).
-`loglevel`|If an argument is given, set the logging level, otherwise show the current one. Valid numbers or words: CRITICAL=50, ERROR=40, WARNING=30, INFO=20, DEBUG=10.
+`loglevel`|If an argument is given, set the logging level, otherwise show the current one. Valid numbers or words: CRITICAL=50, ERROR=40, WARNING=30, INFO=20, DEBUG=10. The autocompletion (by pressing or double-pressing TAB) allows prompting all available values.
 `quit`|quit the program  (or end-of-file/Control-D, or break/Control-C)
 `counters`|print the number of each executed PIDs (upper case names), the values associated to some 'AT' PIDs (*cmd_...*), the unknown requests, the emulator response delay, the total number of executed commands (*commands*) and the current scenario (*scenario*). The related dictionary is `emulator.counters`.
 `edit`|Edit a PID answer. Arguments: PID, position, replaced bytes. If only the PID is given, remove a previous editing.
@@ -214,7 +214,7 @@ Command|Description
 `wait <n>`|delay the execution of the next command of `<n>` seconds (floating-point number; default is 10 seconds)
 `timer [<name> <value>]`|Print or set the UDS timers P1, P2, P3, P4. The first argument is the timer name, the second is the value in seconds. Without arguments, print all timer values. Decimals are allowed.
 `engineoff`|switch to *engineoff* scenario
-`scenario <scenario>`|switch to `<scenario>` scenario; if the scenario is missing or invalid, defaults to `'car'`. The autocompletion (by pressing or double-pressing TAB) allows prompting all compatible scenarios defined in `emulator.ObdMessage`. (Related attribute is `emulator.scenario`.)
+`scenario <scenario>`|switch to `<scenario>` scenario; if the scenario is missing or invalid, defaults to `'car'`. The autocompletion (by pressing or double-pressing TAB) allows prompting all compatible scenarios. defined in `emulator.ObdMessage`. (Related attribute is `emulator.scenario`.)
 `default`|reset to *default* scenario
 `reset`|reset the emulator (counters and variables)
 `color`|toggle usage of colors off/on
@@ -237,6 +237,8 @@ test 010c
 test ath1
 test 010c
 ```
+
+The autocompletion is allowed for the argument, to prompt and select values (PIDs) defined in the dictionary.
 
 The answer (*Command output*) will be `41 0C 13 FB \r\r>`, `OK\r\r>`, `7E8 04 41 0C 09 F6 \r\r>`, which will reflect what *ELM327-emulator* returns to a real OBD-II application.
 
@@ -1120,7 +1122,7 @@ loglevel 10
 loglevel debug
 ```
 
-Press TAB to get the autocompletion of the loglevel argument (either number or word).
+Press TAB to get the autocompletion of the available loglevel values (either number or word).
 
 Alternatively, the logging level can be set through `logging.getLogger().handlers[n].setLevel()`. To check that *console* is the first handler (e.g., `handlers[0]`), run `for n, l in enumerate(logging.getLogger().handlers): print(n, l.name)`. For instance, if *console* refers to the first handler (default settings of the provided `elm.yaml` file), the following commands will change the logging level:
 

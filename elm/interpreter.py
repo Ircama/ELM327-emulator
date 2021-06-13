@@ -571,6 +571,19 @@ class Interpreter(Cmd):
         else:
             return [sc for sc in self.emulator.ObdMessage]
 
+    def complete_test(self, text, line, start_index, end_index):
+        pids = sorted([
+            re.sub(r'\^|\$|\[.*\]|\?|\+|\(.*\)|\*', '',
+                   i[1]['Request']).strip().upper()
+            for i in self.emulator.sortedOBDMsg
+            if len(i) == 2 and 'Request' in i[1]
+        ])
+        if text:
+            return [sc for sc in pids
+                    if sc.startswith(text.upper())]
+        else:
+            return [sc for sc in pids]
+
     def do_edit(self, arg):
         "Edit a PID answer. Arguments: PID, position, replaced bytes.\n"\
         "If only the PID is given, remove a previous editing."
