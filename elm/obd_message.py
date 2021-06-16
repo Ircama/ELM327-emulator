@@ -924,7 +924,7 @@ ObdMessage = {
                         ST('AUTO, ISO 15765-4 (CAN 11/500) ')
                         ]
         },
-        'ELM_DESCR': {
+        'ELM_DESCR': {  # use AT_DESCR to replace the standard behaviour
             'Request': '^AT@1' + ELM_FOOTER,
             'Descr': 'Device description',
             'Header': ECU_ADDR_E,

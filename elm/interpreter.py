@@ -571,6 +571,13 @@ class Interpreter(Cmd):
         else:
             return [sc for sc in self.emulator.ObdMessage]
 
+    def complete_choice(self, text, line, start_index, end_index):
+        if text:
+            return [sc for sc in [a.name for a in self.emulator.Choice]
+                    if sc.startswith(text.upper())]
+        else:
+            return [a.name for a in self.emulator.Choice]
+
     def complete_test(self, text, line, start_index, end_index):
         pids = sorted([
             re.sub(r'^\^|\$$|\[.*\]|\?|\+|\(.*\)|\*', '',
@@ -634,6 +641,24 @@ class Interpreter(Cmd):
             set_scenario(self.emulator, arg.split()[0])
         else:
             set_scenario(self.emulator, "")
+
+    def do_choice(self, arg):
+        "Print or select the adopted method to choose the return value of "\
+        "answers\nthat are expressed as a list of data; available modes:\n"\
+        "sequential: the returned value follows the list sequence;\n"\
+        "random: the returned value is randomly selected within values "\
+        "in the list."
+        if len(arg.split()) > 1:
+            print ("Invalid format.")
+            return
+        if len(arg.split()) == 1:
+            if arg.split()[0].upper() == self.emulator.Choice.SEQUENTIAL.name:
+                self.emulator.choice_mode = self.emulator.Choice.SEQUENTIAL
+            elif arg.split()[0].upper() == self.emulator.Choice.RANDOM.name:
+                self.emulator.choice_mode = self.emulator.Choice.RANDOM
+            else:
+                print ("Invalid value.")
+        print("Using {} mode.".format(self.emulator.choice_mode.name.lower()))
 
     def complete_merge(self, text, line, start_index, end_index):
         if text:

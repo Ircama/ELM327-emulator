@@ -15,6 +15,7 @@ import re
 import os
 import socket
 import serial
+from enum import Enum
 
 if not os.name == 'nt':
     import pty
@@ -22,7 +23,7 @@ import threading
 import time
 import traceback
 import errno
-from random import randint, choice
+from random import choice
 from .obd_message import ObdMessage
 from .obd_message import ELM_R_OK, ELM_R_UNKNOWN, ST
 from .obd_message import ECU_ADDR_E, ECU_R_ADDR_E, ECU_ADDR_I, ECU_R_ADDR_I
@@ -81,32 +82,6 @@ uds_sid_pos_answer = {
     "85": 1,  # Control DTC Setting
 }
 # End of configuration constants_______________________________________________
-
-
-def setup_logging(
-        default_path=Path(__file__).stem + '.yaml',
-        default_level=logging.INFO,
-        env_key=os.path.basename(Path(__file__).stem).upper() + '_LOG_CFG'):
-    """
-    Setup logging facility
-    :param default_path: logging file pathname
-    :param default_level: default logging level
-    :param env_key: default environment variable
-    :return: (none)
-    """
-    path = default_path
-    if not os.path.exists(path):
-        path = os.path.join(
-            os.path.dirname(Path(__file__)), 'elm.yaml')
-    value = os.getenv(env_key, None)
-    if value:
-        path = value
-    if os.path.exists(path):
-        with open(path, 'rt') as f:
-            config = yaml.safe_load(f.read())
-        logging.config.dictConfig(config)
-    else:
-        logging.basicConfig(level=default_level)
 
 
 class Tasks():
@@ -237,7 +212,7 @@ class Tasks():
     def stop(self, cmd, length=None, frame=None):
         """
         This method is executed when the task is interrupted by an error.
-        If not overridden, it calls run()
+        If not overridden, it returns an error.
         :param cmd: request to process
         :return: tuple of three values:
             - XML response (or None for no output)
@@ -251,8 +226,8 @@ class Tasks():
     def run(self, cmd, length=None, frame=None):
         """
         Main method to be overridden by the actual task; it is always run
-            if start and stop are not overridden, otherwise it is run for the
-            subsequent frames after the first one
+        if start and stop are not overridden, otherwise it is run for the
+        subsequent frames after the first one
         :param cmd: request to process
         :return: tuple of three values:
             - XML response (or None for no output)
@@ -340,6 +315,32 @@ class IsoTpMultiframe(Tasks):
             self.frame = None
             return Tasks.RETURN.PASSTHROUGH(self.req[:self.length * 2])
         return Tasks.RETURN.INCOMPLETE
+
+
+def setup_logging(
+        default_path=Path(__file__).stem + '.yaml',
+        default_level=logging.INFO,
+        env_key=os.path.basename(Path(__file__).stem).upper() + '_LOG_CFG'):
+    """
+    Setup logging facility
+    :param default_path: logging file pathname
+    :param default_level: default logging level
+    :param env_key: default environment variable
+    :return: (none)
+    """
+    path = default_path
+    if not os.path.exists(path):
+        path = os.path.join(
+            os.path.dirname(Path(__file__)), 'elm.yaml')
+    value = os.getenv(env_key, None)
+    if value:
+        path = value
+    if os.path.exists(path):
+        with open(path, 'rt') as f:
+            config = yaml.safe_load(f.read())
+        logging.config.dictConfig(config)
+    else:
+        logging.basicConfig(level=default_level)
 
 
 def is_hex_sp(s):
@@ -542,6 +543,11 @@ class Elm:
         self.thread = None
         self.plugins = {}
         self.request_timer = {}
+        self.choice_mode = self.Choice.SEQUENTIAL
+
+    class Choice(Enum):
+        SEQUENTIAL = 0
+        RANDOM = 1
 
     def __enter__(self):
         # start the read thread
@@ -717,6 +723,30 @@ class Elm:
 
         return self.slave_name
 
+    def choice(self, values):
+        """
+        Select one of the values in the list argument according to the adopted
+        method, which can be sequential or random.
+        :param values: list of possible values
+        :return: selected value
+        """
+        if not isinstance(values, (list, tuple)):
+            logging.error(
+                'Invalid usage of "choice" function, which needs a list.')
+            return ""
+        if self.choice_mode == self.Choice.RANDOM:
+            return choice(values)
+        elif self.choice_mode == self.Choice.SEQUENTIAL:
+            if "cmd_last_pid" not in self.counters:
+                logging.error(
+                    'Internal error - Invalid choice usage; '
+                    'missing "cmd_last_pid" counter.')
+            return values[(self.counters[self.counters["cmd_last_pid"]] - 1) %
+                          len(values)]
+        else:
+            logging.error(
+                "Internal error - Invalid choice mode.")
+
     def run(self):  # daemon thread
         """
         This is the core method.
@@ -743,7 +773,6 @@ class Elm:
                     logging.critical("Pseudo-tty port connection failed.")
                 self.terminate()
                 return False
-        self.choice = choice
 
         if self.sock_inet:
             if self.net_port:
@@ -2031,6 +2060,7 @@ class Elm:
                         self.counters["cmd_set_header"]):
                     continue
                 pid = key if key else 'UNKNOWN'
+                self.counters["cmd_last_pid"] = pid
                 if pid not in self.counters:
                     self.counters[pid] = 0
                 self.counters[pid] += 1
@@ -2157,7 +2187,7 @@ class Elm:
                     if not any([r_response, r_header, r_footer]):
                         return header, cmd, None
                     if isinstance(r_response, (list, tuple)):
-                        r_response = r_response[randint(0, len(r_response) - 1)]
+                        r_response = self.choice(r_response)
                     return header, cmd, r_header + r_response + r_footer
                 else:
                     logging.error(
