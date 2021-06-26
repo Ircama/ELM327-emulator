@@ -647,18 +647,34 @@ class Interpreter(Cmd):
         "answers\nthat are expressed as a list of data; available modes:\n"\
         "sequential: the returned value follows the list sequence;\n"\
         "random: the returned value is randomly selected within values "\
-        "in the list."
-        if len(arg.split()) > 1:
-            print ("Invalid format.")
-            return
-        if len(arg.split()) == 1:
-            if arg.split()[0].upper() == self.emulator.Choice.SEQUENTIAL.name:
+        "in the list. Optional list of weights can be added."
+        arg_list = arg.split()
+        weights = [1]
+        if len(arg_list) > 1:
+            try:
+                weights = [float(i) for i in arg_list[1:]]
+            except:
+                print("Invalid format for weights.")
+                return
+        if len(arg_list):
+            if arg_list[0].upper() == self.emulator.Choice.SEQUENTIAL.name:
                 self.emulator.choice_mode = self.emulator.Choice.SEQUENTIAL
-            elif arg.split()[0].upper() == self.emulator.Choice.RANDOM.name:
+                self.emulator.choice_weights = weights
+                if len(arg_list) > 2:
+                    print('For the sequential weight, '
+                          'only a single value is needed.')
+                    return
+            elif arg_list[0].upper() == self.emulator.Choice.RANDOM.name:
                 self.emulator.choice_mode = self.emulator.Choice.RANDOM
+                self.emulator.choice_weights = weights
             else:
                 print ("Invalid value.")
         print("Using {} mode.".format(self.emulator.choice_mode.name.lower()))
+        if self.emulator.choice_mode == self.emulator.Choice.SEQUENTIAL:
+            print("Weight:", repr(self.emulator.choice_weights[0]))
+        else:
+            print("Weights: {}, [1, 1, 1, ...]".format(
+                repr(self.emulator.choice_weights).strip('[]')))
 
     def complete_merge(self, text, line, start_index, end_index):
         if text:

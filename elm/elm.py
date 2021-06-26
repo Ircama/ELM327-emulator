@@ -23,7 +23,7 @@ import threading
 import time
 import traceback
 import errno
-from random import choice
+from random import choices
 from .obd_message import ObdMessage
 from .obd_message import ELM_R_OK, ELM_R_UNKNOWN, ST
 from .obd_message import ECU_ADDR_E, ECU_R_ADDR_E, ECU_ADDR_I, ECU_R_ADDR_I
@@ -387,8 +387,9 @@ class Elm:
 
     def sequence(self, pid, base, max, factor, n_bytes):
         """
-        Generate a hex data string of n_bytes based on the number of
-        times a PID is called (counter) and using the following formula:
+        Generate a hex data string of n_bytes based on the number of times
+        a PID is called (counter, possibly weighted with choice_weights
+        if "Choice" is SEQUENTIAL) and using the following formula:
         returned value = factor * ( counter % (max * 2) ) + base
         :param pid: string including the PID name in ObdMessage
         :param base: minimum value (to be added to the formula)
@@ -399,12 +400,14 @@ class Elm:
         """
         # get the number of times a pid has been called
         c = self.counters[pid] if pid in self.counters else 0
+        if self.choice_mode == self.Choice.SEQUENTIAL:
+            c = c / self.choice_weights[0]
         # compute the new value [= factor * ( counter % (max * 2) ) + base]
         p = int(factor * abs(max - (c + max) % (max * 2))) + base
         # get its hex string
         s = ("%.X" % p).zfill(n_bytes * 2)
         # space the string into chunks of two bytes
-        return (" ".join(s[i:i + 2] for i in range(0, len(s), 2)))
+        return " ".join(s[i:i + 2] for i in range(0, len(s), 2))
 
     def reset(self, sleep):
         """
@@ -544,6 +547,7 @@ class Elm:
         self.plugins = {}
         self.request_timer = {}
         self.choice_mode = self.Choice.SEQUENTIAL
+        self.choice_weights = [1]
 
     class Choice(Enum):
         SEQUENTIAL = 0
@@ -735,14 +739,19 @@ class Elm:
                 'Invalid usage of "choice" function, which needs a list.')
             return ""
         if self.choice_mode == self.Choice.RANDOM:
-            return choice(values)
+            len_weights = len(self.choice_weights)
+            len_values = len(values)
+            return choices(values, [self.choice_weights[i] if i < len_weights
+                                    else 1
+                                    for i in range(len_values)])[0]
         elif self.choice_mode == self.Choice.SEQUENTIAL:
             if "cmd_last_pid" not in self.counters:
                 logging.error(
                     'Internal error - Invalid choice usage; '
                     'missing "cmd_last_pid" counter.')
-            return values[(self.counters[self.counters["cmd_last_pid"]] - 1) %
-                          len(values)]
+            return (
+                values[int((self.counters[self.counters["cmd_last_pid"]] - 1) /
+                           self.choice_weights[0]) % len(values)])
         else:
             logging.error(
                 "Internal error - Invalid choice mode.")
