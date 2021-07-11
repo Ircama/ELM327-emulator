@@ -94,37 +94,9 @@ All subsequent information is not needed for basic usage of the tool and allows 
 
 When using serial communication, with UNIX/Linux OSs, this code uses pty pseudo-terminals. With Windows, you should first install [com0com](https://sourceforge.net/projects/com0com) (a kernel-mode virtual serial port driver), or [other virtual serial port software](http://com0com.sourceforge.net/); alternatively, [cygwin](http://www.cygwin.com/) and [Windows Subsystem for Linux](https://docs.microsoft.com/en-us/windows/wsl) (WSL) are supported.
 
-## C Programs
+## Linux terminal
 
-A typical C program will open a serial port, configure speed, data bits, parity, and flow control, and then send a message to the serial controller. The typical operation will look similar to below (error checking ommitted).
-
-```c
-/* Open the device */
-fd = open("/dev/ttyUSB0", O_RDWR | O_NOCTTY | O_SYNC);
-...
-
-/* Fetch terminal settings set by the driver */
-struct termios tty;
-rc = tcgetattr(fd, &tty);
-...
-
-/* Set 38400, 8N1 */
-tty.c_cflag &= ~CSIZE;      /* clear size */
-tty.c_cflag |= CS8;         /* 8-bit size */
-tty.c_cflag &= ~PARENB;     /* no parity  */
-tty.c_cflag &= ~CSTOPB;     /* 1 stop bit */
-
-cfsetospeed(&tty, B38400);
-cfsetispeed(&tty, B38400);
-
-rc = tcflush(fd, TCIFLUSH);
-rc = tcsetattr(fd, TCSANOW, &tty);
-
-/* Reset the device */
-rc = write(fd, "ATZ\r", 4);
-```
-
-When using a C program to connect to the *ELM327-emulator* you should use a raw terminal, and not the existing terminal. Connecting to the *ELM327-emulator* should look similar to below (error checking ommitted).
+When using a C program to connect to the *ELM327-emulator* you should use a raw terminal, and not the existing terminal from `tcgetattr`. Connecting to the *ELM327-emulator* should look similar to below (error checking ommitted).
 
 ```c
 /* Open the device */
@@ -145,6 +117,7 @@ tty.c_cflag &= ~CSTOPB;     /* 1 stop bit */
 cfsetospeed(&tty, B38400);
 cfsetispeed(&tty, B38400);
 
+/* Update attributes */
 rc = tcflush(fd, TCIFLUSH);
 rc = tcsetattr(fd, TCSANOW, &tty);
 
