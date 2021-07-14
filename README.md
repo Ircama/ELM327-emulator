@@ -400,17 +400,30 @@ test 7e2 02 01 5b
 test 7E5 06 27 12 B1 51 D5 8F
 ```
 
-To change the ELM version string in ELM commands, use the `version` command, which defaults to *ELM327 v1.5"*. Use `version reset` to reset the version string to the default value. Check also the *elm_version* setter, which stores the temporary version string within the current session. Example:
+To change the ELM version string in ELM commands, use the `version` command, which defaults to *ELM327 v1.5*. Use `version reset` to return to the default values of the ELM version string and related header. Check also the "*elm_version*" setter, which stores the temporary version string within the current session.
+
+Example:
 
 ```
 version ELM327 v2.3
+test ati # Get the ELM327 version string
 ```
+
+The returned code will be *'ELM327 v2.3\r\r>'*.
 
 Through the *hexheader* argument of the *version* command, *ELM327-emulator* also allows to change the header bytes of the version string, which by default are two carriage return characters. The updated string should be composed by a sequence of hex digits. Example:
 
 ```
 version hexheader 0d fc 0d 0d
 ```
+
+Any change to the ELM version string and ELM header version bytes can be restored to default with:
+
+```
+version reset
+```
+
+Without parameters, `version` returns the *ELM327-emulator* version and ELM version parameters in use.
 
 ## Editing answers on the fly
 
