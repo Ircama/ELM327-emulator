@@ -245,7 +245,9 @@ ObdMessage = {
         'AT_I': {
             'Request': '^ATI$',
             'Descr': 'AT ELM327 version string',
-            'Response': ST("ELM327 v1.5")
+            'ResponseHeader': \
+                lambda self, cmd, pid, uc_val: \
+                    ST(self.counters['cmd_version'])
         },
         'AT_IGN': {
             'Request': '^ATIGN$',
@@ -404,14 +406,18 @@ ObdMessage = {
             'Descr': 'AT WARM START',
             'Log': '"Warm start and sleep 0.1 seconds"',
             #'Exec': 'self.reset(0.1)',
-            'Response': ST('') + ST("ELM327 v1.5")
+            'ResponseHeader': \
+                lambda self, cmd, pid, uc_val: \
+                    ST(self.header_version + self.counters['cmd_version'])
         },
         'AT_RESET': {
             'Request': '^ATZ$',
             'Descr': 'AT RESET',
             'Log': '"Reset and sleep 0.5 seconds"',
             'Exec': 'self.reset(0.5)',
-            'Response': ST('') + ST('') + ST("ELM327 v1.5")
+            'ResponseFooter': \
+                lambda self, cmd, pid, uc_val: \
+                    ST(self.header_version + self.counters['cmd_version'])
         },
         'AT_SET_TIMEOUT': {
             'Request': '^ATST[0-9A-F]+$',
