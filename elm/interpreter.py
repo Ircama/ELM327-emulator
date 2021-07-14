@@ -266,9 +266,14 @@ class Interpreter(Cmd):
         "Print ELM327-emulator version. With an argument, set the ELM version."\
         "\nIf the argument is 'hexheader' followed by a sequence of hex digits"\
         ",\nthe header of the ELM version is updated with the sequence. If the"\
-        "\nargument is 'reset', header and string are set to default values."
+        "\nargument is 'reset', header and ELM version strings are set to "\
+        "default\nvalues."
         print(f'ELM327-emulator version {__version__}.')
-        if len(arg.split()) > 1 and arg.split()[0].lower() == "hexheader":
+        if len(arg.split()) > 0 and arg.split()[0].lower() == "hexheader":
+            if len(arg.split()) == 1:
+                print(
+                    "Missing the hex string following the 'hexheader' command.")
+                return
             try:
                 self.emulator.header_version = "".join(
                     map(chr, bytearray.fromhex(''.join(arg.split()[1:])))
@@ -286,6 +291,8 @@ class Interpreter(Cmd):
             print("Set version:")
             self.emulator.counters['cmd_version'] = arg
             self.emulator.version = arg
+        else:
+            print("ELM version strings:")
         print('  ELM header:', " ".join(
             "{:02x}".format(ord(c)) for c in self.emulator.header_version))
         print(f'  ELM version: "{self.emulator.counters["cmd_version"]}".')
@@ -597,6 +604,13 @@ class Interpreter(Cmd):
         else:
             return [sc for sc in self.emulator.ObdMessage]
 
+    def complete_version(self, text, line, start_index, end_index):
+        if text:
+            return [sc for sc in ["reset", "hexheader", elm.elm.ELM_VERSION]
+                    if sc.startswith(text)]
+        else:
+            return ["reset", "hexheader", elm.elm.ELM_VERSION]
+
     def complete_choice(self, text, line, start_index, end_index):
         if text:
             return [sc for sc in [a.name for a in self.emulator.Choice]
@@ -673,7 +687,7 @@ class Interpreter(Cmd):
         "answers\nthat are expressed as a list of data; available modes:\n"\
         "sequential: the returned value follows the list sequence;\n"\
         "random: the returned value is randomly selected within values "\
-        "in the list. Optional list of weights can be added."
+        "in the list.\nOptional list of weights can be added."
         arg_list = arg.split()
         weights = [1]
         if len(arg_list) > 1:
