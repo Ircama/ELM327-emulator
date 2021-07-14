@@ -28,9 +28,9 @@ from .obd_message import ObdMessage
 from .obd_message import ELM_R_OK, ELM_R_UNKNOWN, ST
 from .obd_message import ECU_ADDR_E, ECU_R_ADDR_E, ECU_ADDR_I, ECU_R_ADDR_I
 from .__version__ import __version__
-from functools import reduce # only used in readme examples
+from functools import reduce  # only used in readme examples
 import string
-import xml.etree.ElementTree as ET
+from xml.etree.ElementTree import fromstring, ParseError
 import importlib
 import pkgutil
 import inspect
@@ -84,7 +84,7 @@ uds_sid_pos_answer = {
 # End of configuration constants_______________________________________________
 
 
-class Tasks():
+class Tasks:
     """
     Base class for tasks.
     All tasks/plugins shall implement a class named Task derived from Tasks.
@@ -1455,9 +1455,9 @@ class Elm:
         incomplete_resp = False
         root = None
         try:
-            root = ET.fromstring('<xml>' + resp + '</xml>')
+            root = fromstring('<xml>' + resp + '</xml>')
             s = iter(root)
-        except ET.ParseError as e:
+        except ParseError as e:
             incomplete_resp = True
             logging.error(
                 'Wrong response format for "%s"; %s', resp, e)
@@ -1799,7 +1799,8 @@ class Elm:
         if self.delay > 0:
             time.sleep(self.delay)
 
-        if cmd[1] == 'T' and org_cmd.upper()[1] != 'T':  # AT or ST shall be unspaced
+        if len(org_cmd) > 1 and cmd[1] == 'T' and org_cmd.upper()[1] != 'T':
+            # AT or ST shall be unspaced
             logging.error("Improper AT or ST command %s.", repr(org_cmd))
             return header, cmd, ""
 
@@ -2153,7 +2154,7 @@ class Elm:
                     except Exception as e:
                         logging.error(
                             "Cannot execute '%s' for PID %s (%s)",
-                            uc_val['EXEC'], pid, e)
+                            uc_val['EXEC'], pid, e, exc_info=True)
                 log_string = ""
                 if 'INFO' in uc_val:
                     log_string = "logging.info(%s)" % uc_val['INFO']
@@ -2167,7 +2168,7 @@ class Elm:
                     except Exception as e:
                         logging.error(
                             "Error while logging '%s' for PID %s (%s)",
-                            log_string, pid, e)
+                            log_string, pid, e, exc_info=True)
                 if any(x in uc_val for x in
                        ['RESPONSE', 'RESPONSEHEADER', 'RESPONSEFOOTER']):
                     r_header = ''
@@ -2179,7 +2180,7 @@ class Elm:
                             logging.error(
                                 "Error while running 'ResponseHeader' %s '"
                                 "for PID %s (%s)",
-                                uc_val['RESPONSEHEADER'], pid, e)
+                                uc_val['RESPONSEHEADER'], pid, e, exc_info=True)
                     r_footer = ''
                     if 'RESPONSEFOOTER' in uc_val:
                         try:
@@ -2189,7 +2190,7 @@ class Elm:
                             logging.error(
                                 "Error while running 'ResponseFooter' %s '"
                                 "for PID %s (%s)",
-                                uc_val['RESPONSEHEADER'], pid, e)
+                                uc_val['RESPONSEHEADER'], pid, e, exc_info=True)
                     r_response = ''
                     if 'RESPONSE' in uc_val:
                         r_response = uc_val['RESPONSE']

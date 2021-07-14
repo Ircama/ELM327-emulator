@@ -29,26 +29,34 @@ ECU_R_ADDR_P = "7CC"  # Responses sent by Air Conditioning ECU - 7C4/7CC
 ECU_ADDR_S = "7B0"  # Skid Control address ECU
 ECU_R_ADDR_S = "7B8"  # Responses sent by 7B0 Skid Control ECU 7B0/7B8
 
+
 def SZ(size):
     return ('<size>' + size + '</size>')
+
 
 def HD(header):
     return ('<header>' + header + '</header>')
 
+
 def DT(data):
     return ('<data>' + data + '</data>')
+
 
 def ST(writeln):
     return ('<writeln>' + writeln + '</writeln>')
 
+
 def AW(answer):
     return ('<answer>' + answer + '</answer>')
+
 
 def PA(pos_answer):
     return ('<pos_answer>' + pos_answer + '</pos_answer>')
 
+
 def NA(neg_answer):
     return ('<neg_answer>' + neg_answer + '</neg_answer>')
+
 
 ELM_R_OK = ST("OK")
 ELM_R_UNKNOWN = ST("?")
@@ -205,7 +213,14 @@ ObdMessage = {
             'Request': '^ATDP$',
             'Descr': 'AT set DESCRIBE PROTO',
             'Exec': 'time.sleep(0.5)',
-            'Response': ST("ISO 15765-4 (CAN 11/500)")
+            'ResponseHeader': \
+                lambda self, cmd, pid, uc_val: \
+                    ST('AUTO, ISO 15765-4 (CAN 11/500) ') \
+                    if "cmd_proto" not in self.counters or \
+                        not self.counters['cmd_proto'] or \
+                        self.counters['cmd_proto'] == "0" or \
+                        self.counters['cmd_proto'] == "6" \
+                    else ST("ISO 15765-4 (CAN 11/500)")
         },
         'AT_DESCRIBE_PROTO_N': {
             'Request': '^ATDPN$',
@@ -344,6 +359,13 @@ ObdMessage = {
             'Request': '^ATSP[0-9A-C]$',
             'Descr': 'AT PROTO',
             'Exec': 'self.counters["cmd_proto"] = cmd[4] or None',
+            'Log': '"set PROTO %s", self.counters["cmd_proto"]',
+            'Response': ELM_R_OK
+        },
+        'AT_PROTO_ERASE': {
+            'Request': '^ATSP00$',
+            'Descr': 'AT PROTO',
+            'Exec': 'self.counters["cmd_proto"] = None',
             'Log': '"set PROTO %s", self.counters["cmd_proto"]',
             'Response': ELM_R_OK
         },
@@ -915,15 +937,6 @@ ObdMessage = {
 
     'car': {
     # AT Commands
-        'AT_DESCRIBE_PROTO': {
-            'Request': '^ATDP$',
-            'Descr': 'Current protocol',
-            'Header': ECU_ADDR_E,
-            'Response': [
-                        ST('? '),
-                        ST('AUTO, ISO 15765-4 (CAN 11/500) ')
-                        ]
-        },
         'ELM_DESCR': {  # use AT_DESCR to replace the standard behaviour
             'Request': '^AT@1' + ELM_FOOTER,
             'Descr': 'Device description',
