@@ -10,6 +10,8 @@
 import sys
 import traceback
 
+import elm.elm
+
 try:
     if sys.hexversion < 0x3060000:
         raise ImportError("Python version must be >= 3.6")
@@ -44,7 +46,7 @@ try:
     from .__version__ import __version__
     from .obd_message import ObdMessage, ECU_ADDR_E, ELM_R_OK
     from random import randint
-    import xml.etree.ElementTree as ET
+    from xml.etree.ElementTree import fromstring, ParseError, tostring
     import pprint
 except ImportError as detail:
     print("ELM327 OBD-II adapter emulator error:\n " + str(detail))
@@ -128,8 +130,8 @@ class Edit:
         if isinstance(r_response, (list, tuple)):
             r_response = r_response[randint(0, len(r_response) - 1)]
         try:
-            root = ET.fromstring('<xml>' + r_response + '</xml>')
-        except ET.ParseError as e:
+            root = fromstring('<xml>' + r_response + '</xml>')
+        except ParseError as e:
             logging.error(
                 'Wrong response format for "%s"; %s', r_response, e)
             return False
@@ -153,7 +155,7 @@ class Edit:
                         return False
                     position += 1
                 i.text = ' '.join('{:02x}'.format(x) for x in org_ba).upper()
-        self.emulator.answer[pid_to_edit] = ET.tostring(root).decode()[5:-6]
+        self.emulator.answer[pid_to_edit] = tostring(root).decode()[5:-6]
         return True
 
     def __exit__(self, exc_type, exc_val, exc_tb):
@@ -261,9 +263,40 @@ class Interpreter(Cmd):
         sys.exit(0)
 
     def do_version(self, arg):
-        "Print ELM327-emulator version."
+        "Print ELM327-emulator version. With an argument, set the ELM version."\
+        "\nIf the argument is 'hexheader' followed by a sequence of hex digits"\
+        ",\nthe header of the ELM version is updated with the sequence. If the"\
+        "\nargument is 'reset', header and ELM version strings are set to "\
+        "default\nvalues."
         print(f'ELM327-emulator version {__version__}.')
-    
+        if len(arg.split()) > 0 and arg.split()[0].lower() == "hexheader":
+            if len(arg.split()) == 1:
+                print(
+                    "Missing the hex string following the 'hexheader' command.")
+                return
+            try:
+                self.emulator.header_version = "".join(
+                    map(chr, bytearray.fromhex(''.join(arg.split()[1:])))
+                )
+            except ValueError:
+                print(f"Incorrect hex string: '{' '.join(arg.split()[1:])}'")
+                return
+            print("Set version header:")
+        elif len(arg.split()) == 1 and arg.lower() == "reset":
+            print("Reset values:")
+            self.emulator.counters['cmd_version'] = elm.elm.ELM_VERSION
+            self.emulator.version = elm.elm.ELM_VERSION
+            self.emulator.header_version = elm.elm.ELM_HEADER_VERSION
+        elif arg:
+            print("Set version:")
+            self.emulator.counters['cmd_version'] = arg
+            self.emulator.version = arg
+        else:
+            print("ELM version strings:")
+        print('  ELM header:', " ".join(
+            "{:02x}".format(ord(c)) for c in self.emulator.header_version))
+        print(f'  ELM version: "{self.emulator.counters["cmd_version"]}".')
+
     def do_delay(self, arg):
         "Delay each command of the seconds specified in the argument.\n"\
         "(Floating point number; default is 0.5 seconds.)"
@@ -571,6 +604,13 @@ class Interpreter(Cmd):
         else:
             return [sc for sc in self.emulator.ObdMessage]
 
+    def complete_version(self, text, line, start_index, end_index):
+        if text:
+            return [sc for sc in ["reset", "hexheader", elm.elm.ELM_VERSION]
+                    if sc.startswith(text)]
+        else:
+            return ["reset", "hexheader", elm.elm.ELM_VERSION]
+
     def complete_choice(self, text, line, start_index, end_index):
         if text:
             return [sc for sc in [a.name for a in self.emulator.Choice]
@@ -647,7 +687,7 @@ class Interpreter(Cmd):
         "answers\nthat are expressed as a list of data; available modes:\n"\
         "sequential: the returned value follows the list sequence;\n"\
         "random: the returned value is randomly selected within values "\
-        "in the list. Optional list of weights can be added."
+        "in the list.\nOptional list of weights can be added."
         arg_list = arg.split()
         weights = [1]
         if len(arg_list) > 1:

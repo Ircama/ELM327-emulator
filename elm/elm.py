@@ -47,6 +47,8 @@ INTERRUPT_TASK_IF_NOT_HEX = False
 ELM_VALID_CHARS = r"^[a-zA-Z0-9 \n\r\b\t@,.?]*$"
 ECU_TASK = "task_ecu_"
 DEFAULT_ECU_TASK = 'Default ECU Task module'
+ELM_VERSION = "ELM327 v1.5"
+ELM_HEADER_VERSION = "\r\r"
 
 """
 Ref. to ISO 14229-1 and ISO 14230, this is a list of SIDs (UDS service
@@ -422,6 +424,7 @@ class Elm:
         self.counters['ELM_MIDS_A'] = 0
         self.counters['cmd_echo'] = not self.no_echo
         self.counters['cmd_set_header'] = ECU_ADDR_E.upper()
+        self.counters['cmd_version'] = self.version
         self.counters.update(self.presets)
 
     def set_defaults(self):
@@ -516,6 +519,8 @@ class Elm:
             forward_serial_port=None,
             forward_serial_baudrate=None,
             forward_timeout=None):
+        self.version = ELM_VERSION
+        self.header_version = ELM_HEADER_VERSION
         self.presets = {}
         self.ObdMessage = ObdMessage
         self.ELM_R_UNKNOWN = ELM_R_UNKNOWN
