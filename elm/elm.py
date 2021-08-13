@@ -1199,15 +1199,16 @@ class Elm:
             logging.error('Forward Write error: %s', e)
         return buffer
 
-    def write_to_device(self, i):
+    def write_to_device(self, answ):
         """
         Write a response to the port (no data returned).
         Manage socket, serial or device output.
         No return code.
-        :param i: encoded bytearray to be wrote
+        :param answ: string to be written
         :return: (none)
         """
 
+        i = answ.replace('[!NULLCHAR!]', '\x00').encode()
         # Process inet
         if self.sock_inet:
             if not self.accept_connection():
@@ -1463,6 +1464,7 @@ class Elm:
         # Generate string
         incomplete_resp = False
         root = None
+        resp = resp.replace('\x00', '[!NULLCHAR!]')
         try:
             root = fromstring('<xml>' + resp + '</xml>')
             s = iter(root)
@@ -1494,7 +1496,7 @@ class Elm:
                   i.tag.lower() == 'exec'):
                 logging.debug("Write: %s", repr(answ))
                 if i.tag.lower() == 'exec' and do_write:
-                    self.write_to_device(answ.encode())
+                    self.write_to_device(answ)
                     answ = ""
                 if i.text is None:
                     continue
@@ -1654,7 +1656,7 @@ class Elm:
             answ += nl + ">"
         if do_write:
             logging.debug("Write: %s", repr(answ))
-            self.write_to_device(answ.encode())
+            self.write_to_device(answ)
         return answ
 
     def task_action(
