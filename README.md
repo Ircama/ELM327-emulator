@@ -1186,6 +1186,8 @@ It is possible to add marks in the log file via commands like `logging.info("my 
 
 To totally disable logging for all handlers: `logging.disable(logging.CRITICAL)`. To restore logging: `logging.disable(0)`.
 
+To browse the log files, [lnav](https://github.com/tstack/lnav) is suggested.
+
 Command to count the number of different PIDs (OBD Commands) used by the client (excluding AT Commands):
 ```python
 reduce(lambda x, key: x + (1 if re.match('^[A-Z]', key) and not key.startswith('AT_') and emulator.counters[key] > 0 else 0), emulator.counters, 0)

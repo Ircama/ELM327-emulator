@@ -19,6 +19,7 @@ from enum import Enum
 
 if not os.name == 'nt':
     import pty
+    import tty
 import threading
 import time
 import traceback
@@ -676,7 +677,9 @@ class Elm:
         # else open the port
         if self.device_port:  # os IO
             try:
-                self.master_fd = os.open(self.device_port, os.O_RDWR)
+                self.master_fd = os.open(
+                    self.device_port,
+                    os.O_RDWR | os.O_NOCTTY | os.O_SYNC)
             except Exception as e:
                 logging.critical("Error while opening device %s:\n%s",
                                  repr(self.device_port), e)
@@ -727,6 +730,7 @@ class Elm:
         else:
             if not self.device_port and not self.serial_port:
                 self.master_fd, self.slave_fd = pty.openpty()
+                tty.setraw(self.slave_fd)
                 self.slave_name = os.ttyname(self.slave_fd)
                 logging.debug("Pty name: %s", self.slave_name)
 
