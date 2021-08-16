@@ -1463,7 +1463,7 @@ class Elm:
         # Generate string
         incomplete_resp = False
         root = None
-        resp = resp.replace('\x00', '[!NULLCHAR!]').replace('\x0d', '&#13;')
+        resp = resp.replace('\x00', '\\x00').replace('\x0d', '&#13;')
         try:
             root = fromstring('<xml>' + resp + '</xml>')
             s = iter(root)
@@ -1493,7 +1493,7 @@ class Elm:
                 answ += (i.text or "") + sp
             elif (i.tag.lower() == 'eval' or
                   i.tag.lower() == 'exec'):
-                answ = answ.replace('[!NULLCHAR!]', '\x00')
+                answ = answ.replace('\\x00', '\x00')
                 logging.debug("Write: %s", repr(answ))
                 if i.tag.lower() == 'exec' and do_write:
                     self.write_to_device(answ.encode())
@@ -1654,7 +1654,7 @@ class Elm:
             answ += ">"
         else:
             answ += nl + ">"
-        answ = answ.replace('[!NULLCHAR!]', '\x00')
+        answ = answ.replace('\\x00', '\x00')
         if do_write:
             logging.debug("Write: %s", repr(answ))
             self.write_to_device(answ.encode())

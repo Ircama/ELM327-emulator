@@ -397,7 +397,7 @@ class Interpreter(Cmd):
             return
         try:
             ret = self.emulator.handle_response(
-                arg,
+                bytes(arg, "utf-8").decode("unicode_escape"),
                 do_write=do_write,
                 request_header=request_header,
                 request_data=request_data)
