@@ -27,6 +27,11 @@ class Task(Tasks):
                 'Read memory by address - wrong request: %s', e)
             return Task.RETURN.ERROR
 
+        if not hasattr(self.shared, 'read_mmap'):
+            self.logging.error(
+                'Read memory by address - Missing mmap file.')
+            return Task.RETURN.ERROR
+
         # Execute the command: read bytes to the memory map in the shared area
         try:
             vector = self.shared.read_mmap[address:address + length]

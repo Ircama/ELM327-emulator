@@ -29,6 +29,11 @@ class Task(Tasks):
         # Compute max_addr
         max_addr = address + len(byte_vector)
 
+        if not hasattr(self.shared, 'mmap'):
+            self.logging.error(
+                'Write memory by address - Missing mmap file.')
+            return Task.RETURN.ERROR
+
         # Execute the command: write bytes to the memory map in the shared area
         try:
             self.shared.mmap[address:max_addr] = byte_vector
