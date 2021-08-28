@@ -13,14 +13,14 @@ jobs:
       pull-requests: write
 
     steps:
-    - uses: actions/stale@v4
+    - uses: actions/stale@v4  # https://github.com/actions/stale
       with:
         repo-token: ${{ secrets.GITHUB_TOKEN }}
-        stale-issue-message: 'This issue is stale because it has been open 90 days with no activity. Remove the stale label or add a comment; otherwise, this will be automatically closed in 30 days.'
-        stale-pr-message: 'This PR is stale because it has been open 90 days with no activity.'
-        days-before-stale: 90
-        days-before-close: 30
-        close-issue-message: 'This issue was closed because it has been stalled for 30 days with no activity.'
+        stale-issue-message: 'This issue becomed stale because of no feedback for 30 days. Remove the stale label or add a comment; otherwise, this will be automatically closed in 60 days.'
+        stale-pr-message: 'This PR becomed stale because of no feedback for 60 days.'
+        days-before-stale: 30
+        days-before-close: 60
+        close-issue-message: 'This issue was closed because it has been stalled for 60 days with no activity.'
         days-before-pr-close: -1
-        any-of-labels: answered,needs-rebase,inactive,Awaiting-Response
+        any-of-labels: answered,needs-rebase,inactive,Awaiting-Response,question
         exempt-all-pr-assignees: true
