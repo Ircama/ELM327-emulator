@@ -904,7 +904,7 @@ class Interpreter(Cmd):
                 doQuit = True
             except KeyboardInterrupt:
                 print("Terminating...")
-                sys.exit(0)
+                sys.exit(1)
 
 
 def set_scenario(emulator, scenario):
@@ -1223,10 +1223,10 @@ def main():
                     'Welcome to the ELM327 OBD-II adapter emulator.\n'
                     'ELM327-emulator is running on %s\n'
                     'Type help or ? to list commands.\n' % pty_name)
-    except (KeyboardInterrupt, SystemExit):
+    except (KeyboardInterrupt, SystemExit) as e:
         if not args.batch_mode and p_elm:
             p_elm.postloop()
             print('\n\nExiting.\n')
         else:
             print("\nELM327-emulator batch mode ENDED")
-        sys.exit(1)
+        sys.exit(e)
