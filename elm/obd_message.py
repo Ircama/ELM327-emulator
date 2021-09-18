@@ -4314,6 +4314,16 @@ ObdMessage = {
             'Descr': 'Clear DTC',
             'Response': PA('')
         },
+        'READ_DTC_BY_STATUS': {
+            'Request': '^18' + ELM_DATA_FOOTER,
+            'Descr': 'Read DTC by Status',
+            'Response': PA('04070101080102120103130104')
+        },
+        'IO_CTRL_LOCAL_ID': {
+            'Request': '^30' + ELM_DATA_FOOTER,
+            'Descr': 'Io Control By Local Id',
+            'Response': PA('00')
+        },
         "MONITOR": {
             'Request': '^2101' + ELM_FOOTER, # 21 (Read Data By Local Id) and 01 (Subfunction)
             'Descr': 'Monitor',
