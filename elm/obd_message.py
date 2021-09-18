@@ -4317,7 +4317,7 @@ ObdMessage = {
         'READ_DTC_BY_STATUS': {
             'Request': '^18' + ELM_DATA_FOOTER,
             'Descr': 'Read DTC by Status',
-            'Response': PA('04070101080102120103130104')
+            'Response': PA('04 07 01 01 08 01 02 12 01 03 13 01 04')
         },
         'IO_CTRL_LOCAL_ID': {
             'Request': '^30' + ELM_DATA_FOOTER,
