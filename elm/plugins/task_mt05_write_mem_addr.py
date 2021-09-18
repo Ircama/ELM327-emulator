@@ -17,13 +17,28 @@ MEM_RANGE = 0x3fffff
 class Task(Tasks):
     def run(self, cmd, *_): # cmd includes the request data
 
-        # Extract the byte vector and the address from the request
+        # Extract the byte vector, length and the address from the request
         try:
-            byte_vector = bytearray.fromhex(cmd[8:])
-            address = int(cmd[2:8], 16) & MEM_RANGE
+            if int(cmd[2:4], 16) < 0xD0:
+                length = 128
+                address = int(cmd[2:8], 16) & MEM_RANGE
+                byte_vector = bytearray.fromhex(cmd[8:])
+            else:
+                length = int(cmd[8:10], 16)
+                address = int(cmd[2:8], 16) & MEM_RANGE
+                byte_vector = bytearray.fromhex(cmd[10:])
+            self.logging.debug(
+                'Write memory by address - address=%X, length=%d',
+                address, length)
         except Exception as e:
             self.logging.error(
                 'Write memory by address - wrong request: %s', e)
+            return Task.RETURN.ERROR
+        if length != len(byte_vector):
+            self.logging.error(
+                'Write memory by address - length field = %d does not '
+                'correspond with the number of bytes to be written = %d',
+                length, len(byte_vector))
             return Task.RETURN.ERROR
 
         # Compute max_addr

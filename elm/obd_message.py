@@ -4353,6 +4353,15 @@ ObdMessage = {
             'Descr': 'Ignition counter',
             'Response': PA('8E 01 00 00'),
         },
+        'TIMING_PARAMS': {
+            'Request': '^8303' + ELM_DATA_FOOTER,
+            'Descr': 'ISO 14230 Access Timing Parameters - '
+                        'setTimingParametersToGivenValues',
+            'Exec': 'self.counters["cmd_mt05_timing"] = cmd[4:]',
+            'Log': '"Set ISO 14230 timing parameters to %s", '
+                        'self.counters["cmd_mt05_timing"]',
+            'Response': PA('03')
+        },
         'UDS_STDS_DEF': { # Default/Std Diag/OBD II Mode
             'Request': '^1081' + ELM_FOOTER,
             'Descr': 'UDS Start Diagnostic Session - Default mode',

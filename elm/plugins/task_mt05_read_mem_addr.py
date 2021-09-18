@@ -22,6 +22,9 @@ class Task(Tasks):
         try:
             address = int(cmd[2:-2], 16) & MEM_RANGE
             length = int(cmd[-2:], 16)
+            self.logging.debug(
+                'Read memory by address - address=%X, length=%d',
+                address, length)
         except Exception as e:
             self.logging.error(
                 'Read memory by address - wrong request: %s', e)
