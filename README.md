@@ -15,7 +15,7 @@ An internal dictionary (named *ObdMessage*) allows configuring the emulation, wh
 
 # Installation
 
-Check that the Python version is 3.6 or higher (`python3 -V`), then install *ELM327-emulator* with the following command:
+Check that the [Python](https://www.python.org/) version is 3.6 or higher (`python3 -V`), then install *ELM327-emulator* with the following command:
 
 ```shell
 python3 -m pip install ELM327-emulator
@@ -43,10 +43,10 @@ Alternatively to the above mentioned installation method, the following steps al
 
 - Optional preliminary configuration with Windows:
 
-  - install the latest version of [Python](https://www.python.org/downloads/windows/)
-  - install *git* from [Git-scm](https://git-scm.com/download/win) or using the [Git for Windows installer](https://gitforwindows.org/)
-  - if the interface to use is a COM port, also install [com0com](https://sourceforge.net/projects/com0com/) (no installation is needed when using TCP/IP or Bluetooth interfaces)
-  - check that PIP is upgraded (`python3 -m pip install --upgrade pip`)
+  - install the latest version of [Python](https://www.python.org/downloads/windows/) (also available from [Microsoft Store](https://www.microsoft.com/en-us/p/python-39/9p7qfqmjrfp7?activetab=pivot:overviewtab));
+  - if you want to install *ELM327-emulator* from GitHub, install *git* from [Git-scm](https://git-scm.com/download/win) or using the [Git for Windows installer](https://gitforwindows.org/);
+  - if the interface to use is a COM port (e.g., not TCP/IP or Bluetooth), also install [com0com](https://sourceforge.net/projects/com0com/) (no installation is needed when using TCP/IP or Bluetooth interfaces);
+  - optionally, check that PIP is upgraded (`python3 -m pip install --upgrade pip`).
 
 - Run this command:
 
