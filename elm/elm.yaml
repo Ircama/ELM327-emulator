@@ -6,7 +6,7 @@ formatters:
     format: "%(asctime)s - %(name)s - %(levelname)s - %(message)s"
     #datefmt: '%H:%M:%S'
   spaced:
-    format: '%(asctime)s  %(name)-10s %(funcName)-10s %(levelname)-8s %(message)s'
+    format: '%(asctime)s  %(name)-10s %(funcName)-15s %(levelname)-8s %(message)s'
 
 handlers:
     file:

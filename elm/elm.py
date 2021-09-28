@@ -19,6 +19,7 @@ from enum import Enum
 
 if not os.name == 'nt':
     import pty
+    import tty
 import threading
 import time
 import traceback
@@ -676,7 +677,9 @@ class Elm:
         # else open the port
         if self.device_port:  # os IO
             try:
-                self.master_fd = os.open(self.device_port, os.O_RDWR)
+                self.master_fd = os.open(
+                    self.device_port,
+                    os.O_RDWR | os.O_NOCTTY | os.O_SYNC)
             except Exception as e:
                 logging.critical("Error while opening device %s:\n%s",
                                  repr(self.device_port), e)
@@ -727,6 +730,7 @@ class Elm:
         else:
             if not self.device_port and not self.serial_port:
                 self.master_fd, self.slave_fd = pty.openpty()
+                tty.setraw(self.slave_fd)
                 self.slave_name = os.ttyname(self.slave_fd)
                 logging.debug("Pty name: %s", self.slave_name)
 
@@ -1200,7 +1204,7 @@ class Elm:
         Write a response to the port (no data returned).
         Manage socket, serial or device output.
         No return code.
-        :param i: encoded bytearray to be wrote
+        :param i: encoded bytearray to be written
         :return: (none)
         """
 
@@ -1459,6 +1463,7 @@ class Elm:
         # Generate string
         incomplete_resp = False
         root = None
+        resp = resp.replace('\x00', '\\x00').replace('\x0d', '&#13;')
         try:
             root = fromstring('<xml>' + resp + '</xml>')
             s = iter(root)
@@ -1488,6 +1493,7 @@ class Elm:
                 answ += (i.text or "") + sp
             elif (i.tag.lower() == 'eval' or
                   i.tag.lower() == 'exec'):
+                answ = answ.replace('\\x00', '\x00')
                 logging.debug("Write: %s", repr(answ))
                 if i.tag.lower() == 'exec' and do_write:
                     self.write_to_device(answ.encode())
@@ -1648,6 +1654,7 @@ class Elm:
             answ += ">"
         else:
             answ += nl + ">"
+        answ = answ.replace('\\x00', '\x00')
         if do_write:
             logging.debug("Write: %s", repr(answ))
             self.write_to_device(answ.encode())
