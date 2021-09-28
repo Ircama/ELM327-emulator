@@ -94,6 +94,37 @@ All subsequent information is not needed for basic usage of the tool and allows 
 
 When using serial communication, with UNIX/Linux OSs, this code uses pty pseudo-terminals. With Windows, you should first install [com0com](https://sourceforge.net/projects/com0com) (a kernel-mode virtual serial port driver), or [other virtual serial port software](http://com0com.sourceforge.net/); alternatively, [cygwin](http://www.cygwin.com/) and [Windows Subsystem for Linux](https://docs.microsoft.com/en-us/windows/wsl) (WSL) are supported.
 
+## Linux terminal
+
+When using a C program to connect to the *ELM327-emulator* you should use a raw terminal, and not the existing terminal from `tcgetattr`. Connecting to the *ELM327-emulator* should look similar to below (error checking ommitted).
+
+```c
+/* Open the device */
+fd = open("/dev/pts/3", O_RDWR | O_NOCTTY | O_SYNC);
+...
+
+/* Use a raw terminal */
+struct termios tty;
+cfmakeraw(&tty);
+...
+
+/* Set 38400, 8N1 */
+tty.c_cflag &= ~CSIZE;      /* clear size */
+tty.c_cflag |= CS8;         /* 8-bit size */
+tty.c_cflag &= ~PARENB;     /* no parity  */
+tty.c_cflag &= ~CSTOPB;     /* 1 stop bit */
+
+cfsetospeed(&tty, B38400);
+cfsetispeed(&tty, B38400);
+
+/* Update attributes */
+rc = tcflush(fd, TCIFLUSH);
+rc = tcsetattr(fd, TCSANOW, &tty);
+
+/* Reset the device */
+rc = write(fd, "ATZ\r", 4);
+```
+
 # Running on Windows
 
 When natively running on Windows (to be used when connecting a Windows application), *ELM327-emulator* requires a virtual serial port driver providing a virtual COM port pair (like *com0com*), so that one COM port (e.g., COM4) can be used to connect the application and the other one (e.g., COM3) the *ELM327-emulator*. By default, *ELM327-emulator* uses the `COM3` serial port; any other port can be set through the `-p` argument. Example:
@@ -853,7 +884,7 @@ All methods return a tuple of three elements:
   - *None*, meaning no subsequent request string to be processed, or
   - the same unchanged request of the task method invocation, where the returned request is sent to the standard processing of its dictionary response elements (without re-executing the same task), or
   - a different data than *cmd* in the task method, so that a full reprocessing of the new request is done (including running a task if defined).
-  
+
   This third element of the return tuple allows a task to also act as a filter or preprocessor, that receives a request (*cmd*), accounts it, possibly transforms it and forwards it to the standard processor.
 
 Special return values:
@@ -872,7 +903,7 @@ A task can exploit its own namespace, which is related to a specific task instan
 
 Other than storing local variables, the task namespace is useful to persist class properties if the task terminates with `Tasks.RETURN.CONTINUE`, and also to perform preprocessing through the related task methods (`start()`, `stop()`, `run()`), so that any subsequent request of the same ECU will be processed by the same task, until task termination. All subsequent calls of an active task share the same namespace. For instance, if a task is configured as a filter, its namespace can be used while preprocessing all subsequent requests directed to the ECU, which will be sent to the same task until its termination.
 
-The shared namespace for an ECU is named `self.shared` and can be associated to an [ECU Task](#ecu-tasks). 
+The shared namespace for an ECU is named `self.shared` and can be associated to an [ECU Task](#ecu-tasks).
 For instance, a task can create a variable named `self.shared.my_data = True`, that other tasks can use. The shared namespace can be used by different commands or tasks, if referring the same ECU. This area is created by *ELM327-emulator* at the first request referring to an ECU (and, if available, the related ECU Task `start()` method is executed). The shared namespace is already active when any task method is run. This shared area is reset by a communication disconnection, or "ATZ", or *reset* command, or expiration of the P3 timer.
 
 The easies way to configure tasks is to use Tasks.RETURN.TERMINATE (so that a task terminates after the execution of the invoked method, e.g., `Task.RETURN.ANSWER(answer)`) and to exploit `self.shared` to store persistent data, shared by different tasks and functions. The easies way to initialize shared data is through the definition of a `start()` method inside the related ECU Task.
