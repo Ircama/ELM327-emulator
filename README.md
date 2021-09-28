@@ -94,45 +94,6 @@ All subsequent information is not needed for basic usage of the tool and allows 
 
 When using serial communication, with UNIX/Linux OSs, this code uses pty pseudo-terminals. With Windows, you should first install [com0com](https://sourceforge.net/projects/com0com) (a kernel-mode virtual serial port driver), or [other virtual serial port software](http://com0com.sourceforge.net/); alternatively, [cygwin](http://www.cygwin.com/) and [Windows Subsystem for Linux](https://docs.microsoft.com/en-us/windows/wsl) (WSL) are supported.
 
-## Linux terminal
-
-When using a C program to connect to the *ELM327-emulator* you should use a raw terminal, and not the existing terminal from `tcgetattr`. Connecting to the *ELM327-emulator* should look similar to below (error checking ommitted).
-
-```c
-/* Open the device */
-fd = open("/dev/pts/3", O_RDWR | O_NOCTTY | O_SYNC);
-...
-
-/* Use a raw terminal */
-struct termios tty;
-cfmakeraw(&tty);
-...
-
-/* Set 38400, 8N1 */
-tty.c_cflag &= ~CSIZE;      /* clear size */
-tty.c_cflag |= CS8;         /* 8-bit size */
-tty.c_cflag &= ~PARENB;     /* no parity  */
-tty.c_cflag &= ~CSTOPB;     /* 1 stop bit */
-
-cfsetospeed(&tty, B38400);
-cfsetispeed(&tty, B38400);
-
-/* Update attributes */
-rc = tcflush(fd, TCIFLUSH);
-rc = tcsetattr(fd, TCSANOW, &tty);
-
-/* Reset the device */
-rc = write(fd, "ATZ\r", 4);
-```
-
-# Running on Windows
-
-When natively running on Windows (to be used when connecting a Windows application), *ELM327-emulator* requires a virtual serial port driver providing a virtual COM port pair (like *com0com*), so that one COM port (e.g., COM4) can be used to connect the application and the other one (e.g., COM3) the *ELM327-emulator*. By default, *ELM327-emulator* uses the `COM3` serial port; any other port can be set through the `-p` argument. Example:
-
-```shell
-python3 -m elm -p COM5
-```
-
 # Usage
 The description of the *ELM327-emulator* command-line option is the following:
 
@@ -1627,6 +1588,45 @@ To run the application integrated with *ELM327-emulator*: `./scantool`
 It is an OBD-II scanner software specialized to manage ECU's from Delphi Electronics, including flash memory download and upload functions. The application runs on Windows and is very well engineered, extensively using OBD-II and UDS, with wide set of functionalities and robust frame control handling.
 
 *ELM327-emulator* is already able to provide a basic emulation of the Delphi MT05 ECU and, if needed, can be extended via the development of additional tasks and through the editing of the ObdMessage configuration.
+
+## C program sample
+
+When using a C program to connect to the *ELM327-emulator*, you can optionally configure a raw terminal. Connecting to the *ELM327-emulator* should look similar to below (error checking ommitted).
+
+```c
+/* Open the device */
+fd = open("/dev/pts/...", O_RDWR | O_NOCTTY | O_SYNC);
+...
+
+/* Optionally, you could configure the terminal in row mode (not required) */
+struct termios tty;
+cfmakeraw(&tty);
+...
+
+/* Set 38400, 8N1 */
+tty.c_cflag &= ~CSIZE;      /* clear size */
+tty.c_cflag |= CS8;         /* 8-bit size */
+tty.c_cflag &= ~PARENB;     /* no parity  */
+tty.c_cflag &= ~CSTOPB;     /* 1 stop bit */
+
+cfsetospeed(&tty, B38400);
+cfsetispeed(&tty, B38400);
+
+/* Update attributes */
+rc = tcflush(fd, TCIFLUSH);
+rc = tcsetattr(fd, TCSANOW, &tty);
+
+/* Reset the device */
+rc = write(fd, "ATZ\r", 4);
+```
+
+# Running on Windows
+
+When natively running on Windows (to be used when connecting a Windows application), *ELM327-emulator* requires a virtual serial port driver providing a virtual COM port pair (like *com0com*), so that one COM port (e.g., COM4) can be used to connect the application and the other one (e.g., COM3) the *ELM327-emulator*. By default, *ELM327-emulator* uses the `COM3` serial port; any other port can be set through the `-p` argument. Example:
+
+```shell
+python3 -m elm -p COM5
+```
 
 # Standards
 - The UDS Application layer is reported in [ISO 14229-1:2020](https://www.iso.org/standard/72439.html) (former ISO 15765-3, UDS on CAN)
