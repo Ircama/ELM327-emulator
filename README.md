@@ -1,6 +1,10 @@
 ELM327-emulator
 ===============
 
+[![PyPI](https://img.shields.io/pypi/v/ELM327-emulator.svg?maxAge=2592000)](https://pypi.org/project/ELM327-emulator)
+[![Python Versions](https://img.shields.io/pypi/pyversions/ELM327-emulator.svg)](https://pypi.org/project/ELM327-emulator/)
+[![GitHub license](https://img.shields.io/badge/license-CC--BY--NC--SA--4.0-blue)](https://raw.githubusercontent.com/ircama/ELM327-emulator/master/LICENSE)
+
 __A Python emulator of the ELM327 OBD-II adapter connected to a vehicle supporting multi-ECU simulation.__
 
 *ELM327-emulator* connects client applications to multiple emulated [ECU](https://en.wikipedia.org/wiki/Engine_control_unit)s via [OBD-II](https://en.wikipedia.org/wiki/On-board_diagnostics) interface through different networking systems, including serial communication (where [pseudo-terminals](https://en.wikipedia.org/wiki/Pseudoterminal) are used if supported by the operating systems), or direct interaction with communication devices, or TCP/IP, or Bluetooth. The software simulates an [ELM327](https://en.wikipedia.org/wiki/ELM327) adapter connected to a vehicle, includes a command-line interface for extensive monitoring and offers a documented Python development framework to implement ECU emulation objects.
