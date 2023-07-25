@@ -3,6 +3,7 @@ ELM327-emulator
 
 [![PyPI](https://img.shields.io/pypi/v/ELM327-emulator.svg?maxAge=2592000)](https://pypi.org/project/ELM327-emulator)
 [![Python Versions](https://img.shields.io/pypi/pyversions/ELM327-emulator.svg)](https://pypi.org/project/ELM327-emulator/)
+[![PyPI download month](https://img.shields.io/pypi/dm/ELM327-emulator.svg)](https://pypi.python.org/pypi/ELM327-emulator/)
 [![GitHub license](https://img.shields.io/badge/license-CC--BY--NC--SA--4.0-blue)](https://raw.githubusercontent.com/ircama/ELM327-emulator/master/LICENSE)
 
 __A Python emulator of the ELM327 OBD-II adapter connected to a vehicle supporting multi-ECU simulation.__
