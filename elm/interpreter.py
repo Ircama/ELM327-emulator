@@ -227,9 +227,11 @@ class Interpreter(Cmd):
         if self.args.batch_mode:
             return
         self.stdout.write(
+
         "Available commands include the following list (type help <topic>"
         "\nfor more information on each command). Besides, any Python"
         "\ncommand is accepted. Autocompletion is fully allowed."
+        "\nVisit https://github.com/Ircama/ELM327-emulator for additional info."
         "\n=============================================================="
         "==\n")
         self.columnize(cmds, maxcol-1)
