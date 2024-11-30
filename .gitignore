@@ -136,3 +136,8 @@ Untitled*.ipynb
 comm_log.txt
 scantool.py
 mmap-input.bin
+
+# Just-The-Readme exclusions:
+.jekyll-gh-pages/Gemfile.lock
+.jekyll-gh-pages/_site/
+.jekyll-gh-pages/*.md

@@ -9,6 +9,7 @@
 
 import sys
 import traceback
+import webbrowser
 
 import elm.elm
 
@@ -49,7 +50,11 @@ try:
     from xml.etree.ElementTree import fromstring, ParseError, tostring
     import pprint
 except ImportError as detail:
-    print("ELM327 OBD-II adapter emulator error:\n " + str(detail))
+    print(
+        "ELM327 OBD-II adapter emulator import error:\n "
+        + str(detail)
+        + "\nInstall prerequisites before running the product."
+        )
     sys.exit(1)
 
 DAEMON_PIDFILE_DIR_ROOT = '/var/run/'
@@ -231,7 +236,8 @@ class Interpreter(Cmd):
         "Available commands include the following list (type help <topic>"
         "\nfor more information on each command). Besides, any Python"
         "\ncommand is accepted. Autocompletion is fully allowed."
-        "\nVisit https://github.com/Ircama/ELM327-emulator for additional info."
+        '\nFor additional info, type "usage" or visit'
+        "\nhttps://github.com/Ircama/ELM327-emulator"
         "\n=============================================================="
         "==\n")
         self.columnize(cmds, maxcol-1)
@@ -271,10 +277,17 @@ class Interpreter(Cmd):
         "\nargument is 'reset', header and ELM version strings are set to "\
         "default\nvalues."
         print(f'ELM327-emulator version {__version__}.')
+        if 'cmd_version' not in self.emulator.counters:
+            print(
+                "No access to counters. Start the emulator appropriately."
+            )
+            return
+        print("Reset values:")
         if len(arg.split()) > 0 and arg.split()[0].lower() == "hexheader":
             if len(arg.split()) == 1:
                 print(
-                    "Missing the hex string following the 'hexheader' command.")
+                    "Missing the hex string following the 'hexheader' command."
+                )
                 return
             try:
                 self.emulator.header_version = "".join(
@@ -285,7 +298,6 @@ class Interpreter(Cmd):
                 return
             print("Set version header:")
         elif len(arg.split()) == 1 and arg.lower() == "reset":
-            print("Reset values:")
             self.emulator.counters['cmd_version'] = elm.elm.ELM_VERSION
             self.emulator.version = elm.elm.ELM_VERSION
             self.emulator.header_version = elm.elm.ELM_HEADER_VERSION
@@ -463,6 +475,11 @@ class Interpreter(Cmd):
         args = arg.split()
         usage = (
             'Usage: timer {P1|P2|P3|P4} seconds; ref. "help timer" command.')
+        if 'req_timeout' not in self.emulator.counters:
+            print(
+                "No access to counters. Start the emulator appropriately."
+            )
+            return
         if not args:
             print ("P1: {} seconds "
                    "- UDS P1 timer - Inter byte time for ECU response".format(
@@ -584,8 +601,13 @@ class Interpreter(Cmd):
             print ("Invalid format.")
             return
         self.emulator.threadState = self.emulator.THREAD.ACTIVE
-        print(
-            "Backend emulator resumed. Running on %s" % self.emulator.get_pty())
+        if self.emulator.get_pty():
+            print(
+                "Backend emulator resumed. Running on %s"
+                % self.emulator.get_pty()
+            )
+        else:
+            print("Missing connection to serial port.")
 
     def complete_loglevel(self, text, line, start_index, end_index):
         if text:
@@ -668,7 +690,10 @@ class Interpreter(Cmd):
             return
         if Edit.answer(self, position, ''.join(args[2:]), args[0]):
             print(f'Set answer for Pid {args[0]} with edited bytes:')
-            print(self.emulator.answer[args[0]])
+            if args[0] in self.emulator.answer:
+                print(self.emulator.answer[args[0]])
+            else:
+                print("Unknown value")
         else:
             print(f'Cannot set answer for pid {args[0]}.')
             return
@@ -772,6 +797,27 @@ class Interpreter(Cmd):
                        getattr(self, name).__doc__.replace(
                            "\n", formatter.format(''))))
         print("")
+
+    def do_usage(self, arg):
+        "Open a web browser showing the online documentation."
+        url = "https://ircama.github.io/ELM327-emulator"
+        if arg:
+            print ("Invalid format of the command.")
+            return
+        try:
+            ret = webbrowser.open(url)
+            if ret:
+                print("The web browser is being opened.")
+            else:
+                print(
+                    "Unable to open the web browser."
+                    " Please open it manually by visiting:\n%s" % url
+                )
+        except Exception as e:
+            print(
+                "Unable to open the web browser (%s)."
+                " Please open it manually by visiting:\n%s", (e, url)
+            )
 
     def do_history(self, arg):
         "print the command history; if an argument is given, print the last\n"\
@@ -923,6 +969,10 @@ def set_scenario(emulator, scenario):
 
 def main():
     # Option handling
+    NO_PTY = (
+        "\nThe ELM327-emulator is started locally,"
+        " without serial port connection and with limited capabilities.\n"
+    )
     parser = argparse.ArgumentParser(
         epilog='ELM327-emulator v' + __version__ +
         ' - ELM327 OBD-II adapter emulator')
@@ -1205,14 +1255,14 @@ def main():
                 pty_name = "TCP network port " + str(args.net_port[0]) + "."
             else:
                 pty_name = session.get_pty()
-                if args.batch_mode:
-                    print(pty_name)
-                sys.stdout.flush()
+                if pty_name == None:
+                    print(NO_PTY)
+                else:
+                    if args.batch_mode:
+                        print(pty_name)
+                    sys.stdout.flush()
             if args.scenario[0]:
                 set_scenario(session, args.scenario[0])
-            if pty_name == None:
-                print("\nCannot start ELM327-emulator.\n")
-                os._exit(1) # does not raise SystemExit
             p_elm = Interpreter(session, args)
             if args.log:
                 logging.getLogger().handlers[0].setLevel(int(args.log[0]))
@@ -1221,10 +1271,17 @@ def main():
                     'ELM327-emulator batch mode STARTED\n'
                     'Begin batch commands.')
             else:
-                p_elm.cmdloop_with_keyboard_interrupt(
-                    'Welcome to the ELM327 OBD-II adapter emulator.\n'
-                    'ELM327-emulator is running on %s\n'
-                    'Type help or ? to list commands.\n' % pty_name)
+                if pty_name == None:
+                    p_elm.cmdloop_with_keyboard_interrupt(
+                        'Welcome to the ELM327 OBD-II adapter emulator.\n'
+                        'Type help or ? to list commands.\n'
+                    )
+                else:
+                    p_elm.cmdloop_with_keyboard_interrupt(
+                        'Welcome to the ELM327 OBD-II adapter emulator.\n'
+                        'ELM327-emulator is running on %s\n'
+                        'Type help or ? to list commands.\n' % pty_name
+                    )
     except (KeyboardInterrupt, SystemExit) as e:
         if not args.batch_mode and p_elm:
             p_elm.postloop()

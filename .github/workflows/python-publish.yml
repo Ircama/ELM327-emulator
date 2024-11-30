@@ -27,38 +27,32 @@ jobs:
 
     # Checking out the project and building distributions
     steps:
-    - uses: actions/checkout@v2
+    - uses: actions/checkout@v3
     - name: Set up Python
-      uses: actions/setup-python@v2
+      uses: actions/setup-python@v5
       with:
         python-version: '3.x'
     # This will download your repository into the CI runner and then install and activate Python
 
-    - name: Install upgrade pip
-      run: >-
-        python -m
-        pip install
-        --upgrade pip
-    - name: Install dependencies
-      run: >-
-        python -m
-        pip install pyyaml python-daemon obd setuptools wheel twine
-    - name: Install pypa/build
-      run: >-
-        python -m
-        pip install
-        build
-        --user
-    - name: Build a binary wheel and a source tarball
-      run: >-
-        python setup.py sdist bdist_wheel
-    # This will create the /dist directory including the package build.
+    - name: Upgrade pip
+      run: pip install --upgrade pip
 
-    - name: Build and publish
+    - name: Install build dependencies
+      run: pip install setuptools wheel twine build
+
+    - name: Build the package
+      run: python -m build
+
+    - name: Publish to PyPI
       env:
         TWINE_USERNAME: ${{ secrets.PYPI_USERNAME }}
         TWINE_PASSWORD: ${{ secrets.PYPI_PASSWORD }}
       run: |
-        twine upload  --repository pypi dist/*
-        twine upload  --repository testpypi dist/*
-    # This will publish the /dist directory.
+        twine upload --repository pypi dist/*.tar.gz --verbose
+
+    - name: Publish to TestPyPI
+      env:
+        TWINE_USERNAME: ${{ secrets.PYPI_USERNAME }}
+        TWINE_PASSWORD: ${{ secrets.TEST_PYPI_API_TOKEN }}
+      run: |
+        twine upload --repository testpypi dist/*.tar.gz --verbose

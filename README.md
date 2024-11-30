@@ -224,6 +224,7 @@ Command|Description
 `version`|Print ELM327-emulator version. With an argument, set the ELM version. If the argument is `hexheader` followed by a sequence of hex digits, the header of the ELM version is updated with the sequence. If the argument is `reset`, header and ELM version strings are set to default values. The autocompletion can be used with this command.
 `commands`|List the description of each available command.
 `choice`|Print or select the adopted method to choose the return value of answers that are expressed as a list of data. Possible values are "sequential" (the returned value follows the list sequence, which is the default mode) or "random" (the returned value is randomly selected within the values in the list). Optional list of weights can be added; decimals are allowed; the default value is 1. Autocompletion is allowed for this command.
+`usage`|Open a web browser showing this documentation.
 
 In addition to the previously listed keywords, any Python command is allowed to query/configure the backend thread.
 

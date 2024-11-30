@@ -1,0 +1,145 @@
+remote_theme: ircama/just-the-readme
+
+# Enable or disable the site search
+# Supports true (default) or false
+search_enabled: true
+
+# For copy button on code
+enable_copy_code_button: true
+
+# Table of Contents
+# Enable or disable the Table of Contents globally
+# Supports true (default) or false
+toc_enabled: true
+toc:
+  # Minimum header level to include in ToC
+  # Default: 1
+  min_level: 1
+  # Maximum header level to include in ToC
+  # Default: 6
+  max_level: 6
+  # Display the ToC as ordered list instead of an unordered list
+  # Supports true (default) or false
+  ordered: true
+  # Whether ToC will be a single level list
+  # Supports true or false (default)
+  flat_toc: false
+
+# By default, consuming the theme as a gem leaves mermaid disabled; it is opt-in
+mermaid:
+  # Version of mermaid library
+  # Pick an available version from https://cdn.jsdelivr.net/npm/mermaid/
+  version: "9.1.6"
+  # Put any additional configuration, such as setting the theme, in _includes/mermaid_config.js
+  # See also docs/ui-components/code
+  # To load mermaid from a local library, also use the `path` key to specify the location of the library; e.g.
+  # for (v10+):
+  # path: "/assets/js/mermaid.esm.min.mjs"
+  # for (<v10):
+  # path: "/assets/js/mermaid.min.js"
+  # Note: copy both `mermaid.esm.min.mjs` (v10+) or `mermaid.min.js` (<v10) and the associated `.map` file from the specified version of `mermaid/dist` to `/assets/js/`.
+
+# Enable or disable heading anchors
+heading_anchors: true
+
+# Aux links for the upper right navigation
+aux_links:
+  "ELM327-emulator on GitHub":
+    - "https://github.com/Ircama/ELM327-emulator"
+
+# Makes Aux links open in a new tab. Default is false
+aux_links_new_tab: true
+
+# Enable or disable the side/mobile menu globally
+# Nav menu can also be selectively enabled or disabled using page variables or the minimal layout
+nav_enabled: true
+
+# Sort order for navigation links
+# nav_sort: case_insensitive # default, equivalent to nil
+nav_sort: case_sensitive # Capital letters sorted before lowercase
+
+# External navigation links
+nav_external_links:
+  - title: ELM327-emulator on GitHub
+    url: https://github.com/Ircama/ELM327-emulator
+
+# Show navigation error report
+nav_error_report: true # default is false/nil.
+
+liquid:
+  error_mode: strict
+  strict_filters: true
+
+# Footer content
+# appears at the bottom of every page's main content
+
+# Back to top link
+back_to_top: true
+back_to_top_text: "Back to top"
+
+footer_content: 'Copyright &copy; 2024-2025 Ircama. Distributed by an <a href="https://raw.githubusercontent.com/Ircama/ELM327-emulator/refs/heads/master/LICENSE">CC BY-NC-SA 4.0 license.</a>'
+
+# Footer last edited timestamp
+last_edit_timestamp: true # show or hide edit time - page must have `last_modified_date` defined in the frontmatter
+last_edit_time_format: "%b %e %Y at %I:%M %p" # uses ruby's time format: https://ruby-doc.org/stdlib-2.7.0/libdoc/time/rdoc/Time.html
+
+# Footer "Edit this page on GitHub" link text
+gh_edit_link: true # show or hide edit this page link
+gh_edit_link_text: "Edit this page on GitHub"
+gh_edit_repository: "https://github.com/Ircama/ELM327-emulator" # the github URL for your repo
+gh_edit_branch: "main" # the branch that your docs is served from
+# gh_edit_source: docs # the source that your files originate from
+gh_edit_view_mode: "tree" # "tree" or "edit" if you want the user to jump into the editor immediately
+
+# Color scheme currently only supports "dark", "light"/nil (default), or a custom scheme that you define
+color_scheme: nil
+
+callouts_level: quiet # or loud
+callouts:
+  highlight:
+    color: yellow
+  important:
+    title: Important
+    color: blue
+  new:
+    title: New
+    color: green
+  note:
+    title: Note
+    color: purple
+  warning:
+    title: Warning
+    color: red
+
+# Google Analytics Tracking (optional)
+# Supports a CSV of tracking ID strings (eg. "UA-1234567-89,G-1AB234CDE5")
+# Note: the main Just the Docs site does *not* use Google Analytics.
+# ga_tracking: UA-2709176-10,G-5FG1HLH3XQ
+# ga_tracking_anonymize_ip: true # Use GDPR compliant Google Analytics settings (true/nil by default)
+
+plugins:
+  - jekyll-seo-tag
+  - jekyll-github-metadata
+  - jekyll-sitemap
+  - jekyll-autolinks
+  - jekyll-include-cache # Optional, for caching
+  - jekyll-remote-theme # Add if not already present
+
+kramdown:
+  syntax_highlighter_opts:
+    block:
+      line_numbers: false
+
+compress_html:
+  clippings: all
+  comments: all
+  endings: all
+  startings: []
+  blanklines: false
+  profile: false
+  # ignore:
+  #   envs: all
+
+autolinks:
+  link_attr: 'target="_blank"'
+  skip_tags: ["a", "pre", "code", "kbd", "script"]
