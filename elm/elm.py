@@ -1821,7 +1821,7 @@ class Elm:
             return header, cmd, ""
 
         #  Manage ECU task and shared namespace
-        if ecu in self.task_shared_ns:  # ECU task exists with its namespace
+        if ecu and ecu in self.task_shared_ns:  # ECU task exists with its namespace
             r_cmd, *_, r_cont = self.task_action(header, ecu, do_write,
                                                  self.task_shared_ns[ecu].run,
                                                  cmd, None, None,
@@ -1832,16 +1832,17 @@ class Elm:
                 cmd = r_cont
         else:  # create the ECU task and shared namespace for the ECU
             plugin = None
-            for i in self.plugins:
-                i_pattern = (r'^' +
-                             i.upper()
-                             .replace('X', '[0-9A-F]')
-                             .replace('W', '[0-9A-F]+') +
-                             r'$')
-                if (i.startswith(ECU_TASK) and
-                        re.match(i_pattern, ECU_TASK.upper() + ecu)):
-                    plugin = i
-                    break
+            if ecu:
+                for i in self.plugins:
+                    i_pattern = (r'^' +
+                                 i.upper()
+                                 .replace('X', '[0-9A-F]')
+                                 .replace('W', '[0-9A-F]+') +
+                                 r'$')
+                    if (i.startswith(ECU_TASK) and
+                            re.match(i_pattern, ECU_TASK.upper() + ecu)):
+                        plugin = i
+                        break
             try:  # use the plugin if existing, else directly use EcuTasks()
                 if plugin:
                     self.task_shared_ns[ecu] = self.plugins[plugin].Task(
