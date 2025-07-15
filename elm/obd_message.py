@@ -1782,6 +1782,16 @@ ObdMessage = {
             'Descr': 'Supported PIDs [A1-C0]',
             'Response': ST('NO DATA'),
         },
+        'ODOMETER': {
+            'Request': '^01A6' + ELM_FOOTER,
+            'Descr': 'Total Distance Traveled',
+            'Equation': 'A * 256 * 256 + B * 256 + C',
+            'Min': '0',
+            'Max': '16777215',
+            'Unit': 'km',
+            'Header': ECU_ADDR_H,
+            'Response': HD(ECU_R_ADDR_H) + SZ('05') + DT('61 28 00 EA 5C')
+        },
     # ------------------------------------------------------------
     # MODE 02 - freeze frame (or instantaneous) data of a fault
         'DTC_STATUS': {
