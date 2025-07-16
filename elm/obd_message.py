@@ -1785,12 +1785,11 @@ ObdMessage = {
         'ODOMETER': {
             'Request': '^01A6' + ELM_FOOTER,
             'Descr': 'Total Distance Traveled',
-            'Equation': 'A * 256 * 256 + B * 256 + C',
-            'Min': '0',
-            'Max': '16777215',
-            'Unit': 'km',
-            'Header': ECU_ADDR_H,
-            'Response': HD(ECU_R_ADDR_H) + SZ('05') + DT('61 28 00 EA 5C')
+            'Response': [
+                HD(ECU_R_ADDR_H) + SZ('05') + DT('61 28 00 EA 5C'),
+                HD(ECU_R_ADDR_H) + SZ('05') + DT('61 27 00 EA 5C'),
+                HD(ECU_R_ADDR_H) + SZ('05') + DT('61 28 00 EA 5D'),
+            ]
         },
     # ------------------------------------------------------------
     # MODE 02 - freeze frame (or instantaneous) data of a fault
