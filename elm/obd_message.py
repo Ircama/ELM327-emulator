@@ -1785,6 +1785,7 @@ ObdMessage = {
         'ODOMETER': {
             'Request': '^01A6' + ELM_FOOTER,
             'Descr': 'Total Distance Traveled',
+            'Header': ECU_ADDR_E,
             'Response': [
                 HD(ECU_R_ADDR_H) + SZ('05') + DT('61 28 00 EA 5C'),
                 HD(ECU_R_ADDR_H) + SZ('05') + DT('61 27 00 EA 5C'),
