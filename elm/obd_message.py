@@ -2081,7 +2081,11 @@ ObdMessage = {
             'Request': '^03' + ELM_FOOTER,
             'Descr': 'Get DTCs (Diagnostic Trouble Codes)',
             'Header': ECU_ADDR_E,
-            'Response': HD(ECU_R_ADDR_E) + SZ('02') + DT('43 00')
+            'Response': [
+                HD(ECU_R_ADDR_E) + SZ('02') + DT('43 00'),
+                HD(ECU_R_ADDR_E) + SZ('02') + DT('42 00'),
+                HD(ECU_R_ADDR_E) + SZ('02') + DT('41 00'),
+            ]
         },
     # -------------------------------------------------------------------
     # Mode 04 Clearing/resetting emission-related malfunction information
