@@ -1782,6 +1782,19 @@ ObdMessage = {
             'Descr': 'Supported PIDs [A1-C0]',
             'Response': ST('NO DATA'),
         },
+        'ODOMETER': {
+            'Request': '^01A6' + ELM_FOOTER,
+            'Descr': 'Total Distance Traveled',
+            'Header': ECU_ADDR_E,
+            'ResponseFooter': lambda self, cmd, pid, uc_val: (
+                HD(ECU_ADDR_H) + SZ('05') + DT('61 28 00 EA 5C')
+            ),
+            'Response': [
+                HD(ECU_R_ADDR_H) + SZ('05') + DT('61 28 00 EA 5C'),
+                HD(ECU_R_ADDR_H) + SZ('05') + DT('61 27 00 EA 5C'),
+                HD(ECU_R_ADDR_H) + SZ('05') + DT('61 28 00 EA 5D'),
+            ]
+        },
     # ------------------------------------------------------------
     # MODE 02 - freeze frame (or instantaneous) data of a fault
         'DTC_STATUS': {
@@ -2071,7 +2084,11 @@ ObdMessage = {
             'Request': '^03' + ELM_FOOTER,
             'Descr': 'Get DTCs (Diagnostic Trouble Codes)',
             'Header': ECU_ADDR_E,
-            'Response': HD(ECU_R_ADDR_E) + SZ('02') + DT('43 00')
+            'Response': [
+                HD(ECU_R_ADDR_E) + SZ('02') + DT('43 00'),
+                HD(ECU_R_ADDR_E) + SZ('02') + DT('42 00'),
+                HD(ECU_R_ADDR_E) + SZ('02') + DT('41 00'),
+            ]
         },
     # -------------------------------------------------------------------
     # Mode 04 Clearing/resetting emission-related malfunction information
