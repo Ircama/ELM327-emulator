@@ -117,7 +117,7 @@ setup(
         'python-daemon',
         'pyyaml',
         'obd',
-        "pyreadline3 ; platform_system=='Windows'"
+        "pyreadline3;platform_system=='Windows' and python_version<'3.13'",
     ],
     python_requires='>3.5'
 )
