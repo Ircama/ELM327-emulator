@@ -4441,3 +4441,163 @@ ObdMessage = {
         },
     }
 }
+
+
+# Helper functions for dynamic PID support generation
+# see: https://en.wikipedia.org/wiki/OBD-II_PIDs#Service_01_PID_00
+def generate_pids_bitmap(supported_pids):
+    """
+    Generate a 4-byte hex bitmap representing which PIDs are supported.
+    
+    Args:
+        supported_pids: List of PID numbers (as integers, e.g., [1, 3, 4, 5, ...])
+    
+    Returns:
+        String with 4 bytes in hex format like "BE 1F A8 13"
+    
+    Example:
+        For PIDs [1, 3, 4, 5, 6, 7, 12, 13, 14, 15, 16, 17, 19, 21, 28, 31, 32]:
+        Returns "BE 1F A8 13"
+    """
+    bitmap = [0, 0, 0, 0]
+
+    for pid in supported_pids:
+        if 1 <= pid <= 32:
+            byte_index = (pid - 1) // 8
+            bit_position = 7 - ((pid - 1) % 8)
+            bitmap[byte_index] |= (1 << bit_position)
+
+    return ' '.join(f"{byte:02X}" for byte in bitmap)
+
+
+def extract_supported_pids(scenario_dict, pids_supported, service="01", start_pid=0x01, end_pid=0x20):
+    """
+    Extract all supported PIDs from a scenario dictionary for a given service.
+    
+    Args:
+        scenario_dict: Dictionary containing PID definitions
+        service: Service ID as string (e.g., '01' for Mode 01)
+        start_pid: Starting PID number (inclusive)
+        end_pid: Ending PID number (inclusive)
+    
+    Returns:
+        List of supported PID numbers (as integers)
+    """
+    import re
+
+    supported = []
+
+    for _pid_name, pid_info in scenario_dict.items():
+        if "Request" not in pid_info:
+            continue
+
+        pattern = rf"\^{service}([0-9A-F]{{2}})"
+        match = re.search(pattern, pid_info["Request"])
+        
+        if match:
+            pid_hex = match.group(1)
+            pid_num = int(pid_hex, 16)
+            
+            # Check if PID is in the desired range and not a PIDS_X query itself
+            if start_pid <= pid_num <= end_pid and pid_hex not in pids_supported:
+                supported.append(pid_num)
+    
+    return sorted(supported)
+
+
+def generate_dynamic_pids_entries(scenario_dict, service="01"):
+    """
+    Generate dynamic ELM_PIDS_X entries based on supported PIDs in the scenario.
+    
+    Args:
+        scenario_dict: Dictionary containing PID definitions
+        service: Service ID as string (e.g., '01' for Mode 01)
+    
+    Returns:
+        Dictionary with ELM_PIDS_X entries to be merged into the scenario
+    """
+    pids_entries = {}
+
+    pid_ranges = [
+        ('A', 0x00, 0x01, 0x20),
+        ('B', 0x20, 0x21, 0x40),
+        ('C', 0x40, 0x41, 0x60),
+        ('D', 0x60, 0x61, 0x80),
+        ('E', 0x80, 0x81, 0xA0),
+        ('F', 0xA0, 0xA1, 0xC0),
+        ('G', 0xC0, 0xC1, 0xE0),
+    ]
+
+    pids_supported = [f"{p[3]:02X}" for p in pid_ranges]
+
+    for suffix, request_pid, start_pid, end_pid in pid_ranges:
+        supported = extract_supported_pids(scenario_dict, pids_supported,service, start_pid, end_pid)
+
+        if not supported and request_pid > 0x00:
+            continue
+
+        next_range_has_pids = False
+        if end_pid < 0xE0:
+            next_supported = extract_supported_pids(scenario_dict, pids_supported, service, end_pid, end_pid + 0x20)
+            next_range_has_pids = len(next_supported) > 0
+
+        pids_to_encode = supported.copy()
+        if next_range_has_pids:
+            pids_to_encode.append(end_pid - start_pid + 1)
+        
+        relative_pids = [(pid - start_pid + 1) for pid in supported if start_pid <= pid <= end_pid]
+        
+        if next_range_has_pids:
+            relative_pids.append(32)
+
+        bitmap = generate_pids_bitmap(relative_pids)
+
+        entry_name = f"ELM_PIDS_{suffix}"
+        pids_entries[entry_name] = {
+            "Request": f"^{service}{request_pid:02X}" + ELM_FOOTER,
+            "Descr": f"Supported PIDS_{suffix} [{start_pid:02X}-{end_pid:02X}]",
+            "Response": HD(ECU_R_ADDR_E) + SZ("06") + DT(f"41 {request_pid:02X} {bitmap}")
+        }
+        
+        # Special handling for PIDS_A to simulate "SEARCHING..."
+        if suffix == 'A':
+            pids_entries[entry_name]["ResponseHeader"] = \
+                lambda self, cmd, pid, uc_val: \
+                    "<string>SEARCHING...</string>" \
+                    "<exec>time.sleep(1.5)</exec>" + ST('') \
+                        if self.counters[pid] == 1 else ''
+    
+    return pids_entries
+
+
+def update_scenario_with_dynamic_pids(scenario_dict, service="01"):
+    """
+    Update a scenario dictionary with dynamically generated ELM_PIDS_X entries.
+    This will replace existing static PIDS_ & ELM_PIDS_ entries with dynamic ones.
+    
+    Args:
+        scenario_dict: Dictionary containing PID definitions (will be modified in-place)
+        service: Service ID as string (e.g., '01' for Mode 01)
+    """
+    # Remove old static PIDS
+    pids_keys_to_remove = [k for k in scenario_dict.keys() if k.startswith(("ELM_PIDS_", "PIDS_"))]
+    for key in pids_keys_to_remove:
+        del scenario_dict[key]
+    
+    # add new dynamic
+    dynamic_pids = generate_dynamic_pids_entries(scenario_dict, service)
+    scenario_dict.update(dynamic_pids)
+
+
+
+if "default" in ObdMessage:
+    update_scenario_with_dynamic_pids(ObdMessage["default"], service="01")
+
+if "car" in ObdMessage:
+    update_scenario_with_dynamic_pids(ObdMessage["car"], service="01")
+
+if "mt05" in ObdMessage:
+    update_scenario_with_dynamic_pids(ObdMessage["mt05"], service="01")
+
+# "engineoff" scenario intentionally does not auto-generate PIDs
+# as it simulates a disconnected/off state
