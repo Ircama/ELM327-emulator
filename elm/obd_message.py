@@ -1788,13 +1788,10 @@ ObdMessage = {
             'Request': '^01A6' + ELM_FOOTER,
             'Descr': 'Total Distance Traveled',
             'Header': ECU_ADDR_E,
-            'ResponseFooter': lambda self, cmd, pid, uc_val: (
-                HD(ECU_ADDR_H) + SZ('05') + DT('61 28 00 EA 5C')
-            ),
             'Response': [
-                HD(ECU_R_ADDR_H) + SZ('05') + DT('61 28 00 EA 5C'),
-                HD(ECU_R_ADDR_H) + SZ('05') + DT('61 27 00 EA 5C'),
-                HD(ECU_R_ADDR_H) + SZ('05') + DT('61 28 00 EA 5D'),
+                HD(ECU_R_ADDR_H) + SZ('06') + DT('61 A6 00 00 EA 5C'),
+                HD(ECU_R_ADDR_H) + SZ('06') + DT('61 A6 00 00 EA 5C'),
+                HD(ECU_R_ADDR_H) + SZ('06') + DT('61 A6 00 00 EA 5D'),
             ]
         },
     # ------------------------------------------------------------
