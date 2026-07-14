@@ -955,6 +955,17 @@ class Interpreter(Cmd):
                 sys.exit(1)
 
 
+def scenario_ensure_or_exit(emulator, scenario=None):
+    if scenario and scenario in [
+            sc for sc in emulator.ObdMessage]:
+        return
+    else:
+        if scenario:
+            print("Invalid scenario '%s'" % scenario)
+        print("Available scenarios: %s" % ', '.join(
+            [sc for sc in emulator.ObdMessage]))
+        sys.exit(1)
+
 def set_scenario(emulator, scenario):
     if scenario and scenario in [
             sc for sc in emulator.ObdMessage]:
@@ -1062,7 +1073,7 @@ def main():
         dest = 'scenario',
         help = "Set the scenario used by ELM327-emulator.",
         default = [''],
-        nargs = 1,
+        nargs = "?",
         metavar = 'SCENARIO'
     )
     parser.add_argument(
@@ -1190,8 +1201,11 @@ def main():
         try:
             print(emulator.get_pty())
             print('ELM327-emulator service STARTED')
-            if args.scenario[0]:
-                set_scenario(emulator, args.scenario[0])
+            if args.scenario:
+                scenario_ensure_or_exit(emulator, args.scenario)
+                set_scenario(emulator, args.scenario)
+            else:
+                scenario_ensure_or_exit(emulator)
             emulator.run()
         except (KeyboardInterrupt, SystemExit):
             emulator.terminate()
@@ -1230,8 +1244,11 @@ def main():
             with context:
                 print('ELM327-emulator daemon service STARTED on ',
                     emulator.get_pty())
-                if args.scenario[0]:
-                    set_scenario(emulator, args.scenario[0])
+                if args.scenario:
+                    scenario_ensure_or_exit(emulator, args.scenario)
+                    set_scenario(emulator, args.scenario)
+                else:
+                    scenario_ensure_or_exit(emulator)
                 emulator.run()
                 print("\nELM327-emulator daemon service ENDED")
         except LockFailed as e:
@@ -1261,8 +1278,11 @@ def main():
                     if args.batch_mode:
                         print(pty_name)
                     sys.stdout.flush()
-            if args.scenario[0]:
-                set_scenario(session, args.scenario[0])
+            if args.scenario:
+                scenario_ensure_or_exit(emulator, args.scenario)
+                set_scenario(emulator, args.scenario)
+            else:
+                scenario_ensure_or_exit(emulator)
             p_elm = Interpreter(session, args)
             if args.log:
                 logging.getLogger().handlers[0].setLevel(int(args.log[0]))
