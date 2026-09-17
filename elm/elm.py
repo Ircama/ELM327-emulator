@@ -39,7 +39,13 @@ import inspect
 # Configuration constants__________________________________________________
 FORWARD_READ_TIMEOUT = 0.2  # seconds
 SERIAL_BAUDRATE = 38400  # bps
-NETWORK_INTERFACES = ""
+# Local network interface address used by the TCP/IP server (`-n` option).
+# It defaults to the loopback address, so that the emulator is not reachable
+# from other hosts (it implements no authentication). Set it to "0.0.0.0"
+# (all IPv4 interfaces), "::" (all IPv6 interfaces) or to a specific local
+# address to accept connections from other devices; it can also be set to
+# `None`/`""` to bind all interfaces (ref. the `-i`/`--interface` option).
+NETWORK_INTERFACE = "127.0.0.1"
 PLUGIN_DIR = __package__ + ".plugins"
 MAX_TASKS = 20
 ISO_TP_MULTIFRAME_MODULE = 'ISO-TP request pending'
@@ -50,6 +56,10 @@ ECU_TASK = "task_ecu_"
 DEFAULT_ECU_TASK = 'Default ECU Task module'
 ELM_VERSION = "ELM327 v1.5"
 ELM_HEADER_VERSION = "\r\r"
+# Functional (broadcast) request addresses: requests sent to these addresses
+# are answered by every ECU with its own address (ref. ISO 15765-4 and SAE
+# J1979). They are the 11 bit (7DF) and the 29 bit (18DB33F1) addresses.
+FUNCTIONAL_ADDR = ('7DF', '18DB33F1')
 
 """
 Ref. to ISO 14229-1 and ISO 14230, this is a list of SIDs (UDS service
@@ -514,7 +524,12 @@ class Elm:
             serial_port=None,
             device_port=None,
             serial_baudrate="",
+            bluetooth_port=None,
+            bluetooth_channel=None,
+            slcan_port=None,
+            kline_port=None,
             net_port=None,
+            net_interface=None,
             forward_net_host=None,
             forward_net_port=None,
             forward_serial_port=None,
@@ -533,7 +548,13 @@ class Elm:
         self.serial_port = serial_port
         self.device_port = device_port
         self.serial_baudrate = serial_baudrate
+        self.bluetooth_port = bluetooth_port
+        self.bluetooth_channel = bluetooth_channel
+        self.slcan_port = slcan_port
+        self.kline_port = kline_port
         self.net_port = net_port
+        self.net_interface = (NETWORK_INTERFACE if net_interface is None
+                              else net_interface)
         self.forward_net_host = forward_net_host
         self.forward_net_port = forward_net_port
         self.forward_serial_port = forward_serial_port
@@ -544,6 +565,9 @@ class Elm:
         self.master_fd = None  # pty port FD, if pty is used, or device com port FD (IO)
         self.slave_fd = None  # pty side used by the client application
         self.serial_fd = None  # serial COM port file descriptor (pySerial)
+        self.bt_fd = None  # native Bluetooth SPP port (serial-compatible)
+        self.slcan = None  # SLCAN (Lawicel) CAN interface emulation
+        self.kline = None  # K-Line (ISO 9141-2 / ISO 14230) ECU emulation
         self.sock_inet = None
         self.fw_sock_inet = None
         self.fw_serial_fd = None
@@ -603,6 +627,8 @@ class Elm:
                 self.reset_input_buffer()
                 self.reset_output_buffer()
                 self.serial_fd.close()
+            if self.bt_fd:  # native Bluetooth SPP server
+                self.bt_fd.close()
             if self.sock_inet:
                 self.sock_inet.shutdown(socket.SHUT_RDWR)
                 self.sock_inet.close()
@@ -623,8 +649,11 @@ class Elm:
         self.sock_conn = None
         self.sock_addr = None
         errmsg = "Unknown error"
-        HOST = "0.0.0.0"
-        for res in socket.getaddrinfo(HOST, self.net_port,
+        # Resolve the configured local interface (loopback by default) and bind
+        # the socket to the resolved address. Binding to a dedicated interface,
+        # instead of to every interface, is required for security: it prevents
+        # the emulator from accepting traffic coming from any host.
+        for res in socket.getaddrinfo(self.net_interface, self.net_port,
                                       socket.AF_UNSPEC,
                                       socket.SOCK_STREAM, 0,
                                       socket.AI_PASSIVE):
@@ -641,8 +670,8 @@ class Elm:
                 continue
 
             try:
-                # Bind the socket to the port
-                self.sock_inet.bind((NETWORK_INTERFACES, self.net_port))
+                # Bind the socket to the resolved local address and port
+                self.sock_inet.bind(sa)
                 # Become a socket server and listen for incoming connections
                 self.sock_inet.listen(1)
             except OSError as msg:
@@ -659,6 +688,47 @@ class Elm:
                 self.net_port, errmsg)
             return False
 
+        if self.net_is_exposed():
+            logging.warning(
+                "The TCP/IP port %s is bound to the '%s' interface and is "
+                "therefore reachable from other hosts.",
+                self.net_port, self.net_interface)
+
+        return True
+
+    def net_is_exposed(self):
+        """
+        Return True when the TCP/IP socket is bound to a non loopback address
+        and can therefore accept connections from other hosts.
+        """
+        interface = str(self.net_interface or "").strip().lower()
+        if interface in ("", "0.0.0.0", "::", "*"):
+            return True
+        if interface == "localhost" or interface == "::1" or \
+                interface.startswith("127."):
+            return False
+        return True
+
+    def open_bluetooth(self):
+        """
+        Open the native Bluetooth RFCOMM/SPP server port.
+        Returns True on success, None in case of error.
+        """
+        if self.bt_fd:
+            return True
+        try:
+            from .bluetooth import BluetoothSerial, BTError
+            self.bt_fd = BluetoothSerial(
+                self.bluetooth_port, self.bluetooth_channel)
+        except BTError as e:
+            logging.critical(
+                "Cannot open the native Bluetooth SPP port:\n%s", e)
+            return None
+        except Exception as e:  # pragma: no cover - defensive
+            logging.critical(
+                "Cannot open the native Bluetooth SPP port:\n%s",
+                e, exc_info=True)
+            return None
         return True
 
     def connect_serial(self):
@@ -671,10 +741,14 @@ class Elm:
         """
 
         # if the port is already opened, return True...
-        if self.slave_name or self.master_fd or self.serial_fd:
+        if self.slave_name or self.master_fd or self.serial_fd or self.bt_fd:
             return True
 
         # else open the port
+        if self.bluetooth_port:  # native Bluetooth SPP server
+            if not self.open_bluetooth():
+                return None
+            return True
         if self.device_port:  # os IO
             try:
                 self.master_fd = os.open(
@@ -705,7 +779,16 @@ class Elm:
         cannot be opened (non UNIX system).
         In case of UNIX system and if the port is not yet opened, open it.
         It is not blocking.
+
+        When a native Bluetooth RFCOMM/SPP server is configured, this method
+        opens it and returns its description instead of a pty name.
         """
+
+        # Native Bluetooth SPP server
+        if self.bluetooth_port:
+            if not self.bt_fd and not self.open_bluetooth():
+                return None
+            return self.bt_fd.port_name
 
         # if the port is already opened, return the port name...
         if self.slave_name:
@@ -784,8 +867,19 @@ class Elm:
         else:
             if (not self.device_port and
                     not self.serial_port and
+                    not self.slcan_port and
+                    not self.kline_port and
                     not self.get_pty()):
-                if os.name == 'nt':
+                if self.bluetooth_port:
+                    logging.critical(
+                        "Bluetooth SPP port connection failed.")
+                elif self.slcan_port:
+                    logging.critical(
+                        "SLCAN CAN interface connection failed.")
+                elif self.kline_port:
+                    logging.critical(
+                        "K-Line interface connection failed.")
+                elif os.name == 'nt':
                     logging.critical("Invalid setting for Windows.")
                 else:
                     logging.critical("Pseudo-tty port connection failed.")
@@ -829,6 +923,29 @@ class Elm:
             del self.plugins[k]
 
         self.threadState = self.THREAD.ACTIVE
+
+        if self.slcan_port or self.kline_port:
+            # Emulate a bus interface instead of the ELM327 protocol: the
+            # connected application exchanges raw bus messages
+            if self.slcan_port:
+                from .slcan import SlcanServer, SLCAN_BAUDRATE
+                self.slcan = SlcanServer(
+                    self, self.slcan_port,
+                    int(self.serial_baudrate) if self.serial_baudrate
+                    else SLCAN_BAUDRATE)
+                if not self.slcan.run():
+                    logging.critical("SLCAN CAN interface failed.")
+            else:
+                from .kline import KLineServer, KLINE_BAUDRATE
+                self.kline = KLineServer(
+                    self, self.kline_port,
+                    int(self.serial_baudrate) if self.serial_baudrate
+                    else KLINE_BAUDRATE)
+                if not self.kline.run():
+                    logging.critical("K-Line interface failed.")
+            self.terminate()
+            return False
+
         while (self.threadState != self.THREAD.STOPPED and
                self.threadState != self.THREAD.TERMINATED):
             if self.threadState == self.THREAD.PAUSED:
@@ -861,11 +978,20 @@ class Elm:
                                      repr(self.cmd), e, traceback.format_exc())
                     continue
                 if resp is not None:
-                    self.handle_response(
-                        resp,
-                        do_write=True,
-                        request_header=request_header,
-                        request_data=request_data)
+                    try:
+                        self.handle_response(
+                            resp,
+                            do_write=True,
+                            request_header=request_header,
+                            request_data=request_data)
+                    except Exception as e:
+                        # A response problem (typically a client that dropped
+                        # the connection) must not terminate the emulator
+                        # thread: log it and keep serving.
+                        logging.critical(
+                            "Error while responding to %s:\n%s\n%s",
+                            repr(self.cmd), e, traceback.format_exc())
+                        continue
             else:
                 logging.warning("Invalid request: %s", repr(self.cmd))
         return True
@@ -1010,14 +1136,35 @@ class Elm:
         if self.sock_inet:
             if self.net_port:
                 postfix = ''
-                if extended:
-                    postfix = '\nWarning: the socket is bound ' \
-                              'to all interfaces.'
+                if self.net_is_exposed():
+                    postfix = ('\nWarning: the TCP/IP port is reachable from '
+                               'other hosts (interface "' +
+                               str(self.net_interface) + '").')
+                elif extended:
+                    postfix = ('\nThe TCP/IP port is bound to the local host '
+                               'only (interface "' +
+                               str(self.net_interface) + '"); use the '
+                               '-i/--interface option to accept connections '
+                               'from other devices.')
                 return ('TCP/IP network port ' + str(self.net_port) + '.'
                         + postfix)
             else:
                 return ('Unopened TCP/IP network port ' +
                         str(self.net_port) + '.')
+
+        if self.bt_fd or self.bluetooth_port:
+            if self.bt_fd:
+                return self.bt_fd.port_name + '.'
+            return ('native Bluetooth SPP server port ("' +
+                    str(self.bluetooth_port) + '").')
+
+        if self.slcan_port:
+            return ('emulated CAN interface (SLCAN) on serial port "' +
+                    str(self.slcan_port) + '".')
+
+        if self.kline_port:
+            return ('emulated K-Line (ISO 9141-2 / ISO 14230) ECU on serial '
+                    'port "' + str(self.kline_port) + '".')
 
         if self.device_port:
             if os.name == 'nt':
@@ -1098,6 +1245,24 @@ class Elm:
                     'cmd_echo' in self.counters and
                     self.counters['cmd_echo']):
                 self.sock_conn.sendall(c)
+            return c
+
+        # Process native Bluetooth SPP server port
+        if self.bluetooth_port:
+            if not self.connect_serial():
+                self.terminate()
+                return None
+            try:
+                c = self.bt_fd.read(bytes)
+            except Exception as e:
+                logging.debug(
+                    'Error while reading from %s: %s',
+                    self.get_port_name(), e)
+                return None
+            if 'cmd_echo' not in self.counters or (
+                    'cmd_echo' in self.counters and
+                    self.counters['cmd_echo']):
+                self.bt_fd.write(c)
             return c
 
         # Process serial (COM or device)
@@ -1220,8 +1385,39 @@ class Elm:
                         time.sleep(self.interbyte_out_delay)
                 else:
                     self.sock_conn.sendall(i)
-            except BrokenPipeError:
-                logging.error("Connection dropped.")
+            except (BrokenPipeError, ConnectionResetError,
+                    ConnectionAbortedError) as e:
+                # The client dropped the connection while a response was being
+                # written. Windows reports WSAECONNRESET (10054) as
+                # ConnectionResetError, which is not a BrokenPipeError, so both
+                # must be handled: an unhandled exception here would terminate
+                # the emulator thread and stop the emulator from serving any
+                # further client. Drop the session and keep the emulator alive,
+                # consistently with read_from_device().
+                logging.warning("Session terminated by the client: %s", e)
+                self.sock_conn = None
+                self.sock_addr = None
+                self.reset(0)
+            except OSError as e:
+                logging.error("Error while writing to the network: %s", e)
+                self.sock_conn = None
+                self.sock_addr = None
+                self.reset(0)
+            return
+
+        # Process native Bluetooth SPP server port
+        if self.bt_fd:
+            try:
+                if self.interbyte_out_delay:
+                    for j in i:
+                        self.bt_fd.write(bytes([j]))
+                        self.bt_fd.flush()
+                        time.sleep(self.interbyte_out_delay)
+                else:
+                    self.bt_fd.write(i)
+            except Exception:
+                logging.debug(
+                    'Error while writing to %s', self.get_port_name())
             return
 
         # Process serial
@@ -1295,6 +1491,10 @@ class Elm:
         if not request_header:
             logging.error('Invalid request header; request %s', repr(data))
             return ""
+        if request_header in FUNCTIONAL_ADDR:
+            # A functional (broadcast) request is answered by every ECU with
+            # its own address; use the address of the emulated engine ECU
+            request_header = ECU_ADDR_E
         try:
             length = len(bytearray.fromhex(data))
             data = (sp.join('{:02x}'.format(x)
@@ -1629,10 +1829,17 @@ class Elm:
                     break
                 incomplete_resp = False
                 if re.match(cra_pattern, i.text.upper()):
-                    # concatenate answ from header, size and data/subd
-                    answ += ((((i.text or "") + sp + (size.text or "") + sp)
-                              if use_headers else "") +
-                             ((data.text or "") if sp else unspaced_data) +
+                    # Display the header (ATH1) and the DLC byte; the latter is
+                    # shown when headers are on (the ISO-TP length byte is part
+                    # of the frame representation) and can also be enabled with
+                    # headers off by using ATD1 (ref. AT_DLC)
+                    if use_headers:
+                        answ += (i.text or "") + sp
+                    if (use_headers or
+                            ("cmd_dlc" in self.counters and
+                             self.counters["cmd_dlc"])):
+                        answ += (size.text or "") + sp
+                    answ += (((data.text or "") if sp else unspaced_data) +
                              sp + (nl if data.tag.lower() == 'data' else ""))
                 else:
                     logging.debug(
@@ -1758,6 +1965,46 @@ class Elm:
         if task_name not in self.counters:
             self.counters[task_name] = 0
         self.counters[task_name] += 1
+
+    def multi_pid_answer(self, cmd, header):
+        """
+        Compute the answer to a mode 01 request including multiple PIDs.
+
+        SAE J1979 allows a mode 01 request to include up to six PIDs, e.g.
+        '010C0D0F' requests PID 0C, 0D and 0F. The data of the supported PIDs
+        is concatenated in a single response, framed with the ISO-TP protocol.
+
+        :param cmd: request (unspaced, uppercase)
+        :param header: request header
+        :return: response string, or None when the request does not include
+            multiple PIDs or when no requested PID is supported.
+        """
+        if not re.match(r'^01([0-9A-F]{2}){2,6}$', cmd):
+            return None
+        payload = ''
+        for i in range(2, len(cmd), 2):
+            _, _, resp = self.handle_request('01' + cmd[i:i + 2],
+                                             do_write=False)
+            if not resp:
+                continue
+            data = re.sub(r'[^0-9A-F]', '',
+                          ''.join(re.findall(r'<data>(.*?)</data>', resp,
+                                             re.DOTALL)).upper())
+            if len(data) < 4 or not data.startswith('41'):
+                continue  # unsupported PID or answer without CAN frame data
+            payload += ' ' + data[2:]
+        if not payload:
+            return None
+        # Use a physical ECU request so that the answer is related to the ECU
+        # address (ECU_ADDR_E -> ECU_R_ADDR_E) also when the request uses a
+        # functional (broadcast) address
+        request_header = (header or '').upper()
+        if len(request_header) != 3 or request_header == '7DF':
+            request_header = ECU_ADDR_E
+        logging.debug("Multiple PID answer for %s: header %s, data %s",
+                      repr(cmd), repr(request_header), repr(payload))
+        return ('<rh>' + request_header + '</rh><answer>41' + payload +
+                '</answer>')
 
     def handle_request(self, cmd, do_write=False):
         """
@@ -2067,6 +2314,12 @@ class Elm:
             logging.error("Invalid multiframe %s", repr(org_cmd))
             return header, cmd, ""
 
+        # Process a mode 01 request including multiple PIDs (up to 6 per SAE
+        # J1979), which is answered with a single (ISO-TP multi-frame) reply
+        multi_pid = self.multi_pid_answer(cmd, header)
+        if multi_pid is not None:
+            return header, cmd, multi_pid
+
         # Process response for data stored in cmd
         i_obd_msg = iter(self.sortedOBDMsg)
         chained_command = 0
@@ -2080,7 +2333,11 @@ class Elm:
                     re.match(uc_val['REQUEST'], cmd)):
                 if ('HEADER' in uc_val and header and
                         uc_val['HEADER'].upper() !=
-                        self.counters["cmd_set_header"]):
+                        self.counters["cmd_set_header"] and
+                        (header or '').upper() not in FUNCTIONAL_ADDR):
+                    # A request sent to a functional (broadcast) address is
+                    # answered by every ECU, so entries related to a physical
+                    # ECU address are not skipped in this case
                     continue
                 pid = key if key else 'UNKNOWN'
                 self.counters["cmd_last_pid"] = pid

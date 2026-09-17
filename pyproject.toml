@@ -1,0 +1,14 @@
+# Build configuration for ELM327-emulator.
+#
+# A pyproject.toml is required for standards-compliant builds. Since Python
+# 3.14 the build backend is no longer implicitly injected into the isolated
+# build environment (PEP 739 / setuptools behaviour change), so setuptools --
+# and the ``pkg_resources`` module that used to come with it -- must be
+# declared explicitly here. This is what makes ``python -m build`` work on
+# Python 3.14.
+#
+# Package metadata (name, version, classifiers, dependencies, entry points) is
+# intentionally still maintained in setup.py, which this backend executes.
+[build-system]
+requires = ["setuptools>=61", "wheel"]
+build-backend = "setuptools.build_meta"

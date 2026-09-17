@@ -5,6 +5,7 @@
 # (C) Ircama 2021 - CC-BY-NC-SA-4.0
 ###########################################################################
 
+import re
 from typing import Any, Dict, List
 
 # List of known ECUs:
@@ -58,6 +59,133 @@ def PA(pos_answer):
 
 def NA(neg_answer):
     return ('<neg_answer>' + neg_answer + '</neg_answer>')
+
+
+# Diagnostic Trouble Codes (DTCs) emulated by the 'car' scenario.
+#
+# The lists are empty by default (no fault is stored, as PID 01 01 reports the
+# MIL off); add the DTCs to be simulated to test how an application manages
+# them, e.g.:
+#   DTC_STORED = ['0143', '0196', '0234']     # mode 03 (stored DTCs)
+#   DTC_PENDING = ['0300']                    # mode 07 (pending DTCs)
+#   DTC_PERMANENT = ['0420']                  # mode 0A (permanent DTCs)
+# Every DTC is encoded with the two bytes of SAE J2012 (e.g. '0143' is P0143);
+# the two DTC groups (P, C, B, U) are encoded in the two most significant bits
+# of the first byte. Requesting mode 04 clears all the lists.
+DTC_STORED: List[str] = []
+DTC_PENDING: List[str] = []
+DTC_PERMANENT: List[str] = []
+
+# Positive answer service IDs of the modes returning DTCs
+DTC_SID = {'03': '43', '07': '47', '0A': '4A'}
+
+
+def iso_tp_frames(data, header=ECU_R_ADDR_E):
+    """
+    Frame a payload into ISO-TP (ISO 15765-2) single or multiple CAN frames.
+
+    :param data: list of hexadecimal data bytes (e.g. ['43', '01', '43'])
+    :param header: response header (CAN identifier)
+    :return: response string including <header>, <size> and <data> tags
+    """
+    length = len(data)
+    if length <= 7:  # single frame; the size is the number of data bytes
+        return HD(header) + SZ("%02X" % length) + DT(' '.join(data))
+    # first frame: PCI byte (0x10 + high nibble of the length) and the length
+    # low byte followed by the first 6 data bytes; then consecutive frames
+    # with 7 data bytes each (last one padded with zeros)
+    frames = [HD(header) + SZ("%02X" % (0x10 | ((length >> 8) & 0x0F))) +
+              DT(("%02X " % (length & 0xFF)) + ' '.join(data[:6]))]
+    payload = data[6:]
+    for sequence, i in enumerate(range(0, len(payload), 7), 1):
+        chunk = payload[i:i + 7]
+        chunk += ['00'] * (7 - len(chunk))
+        frames.append(HD(header) +
+                      SZ("%02X" % (0x20 | (sequence & 0x0F))) +
+                      DT(' '.join(chunk)))
+    return ''.join(frames)
+
+
+def dtc_frames(emulator, dtc_list, sid, header=ECU_R_ADDR_E):
+    """
+    Build the ISO-TP answer of a request returning DTCs (modes 03, 07 and 0A)
+    from a list of DTCs, framing it as single or multiple CAN frames.
+
+    When no DTC is stored the answer is the service ID followed by a zero byte
+    (e.g. '43 00'), which is the answer of the real ECUs (it is the convention
+    handled by the diagnostic libraries) and it is consistent with PID 01,
+    which reports a zero DTC count.
+
+    :param emulator: ELM327 emulator instance (self), used to check the
+        'cmd_dtc_cleared' counter set by the mode 04 request
+    :param dtc_list: list of DTCs (two hexadecimal bytes each, e.g. '0143')
+    :param sid: positive answer service ID of the mode ('43', '47' or '4A')
+    :param header: response header (CAN identifier)
+    :return: response string to be computed by handle_response()
+    """
+    data = [sid]
+    if not emulator.counters.get("cmd_dtc_cleared"):
+        for dtc in dtc_list:
+            dtc = (dtc or '').replace(' ', '').upper()
+            if len(dtc) % 2:
+                continue  # skip invalid DTCs (odd number of digits)
+            data += [dtc[i:i + 2] for i in range(0, len(dtc), 2)]
+    if len(data) == 1:  # no DTC stored
+        data.append('00')
+    return iso_tp_frames(data, header)
+
+
+def dtc_count(emulator):
+    """
+    Return the number of stored DTCs (0 when mode 04 cleared them).
+
+    :param emulator: ELM327 emulator instance (self)
+    :return: number of DTCs
+    """
+    if emulator.counters.get("cmd_dtc_cleared"):
+        return 0
+    return len([dtc for dtc in DTC_STORED
+                if dtc and not len(dtc.replace(' ', '')) % 2])
+
+
+def status_byte(emulator):
+    """
+    Return the first data byte of the PID 01 answer, i.e. the MIL status and
+    the number of stored DTCs (ref. SAE J1979).
+
+    :param emulator: ELM327 emulator instance (self)
+    :return: hexadecimal byte
+    """
+    count = min(dtc_count(emulator), 0x7F)
+    return "%02X" % (0x80 | count if count else 0x00)
+
+
+def supported_pids_bitmap(emulator, service='09', first_pid=0x01,
+                          last_pid=0x20):
+    """
+    Compute the supported PIDs bitmap of a service group from the PIDs defined
+    in the scenario in use (e.g. the answer to the mode 09 group request).
+
+    The bitmap is computed when the request is answered, so that it only
+    claims the emulated PIDs: claiming a PID which is not defined makes the
+    client request it and then fail (strict clients report an unknown answer
+    or a timeout), while not claiming an emulated PID simply hides it.
+
+    :param emulator: ELM327 emulator instance (self)
+    :param service: service ID, as a two digit hexadecimal string (e.g. '09')
+    :param first_pid: first PID of the group (inclusive)
+    :param last_pid: last PID of the group (inclusive)
+    :return: bitmap as spaced hexadecimal bytes (e.g. 'F5 40 00 00')
+    """
+    pids = set()
+    for _key, val in emulator.sortedOBDMsg:
+        match = re.match(r'\^' + service + r'([0-9A-F]{2})',
+                         (val.get('Request') or '').upper())
+        if match:
+            pid = int(match.group(1), 16)
+            if first_pid <= pid <= last_pid:
+                pids.add(pid)
+    return generate_pids_bitmap(sorted(pids))
 
 
 ELM_R_OK = ST("OK")
@@ -835,7 +963,13 @@ ObdMessage = {
         'ELM_PIDS_9A': {
             'Request': '^0900' + ELM_FOOTER,
             'Descr': 'PIDS_9A',
-            'Response': PA('FF FF FF FF')
+            # The supported PIDs bitmap is computed on the scenario in use
+            # (ref. supported_pids_bitmap), so that it never claims a mode 09
+            # PID which is not emulated
+            'ResponseFooter': \
+                lambda self, cmd, pid, uc_val: \
+                    HD(ECU_R_ADDR_E) + SZ('06') + DT(
+                        '49 00 ' + supported_pids_bitmap(self, '09'))
         },
         'VIN_MESSAGE_COUNT': {
             'Request': '^0901' + ELM_FOOTER,
@@ -927,16 +1061,27 @@ ObdMessage = {
         },
         # ----------------------------------------------------------------------
     # UDS commands used by MT05
+        # These two UDS entries model the MT05 (UDS) start/stop communication
+        # handshake, which switches the emulated scenario. They belong to the
+        # "default" scenario, which is the base of every scenario, therefore
+        # the scenario switch is conditional: a Start Communication received
+        # while another scenario is selected must not silently switch to
+        # "mt05" and, above all, a Stop Communication must not leave the
+        # selected scenario (otherwise all its specific PIDs, e.g. the mode 03
+        # and mode 07 Diagnostic Trouble Codes of the "car" scenario, would
+        # no longer be recognized).
         'UDS_START_COMM': {
             'Request': '^81' + ELM_FOOTER,
             'Descr': 'UDS Start Communication',
-            'Exec': 'self.set_sorted_obd_msg("mt05")',
+            'Exec': 'self.set_sorted_obd_msg("mt05") '
+                    'if self.scenario == "default" else None',
             'Response': PA('EF 8F')
         },
         'UDS_STOP_COMM': {
             'Request': '^82' + ELM_FOOTER,
             'Descr': 'UDS Stop Communication',
-            'Exec': 'self.set_sorted_obd_msg("default")',
+            'Exec': 'self.set_sorted_obd_msg("default") '
+                    'if self.scenario == "mt05" else None',
             'Response': PA('')
         },
     },
@@ -980,7 +1125,13 @@ ObdMessage = {
             'Request': '^0101' + ELM_FOOTER,
             'Descr': 'Status since DTCs cleared',
             'Header': ECU_ADDR_E,
-            'Response': HD(ECU_R_ADDR_E) + SZ('06') + DT('41 01 00 07 A1 00')
+            # The first data byte reports the MIL status and the number of
+            # stored DTCs (ref. DTC_STORED and SAE J1979), so that it is
+            # consistent with the answers of modes 03, 07 and 0A
+            'ResponseFooter': \
+                lambda self, cmd, pid, uc_val: \
+                    HD(ECU_R_ADDR_E) + SZ('06') + DT(
+                        '41 01 ' + status_byte(self) + ' 07 A1 00')
         },
         'FUEL_STATUS': {
             'Request': '^0103' + ELM_FOOTER,
@@ -1433,11 +1584,25 @@ ObdMessage = {
             'Header': ECU_ADDR_E,
             'Response': HD(ECU_R_ADDR_E) + SZ('03') + DT('41 2C 00')
         },
+        'EGR_ERROR': {
+            'Request': '^012D' + ELM_FOOTER,
+            'Descr': 'EGR Error',
+            'Header': ECU_ADDR_E,
+            'Response': HD(ECU_R_ADDR_E) + SZ('03') + DT('41 2D 80')
+            # 0 % ((A - 128) * 100 / 128)
+        },
         'EVAPORATIVE_PURGE': {
             'Request': '^012E' + ELM_FOOTER,
             'Descr': 'Commanded Evaporative Purge',
             'Header': ECU_ADDR_E,
             'Response': HD(ECU_R_ADDR_E) + SZ('03') + DT('41 2E 00')
+        },
+        'FUEL_LEVEL': {
+            'Request': '^012F' + ELM_FOOTER,
+            'Descr': 'Fuel Level Input',
+            'Header': ECU_ADDR_E,
+            'Response': HD(ECU_R_ADDR_E) + SZ('03') + DT('41 2F AA')
+            # 66.7 % (A * 100 / 255)
         },
         'WARMUPS_SINCE_DTC_CLEAR': {
             'Request': '^0130' + ELM_FOOTER,
@@ -1458,6 +1623,13 @@ ObdMessage = {
             # 50 kilometer
             # 49 kilometer
             # 51 kilometer
+        },
+        'EVAP_VAPOR_PRESSURE': {
+            'Request': '^0132' + ELM_FOOTER,
+            'Descr': 'Evap System Vapor Pressure',
+            'Header': ECU_ADDR_E,
+            'Response': HD(ECU_R_ADDR_E) + SZ('04') + DT('41 32 00 00')
+            # 0 pascal
         },
         'BAROMETRIC_PRESSURE': {
             'Request': '^0133' + ELM_FOOTER,
@@ -2083,7 +2255,11 @@ ObdMessage = {
             'Request': '^03' + ELM_FOOTER,
             'Descr': 'Get DTCs (Diagnostic Trouble Codes)',
             'Header': ECU_ADDR_E,
-            'Response': HD(ECU_R_ADDR_E) + SZ('02') + DT('43 00')
+            # Emulated DTCs are stored in DTC_STORED (empty by default);
+            # request mode 04 to clear them.
+            'ResponseFooter': \
+                lambda self, cmd, pid, uc_val: \
+                    dtc_frames(self, DTC_STORED, DTC_SID['03'])
         },
     # -------------------------------------------------------------------
     # Mode 04 Clearing/resetting emission-related malfunction information
@@ -2209,7 +2385,10 @@ ObdMessage = {
             'Request': '^07' + ELM_FOOTER,
             'Descr': 'Get DTCs from the current/last driving cycle',
             'Header': ECU_ADDR_E,
-            'Response': HD(ECU_R_ADDR_E) + SZ('02') + DT('47 00')
+            # Pending DTCs are stored in DTC_PENDING (empty by default)
+            'ResponseFooter': \
+                lambda self, cmd, pid, uc_val: \
+                    dtc_frames(self, DTC_PENDING, DTC_SID['07'])
         },
     # -------------------------------------------------------------------
     # Mode 08 On-board device control (simulation test, active command mode)
@@ -2220,11 +2399,9 @@ ObdMessage = {
         },
     # -------------------------------------------------------------------
     # Mode 09 Request vehicle information
-        'ELM_PIDS_9A': {
-            'Request': '^0900' + ELM_FOOTER,
-            'Descr': 'Supported PIDs [01-20]',
-            'Response': HD(ECU_R_ADDR_E) + SZ('06') + DT('49 00 55 40 00 00')
-        },
+        # The mode 09 group entry (0900) is inherited from the "default"
+        # scenario, where its supported PIDs bitmap is computed on the
+        # scenario in use (ref. supported_pids_bitmap).
         'VIN_MESSAGE_COUNT': {
             'Request': '^0901' + ELM_FOOTER,
             'Descr': 'VIN Message Count',
@@ -2304,18 +2481,27 @@ ObdMessage = {
             'Request': '^04' + ELM_FOOTER,
             'Descr': 'Clear Diagnostic Trouble Codes and stored values',
             'Header': ECU_ADDR_E,
+            # Set the 'cmd_dtc_cleared' counter (cleared by ATZ or ATD); it
+            # makes subsequent mode 03, 07 and 0A requests answer no DTC
+            'Exec': 'self.counters["cmd_dtc_cleared"] = True',
             'Response': HD(ECU_R_ADDR_E) + SZ('01') + DT('44')
         },
         'SHOW_PENDING_TC': {
             'Request': '^07' + ELM_FOOTER,
             'Descr': 'Show pending Diagnostic Trouble Codes'
                      '(detected during current or last driving cycle)',
-            'Response': ST('NO DATA'),
+            'Header': ECU_ADDR_E,
+            'ResponseFooter': \
+                lambda self, cmd, pid, uc_val: \
+                    dtc_frames(self, DTC_PENDING, DTC_SID['07'])
         },
         'UNKNOWN_0A': {
             'Request': '^0A' + ELM_FOOTER,
             'Descr': 'Permanent DTCs (Cleared DTCs)',
-            'Response': ST('NO DATA'),
+            'Header': ECU_ADDR_E,
+            'ResponseFooter': \
+                lambda self, cmd, pid, uc_val: \
+                    dtc_frames(self, DTC_PERMANENT, DTC_SID['0A'])
         },
         # -------------------------------------------------------------------
     # Unknown PIDs tested on a Toyota Prius
@@ -4394,14 +4580,19 @@ ObdMessage = {
             'Descr': 'UDS Start Diagnostic Session - ECU Prog Mode',
             'Response': PA('')
         },
-        'UDS_SA_REQ_SEED': {
+        # NOTE: these entries must use the same keys as the other scenarios
+        # ('UDS_REQ_SEED' / 'UDS_SEND_KEY', ref. README.md): the scenario
+        # dictionaries are merged by key name, so a differently named entry
+        # would not override the generic definition and the MT05 seed/key
+        # exchange would never be used.
+        'UDS_REQ_SEED': {
             'Request': '^2701' + ELM_FOOTER,
-            'Descr': 'UDS SecurityAccess - requestSeed',
+            'Descr': 'UDS SecurityAccess - requestSeed (MT05)',
             'Response': PA('12 34') # response SID
         },
-        'UDS_SA_SEND_KEY': {
+        'UDS_SEND_KEY': {
             'Request': '^2702' + ELM_DATA_FOOTER,
-            'Descr': 'UDS SecurityAccess - Send Key to ECU',
+            'Descr': 'UDS SecurityAccess - Send Key to ECU (MT05)',
             'Exec': 'self.shared.auth_successful = cmd[4:] == "8474"', # Key
             'Info': '"auth_successful: %s.", self.shared.auth_successful',
             'ResponseFooter': lambda self, cmd, pid, uc_val: (
@@ -4484,8 +4675,6 @@ def extract_supported_pids(
     Returns:
         List of supported PID numbers (as integers)
     """
-    import re
-
     supported: List[int] = []
 
     for _pid_name, pid_info in scenario_dict.items():
@@ -4506,13 +4695,18 @@ def extract_supported_pids(
     return sorted(supported)
 
 
-def generate_dynamic_pids_entries(scenario_dict: Dict[str, Dict[str, Any]], service: str = "01"):
+def generate_dynamic_pids_entries(scenario_dict: Dict[str, Dict[str, Any]], service: str = "01",
+                                  kline: bool = False):
     """
     Generate dynamic ELM_PIDS_X entries based on supported PIDs in the scenario.
 
     Args:
         scenario_dict: Dictionary containing PID definitions
         service: Service ID as string (e.g., '01' for Mode 01)
+        kline: True for K-Line / ISO 14230 scenarios, where the answer is
+            generated with the <pos_answer> tag (KWP2000 framing) instead of
+            the CAN header/size/data triplet, and the "SEARCHING..."
+            simulation is not emitted.
 
     Returns:
         Dictionary with ELM_PIDS_X entries to be merged into the scenario
@@ -4564,24 +4758,46 @@ def generate_dynamic_pids_entries(scenario_dict: Dict[str, Dict[str, Any]], serv
         bitmap = generate_pids_bitmap(relative_pids)
 
         entry_name = f"ELM_PIDS_{suffix}"
+        if kline:
+            # K-Line / ISO 14230 scenario: the <pos_answer> tag lets the
+            # emulator build the whole KWP2000 frame from the request header
+            # (header, length byte and checksum), which is what K-Line clients
+            # expect. The SID response byte (0x41) and the requested PID byte
+            # are added automatically by the <pos_answer> handler, so only the
+            # PID bitmap is provided here.
+            response = PA(bitmap)
+        else:
+            # CAN / ISO 15765 (ISO-TP) scenario: explicit CAN response header.
+            response = (HD(ECU_R_ADDR_E) + SZ("06") +
+                        DT(f"41 {request_pid:02X} {bitmap}"))
         pids_entries[entry_name] = {
             "Request": f"^{service}{request_pid:02X}" + ELM_FOOTER,
             "Descr": f"Supported PIDS_{suffix} [{start_pid:02X}-{end_pid:02X}]",
-            "Response": HD(ECU_R_ADDR_E) + SZ("06") + DT(f"41 {request_pid:02X} {bitmap}")
+            "Response": response,
         }
 
-        # Special handling for PIDS_A to simulate "SEARCHING..."
-        if suffix == 'A':
+        # Special handling for PIDS_A to simulate the "SEARCHING..." message
+        # that a real ELM327 emits while looking for the communication
+        # protocol, but only when it actually has to determine it, i.e. when
+        # the client did not select a protocol with "ATTP". This is also the
+        # condition used by strict clients (e.g. HUD ECU Hacker), which abort
+        # as soon as they receive unexpected data or when the answer exceeds
+        # their timeout; when the protocol is given, the adapter answers at
+        # once. The message is not used for K-Line scenarios either, where
+        # clients expect a prompt answer without CAN framing.
+        if suffix == 'A' and not kline:
             pids_entries[entry_name]["ResponseHeader"] = \
                 lambda self, cmd, pid, uc_val: \
                     "<string>SEARCHING...</string>" \
                     "<exec>time.sleep(1.5)</exec>" + ST('') \
-                        if self.counters[pid] == 1 else ''
+                        if (self.counters[pid] == 1 and
+                            'cmd_try_proto' not in self.counters) else ''
 
     return pids_entries
 
 
-def update_scenario_with_dynamic_pids(scenario_dict: Dict[str, Dict[str, Any]], service: str = "01"):
+def update_scenario_with_dynamic_pids(scenario_dict: Dict[str, Dict[str, Any]], service: str = "01",
+                                     kline: bool = False):
     """
     Update a scenario dictionary with dynamically generated ELM_PIDS_X entries.
     This will replace existing static PIDS_ & ELM_PIDS_ entries with dynamic ones.
@@ -4589,14 +4805,21 @@ def update_scenario_with_dynamic_pids(scenario_dict: Dict[str, Dict[str, Any]], 
     Args:
         scenario_dict: Dictionary containing PID definitions (will be modified in-place)
         service: Service ID as string (e.g., '01' for Mode 01)
+        kline: True for K-Line / ISO 14230 scenarios (ref. generate_dynamic_pids_entries)
     """
-    # Remove old static PIDS
-    pids_keys_to_remove = [k for k in scenario_dict.keys() if k.startswith(("ELM_PIDS_", "PIDS_"))]
+    # Remove the old static mode 01 group entries (PIDS_A..PIDS_G and
+    # ELM_PIDS_A..ELM_PIDS_G), which are replaced by the generated ones.
+    # Other group entries shall be preserved: the mode 08 group entry
+    # (PIDS_8) and the mode 09 group entry (ELM_PIDS_9A) are not mode 01
+    # PIDs and removing them would make the "0800" and "0900" requests
+    # unknown.
+    pids_keys_to_remove = [
+        k for k in scenario_dict.keys() if re.match(r'^(ELM_)?PIDS_[A-G]$', k)]
     for key in pids_keys_to_remove:
         del scenario_dict[key]
 
     # add new dynamic
-    dynamic_pids = generate_dynamic_pids_entries(scenario_dict, service)
+    dynamic_pids = generate_dynamic_pids_entries(scenario_dict, service, kline=kline)
     scenario_dict.update(dynamic_pids)
 
 
@@ -4607,8 +4830,10 @@ if "default" in ObdMessage:
 if "car" in ObdMessage:
     update_scenario_with_dynamic_pids(ObdMessage["car"], service="01")
 
+# The "mt05" scenario emulates a Delphi MT05 ECU, which communicates over
+# K-Line (ISO 14230), therefore the K-Line answer framing is used.
 if "mt05" in ObdMessage:
-    update_scenario_with_dynamic_pids(ObdMessage["mt05"], service="01")
+    update_scenario_with_dynamic_pids(ObdMessage["mt05"], service="01", kline=True)
 
 # "engineoff" scenario intentionally does not auto-generate PIDs
 # as it simulates a disconnected/off state

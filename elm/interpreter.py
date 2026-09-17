@@ -39,11 +39,14 @@ try:
         except ImportError:
             pass
     else:
+        # Daemon mode is available on non Windows systems only, so its
+        # dependencies (python-daemon and the lockfile module used for the
+        # PID lock file) are imported here and not on Windows.
         import daemon
         import daemon.pidfile
+        from lockfile.pidlockfile import PIDLockFile
+        from lockfile import AlreadyLocked, NotLocked, LockFailed
     import signal
-    from lockfile.pidlockfile import PIDLockFile
-    from lockfile import AlreadyLocked, NotLocked, LockFailed
     from .__version__ import __version__
     from .obd_message import ObdMessage, ECU_ADDR_E, ELM_R_OK
     from random import randint
@@ -1026,7 +1029,7 @@ def main():
                 if os.name == 'nt' else
                 "Set a serial communication port instead of using "
                "a pseudo-tty."),
-        default = ['COM3'] if os.name == 'nt' else None,
+        default = None,
         nargs = 1,
         metavar = 'PORT'
     )
@@ -1038,6 +1041,54 @@ def main():
         default = None,
         nargs = 1,
         metavar = 'DEVICE_PORT'
+    )
+    parser.add_argument(
+        '-w', '--bluetooth',
+        dest = 'bluetooth_port',
+        help = "Use a native Bluetooth RFCOMM/SPP port instead of a serial "
+               "port or a pseudo-tty (no virtual serial port driver, such as "
+               "com0com, is needed). The optional argument is the advertised "
+               "Bluetooth service name (default: ELM327).",
+        default = None,
+        nargs = '?',
+        const = 'ELM327',
+        metavar = 'NAME'
+    )
+    parser.add_argument(
+        '-k', '--bt_channel',
+        dest = 'bluetooth_channel',
+        type = int,
+        help = "Set the RFCOMM channel used by the native Bluetooth SPP "
+               "server (default: 1; a free channel is selected automatically "
+               "when the requested one is unavailable).",
+        default = None,
+        nargs = 1,
+        metavar = 'CHANNEL'
+    )
+    parser.add_argument(
+        '-c', '--slcan',
+        dest = 'slcan_port',
+        help = "Emulate a CAN interface running the SLCAN (Lawicel) firmware "
+               "on the given serial port, instead of the ELM327 protocol: the "
+               "connected CAN application exchanges CAN frames with the "
+               "emulated ECUs of the selected scenario. Use a virtual serial "
+               "port pair (e.g. com0com) or a pseudo-tty.",
+        default = None,
+        nargs = 1,
+        metavar = 'PORT'
+    )
+    parser.add_argument(
+        '-K', '--kline',
+        dest = 'kline_port',
+        help = "Emulate an ECU connected to a K-Line interface (a VAG KKL or "
+               "similar serial K-Line adapter) on the given serial port, "
+               "instead of the ELM327 protocol: the connected application "
+               "drives the K-Line directly (ISO 9141-2 / ISO 14230) and the "
+               "emulated ECUs answer the OBD-II requests found on the line. "
+               "Use a virtual serial port pair (e.g. com0com) or a pseudo-tty.",
+        default = None,
+        nargs = 1,
+        metavar = 'PORT'
     )
     parser.add_argument(
         '-a', '--baudrate',
@@ -1073,6 +1124,18 @@ def main():
         default = None,
         nargs = 1,
         metavar = 'INET_PORT'
+    )
+    parser.add_argument(
+        '-i', '--interface',
+        dest = 'net_interface',
+        help = "Set the local network interface address used by the TCP/IP "
+               "server (option -n). It defaults to 127.0.0.1, so that only "
+               "applications running on this host can connect; use 0.0.0.0 "
+               "(IPv4) or :: (IPv6) to accept connections from other devices "
+               "on the network.",
+        default = None,
+        nargs = 1,
+        metavar = 'INTERFACE'
     )
     parser.add_argument(
         '-H', '--forward_host',
@@ -1137,19 +1200,36 @@ def main():
         args.terminate = False
         os.system('color')  # enable the ANSI escape sequences with Windows
 
+    # Historical default on Windows: the com0com null-modem COM3 port. It is
+    # applied only when no other communication interface has been selected.
+    serial_port = args.serial_port[0] if args.serial_port else None
+    if (os.name == 'nt' and serial_port is None and
+            not args.device_port and not args.bluetooth_port and
+            not args.net_port and not args.slcan_port and
+            not args.kline_port):
+        serial_port = 'COM3'
+
     # Instantiate the class
     emulator = Elm(
         batch_mode=args.batch_mode or args.daemon_mode,
         newline=args.newline,
         no_echo=args.no_echo,
-        serial_port=args.serial_port[0]
-           if args.serial_port else None,
+        serial_port=serial_port,
         device_port=args.device_port[0]
             if args.device_port else None,
+        bluetooth_port=args.bluetooth_port,
+        bluetooth_channel=args.bluetooth_channel[0]
+            if args.bluetooth_channel else None,
+        slcan_port=args.slcan_port[0]
+            if args.slcan_port else None,
+        kline_port=args.kline_port[0]
+            if args.kline_port else None,
         serial_baudrate=args.serial_baudrate[0]
             if args.serial_baudrate else None,
         net_port=args.net_port[0]
             if args.net_port else None,
+        net_interface=args.net_interface[0]
+            if args.net_interface else None,
         forward_net_host=args.forward_net_host[0]
             if args.forward_net_host else None,
         forward_net_port=args.forward_net_port[0]
@@ -1252,7 +1332,9 @@ def main():
                 print('\nELM327-emulator cannot run. Exiting.\n')
                 os._exit(1)  # does not raise SystemExit
             if args.net_port:
-                pty_name = "TCP network port " + str(args.net_port[0]) + "."
+                # Extended description also reports the bound interface and
+                # warns when the TCP/IP port is reachable from other hosts.
+                pty_name = session.get_port_name(extended=True)
             else:
                 pty_name = session.get_pty()
                 if pty_name == None:

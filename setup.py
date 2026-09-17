@@ -14,7 +14,6 @@ import sys
 
 import json
 from urllib import request
-from pkg_resources import parse_version
 
 ###########################################################################
 
@@ -34,13 +33,20 @@ VERSIONFILE = "elm/__version__.py"
 ###########################################################################
 
 def versions(pkg_name, site):
+    """Return the release identifiers published for a package.
+
+    ``pkg_resources`` is deliberately not used: it belongs to setuptools and is
+    no longer injected in Python 3.14 build environments (PEP 739), where its
+    import made the build fail.  The plain release keys are all that is needed
+    by this check, so no version parsing is required.
+    """
     url = 'https://' + site + '.python.org/pypi/' + pkg_name + '/json'
     try:
         releases = json.loads(request.urlopen(url).read())['releases']
     except Exception as e:
-        print("Error while getting data from URL '" + url + "': " + e)
+        print("Error while getting data from URL '" + url + "': " + str(e))
         return []
-    return sorted(releases, key=parse_version, reverse=True)
+    return list(releases)
 
 with open("README.md", "r") as readme:
     long_description = readme.read()
@@ -90,10 +96,14 @@ setup(
         "Operating System :: POSIX",
         "Operating System :: POSIX :: BSD",
         "Operating System :: Microsoft :: Windows",
-        "License :: Other/Proprietary License",
         "Topic :: Communications",
         "Topic :: Software Development :: Libraries :: Python Modules",
         'Programming Language :: Python :: 3 :: Only',
+        "Programming Language :: Python :: 3.10",
+        "Programming Language :: Python :: 3.11",
+        "Programming Language :: Python :: 3.12",
+        "Programming Language :: Python :: 3.13",
+        "Programming Language :: Python :: 3.14",
         "Development Status :: 5 - Production/Stable",
         "Intended Audience :: Manufacturing",
         "Intended Audience :: Telecommunications Industry",
@@ -114,10 +124,23 @@ setup(
     include_package_data=True,
     zip_safe=False,
     install_requires=[
-        'python-daemon',
         'pyyaml',
         'obd',
-        "pyreadline3;platform_system=='Windows' and python_version<'3.13'",
+        'pyserial',
+        # Daemon mode, and the PID lock file module it uses, are available on
+        # non Windows systems only (ref. elm/interpreter.py), so Windows does
+        # not need python-daemon (which is not importable there) nor lockfile.
+        "lockfile; platform_system != 'Windows'",
+        "python-daemon; platform_system != 'Windows'",
+        "pyreadline3; platform_system == 'Windows' and python_version < '3.13'",
     ],
+    extras_require={
+        # Native Bluetooth SPP support on macOS (IOBluetooth through PyObjC).
+        # Linux and Windows use the Python standard library instead, so no
+        # extra dependency is needed there.
+        'bluetooth': [
+            "pyobjc-framework-IOBluetooth; sys_platform == 'darwin'",
+        ],
+    },
     python_requires='>3.5'
 )

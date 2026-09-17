@@ -8,9 +8,9 @@ ELM327-emulator
 
 __A Python emulator of the ELM327 OBD-II adapter connected to a vehicle supporting multi-ECU simulation.__
 
-*ELM327-emulator* connects client applications to multiple emulated [ECU](https://en.wikipedia.org/wiki/Engine_control_unit)s via [OBD-II](https://en.wikipedia.org/wiki/On-board_diagnostics) interface through different networking systems, including serial communication (where [pseudo-terminals](https://en.wikipedia.org/wiki/Pseudoterminal) are used if supported by the operating systems), or direct interaction with communication devices, or TCP/IP, or Bluetooth. The software simulates an [ELM327](https://en.wikipedia.org/wiki/ELM327) adapter connected to a vehicle, includes a command-line interface for extensive monitoring and offers a documented Python development framework to implement ECU emulation objects.
+*ELM327-emulator* connects client applications to multiple emulated [ECU](https://en.wikipedia.org/wiki/Engine_control_unit)s via [OBD-II](https://en.wikipedia.org/wiki/On-board_diagnostics) interface through different networking systems, including serial communication (where [pseudo-terminals](https://en.wikipedia.org/wiki/Pseudoterminal) are used if supported by the operating systems), or direct interaction with communication devices, or TCP/IP, or Bluetooth. Besides emulating the ELM327 adapter, it can also emulate the diagnostic bus itself, exposing a CAN interface running the SLCAN (Lawicel) firmware or a K-Line ECU (ISO 9141-2 / ISO 14230), so that applications driving a CANable or a VAG KKL adapter can talk to the emulated ECUs. The software simulates an [ELM327](https://en.wikipedia.org/wiki/ELM327) adapter connected to a vehicle, includes a command-line interface for extensive monitoring and offers a documented Python development framework to implement ECU emulation objects.
 
-*ELM327-emulator* is able to support basic ELM327 commands and OBD service requests through stateless request/response method via OBD-II, but can also handle stateful [UDS](https://en.wikipedia.org/wiki/Unified_Diagnostic_Services) communication with [ISO-TP](https://en.wikipedia.org/wiki/ISO_15765-2) Flow Control and [Keyword Protocol 2000](https://en.wikipedia.org/wiki/Keyword_Protocol_2000), concurrently emulating multiple ECUs. It is designed to be extended via a plugin architecture to allow easy development of specific tasks implementing workflows, including the possibility to simulate anomalies for testing purposes. Many AT commands are supported, as well as some [OBDLink](https://www.obdlink.com/) AT/ST [commands](https://www.scantool.net/scantool/downloads/98/stn1100-frpm.pdf).
+*ELM327-emulator* is able to support basic ELM327 commands and OBD service requests through stateless request/response method via OBD-II, but can also handle stateful [UDS](https://en.wikipedia.org/wiki/Unified_Diagnostic_Services) communication with [ISO-TP](https://en.wikipedia.org/wiki/ISO_15765-2) Flow Control and [Keyword Protocol 2000](https://en.wikipedia.org/wiki/Keyword_Protocol_2000), concurrently emulating multiple ECUs. It is designed to be extended via a plugin architecture to allow easy development of specific tasks implementing workflows, including the possibility to simulate anomalies for testing purposes. Many AT commands are supported, as well as some [OBDLink](https://www.obdlink.com/) AT/ST [commands](https://www.scantool.net/scantool/downloads/98/stn1100-frpm.pdf). Diagnostic Trouble Codes (modes 03, 07 and 0A) can be simulated, a mode 01 request can carry multiple PIDs, and requests sent to the functional address (`7DF` or `18DB33F1`) are answered by the emulated ECUs.
 
 *ELM327-emulator* supports different operating systems including Windows, macOS and UNIX/Linux; it is agnostic of the client application and has been tested with [python-OBD](https://github.com/brendan-w/python-OBD) as well as with many applications on Windows, Linux and on smartphone devices.
 
@@ -28,7 +28,7 @@ python3 -m pip install ELM327-emulator
 
 This is enough to run the software.
 
-Prerequisite components: *pyyaml*, *python-daemon*, *obd*; in addition, with Windows also *pyreadline3*. All needed prerequisites are automatically installed with the package.
+Prerequisite components: *pyyaml*, *obd* and *pyserial*; in addition, on non Windows systems *python-daemon* and *lockfile* (used for the PID lock file of the daemon mode) and with Windows *pyreadline3*. All needed prerequisites are automatically installed with the package. On macOS, the optional *pyobjc-framework-IOBluetooth* component is required by the native Bluetooth interface (`-w`) and can be installed with `python3 -m pip install "ELM327-emulator[bluetooth]"`.
 
 *obd* (*python-OBD*) is needed for *obd_dictionary*. It is better to use an updated version of *python-OBD* package (e.g., the one installed from GitHub with `python3 -m pip install --upgrade git+https://github.com/brendan-w/python-OBD.git`).
 
@@ -50,7 +50,7 @@ Alternatively to the above mentioned installation method, the following steps al
 
   - install the latest version of [Python](https://www.python.org/downloads/windows/) (also available from [Microsoft Store](https://www.microsoft.com/en-us/p/python-39/9p7qfqmjrfp7?activetab=pivot:overviewtab));
   - if you want to install *ELM327-emulator* from GitHub, install *git* from [Git-scm](https://git-scm.com/download/win) or using the [Git for Windows installer](https://gitforwindows.org/);
-  - if the interface to use is a COM port (e.g., not TCP/IP or Bluetooth), also install [com0com](https://sourceforge.net/projects/com0com/) (no installation is needed when using TCP/IP or Bluetooth interfaces);
+  - if the interface to use is a serial COM port (`-p`), also install [com0com](https://sourceforge.net/projects/com0com/) (no installation is needed when using the TCP/IP `-n` interface, the native Bluetooth `-w` one, or the OS device `-P` one);
   - optionally, check that PIP is upgraded (`python3 -m pip install --upgrade pip`).
 
 - Run this command:
@@ -99,16 +99,19 @@ The *elm327-emulator.zip* archive in the [Releases](https://github.com/Ircama/el
 
 # Compatibility
 
-*ELM327-emulator* has been tested with Python 3.6, 3.7, 3.8, 3.9. Previous Python versions are not supported.
+*ELM327-emulator* has been tested with Python 3.6, 3.7, 3.8, 3.9, 3.10, 3.11, 3.12, 3.13 and 3.14. Previous Python versions are not supported.
 
 When using serial communication, with UNIX/Linux OSs, this code uses pty pseudo-terminals. With Windows, you should first install [com0com](https://sourceforge.net/projects/com0com) (a kernel-mode virtual serial port driver), or [other virtual serial port software](http://com0com.sourceforge.net/); alternatively, [cygwin](http://www.cygwin.com/) and [Windows Subsystem for Linux](https://docs.microsoft.com/en-us/windows/wsl) (WSL) are supported.
+
+Note. com0com is only required by the *serial COM port* interface (option `-p`): a virtual serial port pair cannot be created from Python because Windows provides no user-mode pseudo-terminal facility and a `COMx` device requires a kernel-mode driver. The TCP/IP interface (option `-n`) and the native Bluetooth interface (option `-w`) need no driver at all, so they can be used on Windows without com0com; refer to [Running on Windows](#running-on-windows) and [Usage of native Bluetooth (SPP)](#usage-of-native-bluetooth-spp).
 
 # Usage
 The description of the *ELM327-emulator* command-line option is the following:
 
 ```
-usage: elm [-h] [-V] [-e] [-l] [-t] [-d] [-b FILE] [-p PORT] [-P DEVICE_PORT] [-a BAUDRATE] [-v LOG] [-s SCENARIO] [-n INET_PORT]
-           [-H INET_FORWARD_HOST] [-N INET_FORWARD_PORT] [-S FORWARD_SERIAL_PORT] [-B FORWARD_SERIAL_BAUDRATE] [-T FORWARD_TIMEOUT]
+usage: elm [-h] [-V] [-e] [-l] [-t] [-d] [-b FILE] [-p PORT] [-P DEVICE_PORT] [-w [NAME]] [-k CHANNEL] [-c PORT] [-K PORT] [-a BAUDRATE]
+           [-v LOG] [-s SCENARIO] [-n INET_PORT] [-i INTERFACE] [-H INET_FORWARD_HOST] [-N INET_FORWARD_PORT]
+           [-S FORWARD_SERIAL_PORT] [-B FORWARD_SERIAL_BAUDRATE] [-T FORWARD_TIMEOUT]
 
 optional arguments:
   -h, --help            show this help message and exit
@@ -123,6 +126,21 @@ optional arguments:
   -p PORT, --port PORT  Set a serial communication port instead of using a pseudo-tty.
   -P DEVICE_PORT, --device DEVICE_PORT
                         Set the communication device to be opened instead of using a pseudo-tty port.
+  -w [NAME], --bluetooth [NAME]
+                        Use a native Bluetooth RFCOMM/SPP port instead of a serial port or a pseudo-tty (no virtual serial port driver,
+                        such as com0com, is needed). The optional argument is the advertised Bluetooth service name (default: ELM327).
+  -k CHANNEL, --bt_channel CHANNEL
+                        Set the RFCOMM channel used by the native Bluetooth SPP server (default: 1; a free channel is selected
+                        automatically when the requested one is unavailable).
+  -c PORT, --slcan PORT
+                        Emulate a CAN interface running the SLCAN (Lawicel) firmware on the given serial port, instead of the ELM327
+                        protocol: the connected CAN application exchanges CAN frames with the emulated ECUs of the selected scenario.
+                        Use a virtual serial port pair (e.g. com0com) or a pseudo-tty.
+  -K PORT, --kline PORT
+                        Emulate an ECU connected to a K-Line interface (a VAG KKL or similar serial K-Line adapter) on the given serial
+                        port, instead of the ELM327 protocol: the connected application drives the K-Line directly (ISO 9141-2 /
+                        ISO 14230) and the emulated ECUs answer the OBD-II requests found on the line. Use a virtual serial port pair
+                        (e.g. com0com) or a pseudo-tty.
   -a BAUDRATE, --baudrate BAUDRATE
                         Set the serial device baud rate used by ELM327-emulator.
   -v LOG, --log LOG     Preset a log level in interactive mode.
@@ -130,6 +148,10 @@ optional arguments:
                         Set the scenario used by ELM327-emulator.
   -n INET_PORT, --net INET_PORT
                         Set the INET socket port used by ELM327-emulator.
+  -i INTERFACE, --interface INTERFACE
+                        Set the local network interface address used by the TCP/IP server (option -n). It defaults to 127.0.0.1,
+                        so that only applications running on this host can connect; use 0.0.0.0 (IPv4) or :: (IPv6) to accept
+                        connections from other devices on the network.
   -H INET_FORWARD_HOST, --forward_host INET_FORWARD_HOST
                         Set the INET host used by ELM327-emulator.when forwarding the client interaction to a remote OBD-II port.
   -N INET_FORWARD_PORT, --forward_port INET_FORWARD_PORT
@@ -141,7 +163,7 @@ optional arguments:
   -T FORWARD_TIMEOUT, --forward_timeout FORWARD_TIMEOUT
                         Set forward timeout as floating number (default is 5 seconds).
 
-ELM327-emulator v3.0.0 - ELM327 OBD-II adapter emulator
+ELM327-emulator v4.0.0 - ELM327 OBD-II adapter emulator
 ```
 
 # Description
@@ -152,10 +174,16 @@ The communication port to be used by the application interfacing the emulator is
 ELM327-emulator is running on /dev/pts/0
 ```
 
-When running on Windows, the following message is shown:
+When running on Windows with the serial COM port interface, the following message is shown:
 
 ```
 ELM327-emulator is running on com0com serial port pair reading from COM3
+```
+
+When using the native Bluetooth interface, the RFCOMM channel to be configured in the client application is reported as well:
+
+```
+ELM327-emulator is running on Bluetooth RFCOMM/SPP server 'ELM327' on channel 5 (adapter 00:11:22:33:44:55).
 ```
 
 ## Embedded dictionary of AT Commands and OBD service requests
@@ -265,6 +293,52 @@ The autocompletion is allowed for the argument, to prompt and select values (PID
 
 The answer (*Command output*) will be `41 0C 13 FB \r\r>`, `OK\r\r>`, `7E8 04 41 0C 09 F6 \r\r>`, which will reflect what *ELM327-emulator* returns to a real OBD-II application.
 
+## Diagnostic Trouble Codes (DTCs)
+
+The *car* scenario emulates the DTCs stored in the *DTC_STORED*, *DTC_PENDING* and *DTC_PERMANENT* variables of [obd_message.py](elm/obd_message.py), which are empty by default (no fault is stored and the MIL is off, as reported by PID *0101*).
+
+Add the DTCs to be simulated, to test how an application manages them:
+
+```python
+DTC_STORED = ['0143', '0196', '0234']   # mode 03 (stored DTCs, e.g. P0143)
+DTC_PENDING = ['0300']                  # mode 07 (pending DTCs)
+DTC_PERMANENT = ['0420']                # mode 0A (permanent DTCs)
+```
+
+The related requests are answered with the ISO-TP single or multiple frame encoding:
+
+```shell
+test ath1
+test 03
+# '7E8 10 09 43 01 43 01 96 02 \r7E8 21 34 04 20 00 00 00 00 \r\r>'
+```
+
+A mode 04 request (*Clear DTC*) clears the DTC lists, so that subsequent mode 03, 07 and 0A requests answer the "no DTC" response (*43 00*, *47 00* and *4A 00*); *ATZ* or *ATD* restore the configured DTCs.
+
+## Multiple PIDs in a single request
+
+The *car* scenario supports mode 01 requests including up to six PIDs (ref. SAE J1979), like `010C0D0110`, returning the data of every supported PID in a single ISO-TP response (multiple CAN frames when the answer is longer than 7 bytes):
+
+```shell
+test ath1
+test 010C0D
+# '7E8 06 41 0C 13 FB 0D 5C \r\r>'
+test 010C0D0110
+# '7E8 10 0E 41 0C 13 FB 0D 5C \r7E8 21 01 00 07 A1 00 10 11 \r7E8 22 5B \r\r>'
+```
+
+Requests including more than six PIDs are not answered (they are not compliant with SAE J1979).
+
+## Requests to the functional address
+
+Requests sent to the functional (broadcast) address (*ATSH 7DF*, or *18DB33F1* for 29 bit CAN) are answered by the entries of every ECU defined in the scenario, even when they are related to a physical address; the response includes the address of the answering ECU (e.g. *7E8* for the engine ECU).
+
+```shell
+test atsh 7df
+test 0100
+# '7E8 06 41 00 BE 3F A8 13 \r\r>'
+```
+
 ## Special setters
 
 The counters starting with *cmd_...* are special setters. They are represented in the following table and store data related to AT/ST commands.
@@ -309,6 +383,8 @@ Special setter  |Related AT/ST command  |Handled|Description                    
 `cmd_stip4`     |*STIP4 n* (n = delay)  |No     |Set Tx Interbyte delay           |ST_IP4
 `cmd_stpto`     |*STPTO t* (t = timeout)|No     |Set OBD Request Timeout          |ST_PTO
 `cmd_atv`       |*ATV0*, *ATV1*         |No     |Set variable DLC on or off       |AT_V
+`cmd_dlc`       |*ATD0*, *ATD1*         |Yes    |Display of the DLC byte with headers off (with *ATH1* the length byte is always part of the frame representation)|AT_DLC
+`cmd_dtc_cleared`|*04* (Clear DTC)      |Yes    |Set when the DTC lists have been cleared|GET_DTC, SHOW_DIAG_TC, SHOW_PENDING_TC, UNKNOWN_0A
 
 Unhandled setter means that the AT/ST command is recognized, the related counter is valued but no process is currently associated.
 
@@ -1006,7 +1082,7 @@ The plugins named *task_mt05_read_mem_addr.py* and *task_mt05_write_mem_addr.py*
 
 The plugin named *task_erase_memory.py* shows how to use the `start()` and `run()` methods, as well as `Tasks.RETURN.CONTINUE` which simulates a certain function processing time.
 
-The plugin named [task_ecu_11F1.py](elm/plugins/task_ecu_11F1.py) is an example of memory map run at the first usage of the 11F1 ECU. The *task_mt05_...* plugins assume that the memory map structures are already instantiated by the ECU task.
+The plugin named [task_ecu_11F1.py](elm/plugins/task_ecu_11F1.py) is an example of memory map run at the first usage of the 11F1 ECU. The *task_mt05_...* plugins assume that the memory map structures are already instantiated by the ECU task. The memory map is loaded from the `mmap-input.bin` file, which must be at least as long as the mapped memory range (`0x3fffff + 1` bytes, as the mapped length cannot exceed the file size): the [make_mmap_input.py](make_mmap_input.py) helper script creates it from a firmware image.
 
 ### Helper functions
 
@@ -1021,9 +1097,12 @@ The helper function `self.task_get_request()` gets the original request command 
 *ELM327-emulator* allows the following interfaces:
 
 - serial communication using a pseudo-terminal, as default mode on non Windows operating systems (without options),
-- TCP/IP networking, when using option `-n`, followed by the TCP/IP port,
+- TCP/IP networking, when using option `-n`, followed by the TCP/IP port (bound to `127.0.0.1` by default; use the `-i` option to change the network interface),
 - serial COM port, when using  option `-p`, default mode with Windows (the option is followed by the port name and allows setting a baud rate with the `-a` option),
-- standard communication, when using option `-P`.
+- standard communication, when using option `-P`,
+- native Bluetooth RFCOMM/SPP server, when using option `-w` (no virtual serial port driver, such as com0com, is needed),
+- CAN interface running the SLCAN (Lawicel) firmware, when using option `-c` (the application exchanges CAN frames with the emulated ECUs, like with a CANable/CANtact adapter, and on Linux the interface can be attached to SocketCAN with `slcand`),
+- K-Line ECU (ISO 9141-2 / ISO 14230), when using option `-K` (the application drives the K-Line directly, like with a VAG KKL adapter, including the half-duplex echo, the 5 baud wake-up and the Start Communication service).
 
 ### Usage of a pseudo-terminal
 
@@ -1040,6 +1119,25 @@ The `-n` options uses a TCP socket; the most commonly used one is 35000.
 ```shell
 python3 -m elm -s car -n 35000
 ```
+
+The socket is bound to the `127.0.0.1` loopback address by default, so only applications running on the same host can connect. Use the `-i` option to select a different local interface: `-i 0.0.0.0` (all IPv4 interfaces) or `-i ::` (all IPv6 interfaces) accept connections from any address, which is needed when the client application runs on another device (for instance, a smartphone OBD application). A specific local address can be used as well.
+
+```shell
+# Local applications only (default)
+python3 -m elm -s car -n 35000
+
+# Accept connections from other devices (e.g., a smartphone OBD application)
+python3 -m elm -s car -n 35000 -i 0.0.0.0
+```
+
+The bound interface is reported by the `port` command (and at startup), together with a warning when the TCP/IP port is reachable from other hosts:
+
+```
+Using TCP/IP network port 35000.
+The TCP/IP port is bound to the local host only (interface "127.0.0.1"); use the -i/--interface option to accept connections from other devices.
+```
+
+Note. Binding to `0.0.0.0` or `::` exposes the emulator — which implements no authentication — to every host that can reach the machine: use it only on trusted networks (for instance, a private test network or a firewall-protected host).
 
 ### Usage of a serial communication port
 
@@ -1155,6 +1253,89 @@ sudo chown $USER /dev/rfcomm0
 ```
 
 Note: the Bluetooth error "Can't bind RFCOMM socket: Address already in use" means that the `bind()` function used by the command producing the error failed because there is another socket with the same number already bound by a local application. The way to solve this problem is to find the local application binding that socket and terminating it.
+
+### Usage of native Bluetooth (SPP)
+
+*ELM327-emulator* can expose a native Bluetooth Serial Port Profile (SPP) server, implemented in pure Python, so that a Bluetooth client (a phone or tablet running an OBD-II application, a laptop, ...) connects to the emulator directly, with no virtual serial port driver and no external Bluetooth-to-serial bridge.
+
+```shell
+python3 -m elm -s car -w
+```
+
+The Bluetooth service is advertised with the name `ELM327`; the optional argument of the `-w` option changes it. The RFCOMM channel is shown at startup (and by the `port` command), because client applications normally need it:
+
+```
+ELM327-emulator is running on Bluetooth RFCOMM/SPP server 'ELM327' on channel 5 (adapter 00:11:22:33:44:55).
+```
+
+A specific channel can be requested with the `-k` option (`python3 -m elm -s car -w -k 1`). Channel `1` is the SPP default; when it is already reserved by the operating system (which is normal on Windows, where the Bluetooth stack keeps channels 1-4 for its own services), the emulator selects the first free channel automatically and reports it.
+
+The implementation selects the platform backend automatically (the same technique adopted by the sibling project [PT-P300BT](https://github.com/Ircama/PT-P300BT) for the reverse role, i.e. a Bluetooth *client*):
+
+- **Windows**: the Winsock Bluetooth stack is used directly through the standard `socket` module (`AF_BLUETOOTH`/`BTHPROTO_RFCOMM`). No kernel-mode driver is needed, so **com0com is not required**. Windows does not allow publishing the SDP service record from user mode, therefore the client should be configured with the RFCOMM channel shown at startup.
+- **Linux**: the same standard-library RFCOMM socket is used; the SDP record is additionally published with the BlueZ `sdptool` utility (best effort). If the RFCOMM socket cannot be bound, the BlueZ `rfcomm` utility can be used as an alternative. See also [Usage of Bluetooth with UNIX/Linux](#usage-of-bluetooth-with-unixlinux), which describes the `/dev/rfcomm0` bridge that can be used with the `-P` option instead.
+- **macOS**: Apple removed the Bluetooth serial tty port, so Darwin has no `AF_BLUETOOTH` socket and the `/dev/cu.*` bridge is unreliable. The IOBluetooth framework is therefore used through [PyObjC](https://pyobjc.readthedocs.io/) — the same pure-Python technique (no Swift, no Xcode) developed for PT-P300BT, including the macOS run loop draining that makes the RFCOMM channel tear down cleanly. Install the optional dependency with:
+
+  ```shell
+  python3 -m pip install "ELM327-emulator[bluetooth]"
+  ```
+
+  (or directly `python3 -m pip install pyobjc-framework-IOBluetooth`).
+
+Notes:
+
+- Bluetooth RFCOMM cannot loop back to the same adapter: the Bluetooth client must run on a different physical device (a phone, a tablet or another computer), not on the same machine as the emulator.
+- On macOS the terminal application may need Bluetooth permission (*System Settings* → *Privacy & Security* → *Bluetooth*).
+- The list of paired Bluetooth devices can be inspected with the `elm.bluetooth.list_devices()` helper (macOS: paired devices and SPP channel; Windows: the *Standard Serial over Bluetooth link* COM ports read from the `BTHENUM` registry keys, skipping the placeholder entries with the null MAC address; Linux: `bluetoothctl devices`).
+
+### Usage of an emulated CAN interface (SLCAN)
+
+Instead of emulating the ELM327 adapter, *ELM327-emulator* can expose a CAN interface running the SLCAN (Lawicel) firmware, like the one implemented by a *CANable* or *CANtact* adapter. A CAN application (a diagnostic tool or an ECU simulator) connects to the emulated interface, exchanges CAN frames, and the emulator answers the OBD-II requests found on the bus with the emulated ECUs of the selected scenario.
+
+```shell
+python3 -m elm -s car -c /dev/pts/3     # Linux/macOS (pseudo-tty)
+python3 -m elm -s car -c COM15          # Windows (one port of a virtual pair, e.g. com0com)
+```
+
+The other side of the port (the application) uses a virtual serial port pair (com0com on Windows, `socat`/pseudo-tty on Linux) or a real CAN interface. On Linux the emulated interface can be attached to the SocketCAN stack, so that the emulated ECUs become visible to any CAN program:
+
+```shell
+slcand -o -c -s6 /dev/pts/3 can0        # -s6 = 500 kbaud
+ip link set can0 up
+candump can0                            # or any other SocketCAN application
+```
+
+The implemented SLCAN commands are the version/serial/status queries (`V`, `N`, `F`), the channel and bitrate configuration commands (`S`, `O`, `C`, ...) and the frame transmission (`t`/`T` for 11/29 bit identifiers); transmitted frames are acknowledged with `z`, invalid frames with the bell character. The requests received on the bus are reassembled with the ISO-TP protocol (ISO 15765-2), processed with the configured scenario, and the answers are sent back as ISO-TP single or multiple frames (the consecutive frames are sent after the flow control frame of the tester).
+
+Notes:
+
+- The emulator answers for the ECUs of the selected scenario, i.e. it emulates the *bus*: it does not yet forward the requests to a real CAN interface. A CAN/K-Line backend able to reach real ECUs, and the 29 bit response mapping, are not implemented (ref. issues [#19](https://github.com/Ircama/ELM327-emulator/issues/19) and [#49](https://github.com/Ircama/ELM327-emulator/issues/49)).
+- Applications which validate the USB identity of the adapter (e.g. *HUD ECU Hacker* with its CANable adapters) do not accept a virtual serial port pair, so a physical CAN interface is needed with them; the ELM327 emulation (`-p`, `-n`, `-w`) is the option to use with a virtual port pair.
+
+### Usage of an emulated K-Line ECU (ISO 9141-2 / ISO 14230)
+
+A K-Line interface (a *VAG KKL* or a similar serial K-Line adapter) can be emulated as well, so that an application which drives the K-Line directly — i.e. an application using the K-Line adapter type instead of an ELM327 — can talk to the emulated ECUs:
+
+```shell
+python3 -m elm -s car -K /dev/pts/3     # Linux/macOS (pseudo-tty)
+python3 -m elm -s car -K COM15          # Windows (one port of a virtual pair, e.g. com0com)
+```
+
+The emulation includes the K-Line features used to establish the communication:
+
+- every byte sent by the application is **echoed back**, as a real K-Line interface does (the K-Line is a single, half-duplex wire);
+- the 5 baud wake-up address (which appears as a `0x00`/`0x33` byte on the serial port) is answered with the synchronization bytes `55 08 08`;
+- the *Start Communication* service (`0x81`) is answered with `83 F1 33 C1 8F E9 E0` (positive answer `0xC1` and key bytes);
+- the ISO 14230 messages (format byte with the length, target, source, data and checksum) are validated and used as OBD-II requests, and the answer is sent back with the addresses swapped (target = tester, source = ECU) and the related checksum.
+
+Example of a session (the application on the other side of the pair):
+
+```
+C2 33 F1 ( 01 06 ) ED      -> request sent by the application
+83 F1 33 ( 41 06 84 ) 72   -> answer of the emulated ECU
+```
+
+Note: while the ELM327 emulation understands the AT commands of the adapter, this option emulates the *bus*: the application must drive the K-Line protocol itself (as HUD ECU Hacker does with its `K-Line / VAG KKL` adapter type).
 
 ## Forwarder options
 
@@ -1632,11 +1813,25 @@ rc = write(fd, "ATZ\r", 4);
 
 # Running on Windows
 
-When natively running on Windows (to be used when connecting a Windows application), *ELM327-emulator* requires a virtual serial port driver providing a virtual COM port pair (like *com0com*), so that one COM port (e.g., COM4) can be used to connect the application and the other one (e.g., COM3) the *ELM327-emulator*. By default, *ELM327-emulator* uses the `COM3` serial port; any other port can be set through the `-p` argument. Example:
+When natively running on Windows and connecting a Windows application, *ELM327-emulator* can be used with the following interfaces:
+
+1. **Native Bluetooth (`-w`)** — recommended when the application can use a Bluetooth OBD-II adapter: the emulator publishes a Bluetooth SPP service and no virtual serial port driver is needed.
+2. **TCP/IP (`-n`)** — recommended when the application supports WiFi/network OBD-II adapters: no driver is needed.
+3. **Serial COM port (`-p`)** — required when the application can only open a serial port. This is the only case needing a virtual serial port driver providing a COM port pair (like *com0com*), so that one COM port (e.g., COM4) is used to connect the application and the other one (e.g., COM3) the *ELM327-emulator*. By default, *ELM327-emulator* uses the `COM3` serial port; any other port can be set through the `-p` argument.
+4. **Emulated bus (`-K`, `-c`)** — when the application uses a K-Line adapter (VAG KKL) or a CAN adapter running the SLCAN firmware (CANable/CANtact) instead of an ELM327: the emulator offers the emulated interface on a serial port, so a COM port pair (or a real serial port) is needed as well.
 
 ```shell
+# Native Bluetooth (no driver needed)
+python3 -m elm -s car -w
+
+# TCP/IP (no driver needed)
+python3 -m elm -s car -n 35000
+
+# com0com virtual COM port pair
 python3 -m elm -p COM5
 ```
+
+A pure-Python replacement of com0com is not possible: creating a `COMx` device that other Windows applications can open requires a kernel-mode driver, because Windows has no user-mode pseudo-terminal facility (unlike the `pty` used on UNIX/Linux). Secure Boot on Windows 10/11 additionally requires such a driver to be WHQL-signed, which is why unsigned com0com builds report error 52 in Device Manager until Secure Boot is disabled; the [Raffaello/com0com](https://github.com/Raffaello/com0com) fork modernizes the original sources (CMake build, x64 Windows 10 and later) and documents a self-signed certificate procedure. When installing a driver is not an option, use the `-w` or `-n` interface above.
 
 # Standards
 - The UDS Application layer is reported in [ISO 14229-1:2020](https://www.iso.org/standard/72439.html) (former ISO 15765-3, UDS on CAN)
@@ -1645,7 +1840,12 @@ python3 -m elm -p COM5
 - [ISO 14229-2:2013](https://www.iso.org/standard/45763.html): UDS Session layer services
 - [ISO 14230-2:1999](https://www.sis.se/api/document/preview/612053/): Keyword Protocol 2000 Data Link Layer
 - [ISO 14230-3:1999](https://www.sis.se/api/document/preview/895162/): Keyword Protocol 2000 Application Layer
+- [ISO 9141-2](https://en.wikipedia.org/wiki/ISO_9141) (K-Line, used by the emulated K-Line ECU interface)
 - OBD-II pids: SAE J1979 E/E Diagnostic Test Modes / ISO 15031
+
+## Code Development Mode
+
+Up to [version 3.0.5](https://github.com/Ircama/ELM327-emulator/commit/690c9d4719ed0aa49661a644f2eea2539bb97bbf), the code was written entirely by humans. Starting with version 4, development has been AI-assisted. Current AI agent: DeepSeek-V4.1-Flash.
 
 # Credits
 Thanks to [@qqj1228](https://github.com/qqj1228) for implementing support to [com0com Windows driver](#running-on-windows).
