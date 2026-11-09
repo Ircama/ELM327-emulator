@@ -1,0 +1,12 @@
+services:
+  elm327:
+    build:
+      context: ..
+      dockerfile: docker/Dockerfile
+    image: elm327-emulator
+    container_name: elm327-emulator
+    ports:
+      - "35000:35000"
+    stdin_open: true   # the emulator runs an interactive console by default
+    tty: true
+    restart: unless-stopped
